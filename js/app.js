@@ -33,7 +33,7 @@
     loadBar: $("loadBar"), loadFill: $("loadFill"),
     statsDialog: $("statsDialog"), statGrid: $("statGrid"), statGridDaily: $("statGridDaily"),
     statPoints: $("statPoints"), dist: $("dist"), helpDialog: $("helpDialog"), confirmDialog: $("confirmDialog"),
-    toast: $("toast"), confetti: $("confetti"), pointsPill: $("pointsPill"), pointsNum: $("pointsNum"), roundLabel: $("roundLabel"),
+    toast: $("toast"), confetti: $("confetti"), pointsPill: $("pointsPill"), pointsNum: $("pointsNum"), roundLabel: $("roundLabel"), confirmText: $("confirmText"),
     setBar: $("setBar"), setSlots: $("setSlots"), setRecord: $("setRecord"), revealSet: $("revealSet"),
     roundPts: $("roundPts"), roundNum: $("roundNum"),
     modeEndless: $("modeEndless"), modeDaily: $("modeDaily"),
@@ -429,10 +429,18 @@
 
   async function changeCategory(id) {
     if (id === category) return;
-    if (round && round.mode === "endless" && !round.done && round.attempts.length > 0) {
+    // Kategóriaváltáskor az 5 dalos kör újraindul.
+    const midSong = round && round.mode === "endless" && !round.done && round.attempts.length > 0;
+    const inSet = game.results.length > 0 && !gameDone();
+    if (midSong || inSet) {
+      el.confirmText.textContent = midSong
+        ? "A mostani dal vesztesnek számít, a sorozatod nullázódik, és az 5 dalos kör újraindul. Folytatod?"
+        : `Az 5 dalos kör újraindul (eddig ${gameScore()} pont, ${game.results.length}/${SET_SIZE} dal). Folytatod?`;
       if (!(await confirmDialog())) return;
-      finishRound(false, true);
+      if (midSong) finishRound(false, true);
     }
+    game = { results: [] };
+    save("game", game);
     category = id;
     save("category", category);
     save("round", null);
@@ -651,7 +659,7 @@
     round.points = scoreFor(won, tries, s.streak, multiplier);
     points += round.points.total;
     save("points", points);
-    if (round.mode === "endless" && !gameDone()) {
+    if (round.mode === "endless" && !silent && !gameDone()) {
       game.results.push({ won, pts: round.points.total });
       if (gameDone()) {
         const score = gameScore();
