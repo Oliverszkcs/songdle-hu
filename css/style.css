@@ -1,0 +1,275 @@
+:root {
+  --bg: #121214;
+  --surface: #1c1c21;
+  --surface-2: #26262d;
+  --border: #33333c;
+  --text: #f2f2f5;
+  --muted: #9a9aa6;
+  --accent: #1ed760;
+  --accent-ink: #06210f;
+  --wrong: #ef4f5f;
+  --skip: #6b6b78;
+  --radius: 14px;
+  --tap: 52px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+/* Fejléc */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.logo { margin: 0; font-size: 1.4rem; letter-spacing: .02em; }
+.logo span { color: var(--accent); }
+.icon-btn {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 1.15rem; font-weight: 700;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+
+/* Kategóriák */
+.categories {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 16px;
+  scrollbar-width: none;
+}
+.categories::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Játék */
+.game {
+  flex: 1;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.streak-line { color: var(--muted); font-size: .9rem; text-align: center; min-height: 1.2em; }
+
+.guesses { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.guesses li {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: flex; align-items: center; gap: 10px;
+  font-size: .95rem;
+  overflow: hidden;
+}
+.guesses li .mark { flex: none; width: 1.3em; text-align: center; font-weight: 700; }
+.guesses li .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.guesses li.current { border-color: var(--muted); }
+.guesses li.wrong { border-color: var(--wrong); }
+.guesses li.wrong .mark { color: var(--wrong); }
+.guesses li.skip { color: var(--muted); }
+.guesses li.right { border-color: var(--accent); }
+.guesses li.right .mark { color: var(--accent); }
+
+.status { margin: 0; text-align: center; color: var(--muted); min-height: 1.4em; }
+.status.error { color: var(--wrong); }
+
+/* Lejátszó */
+.player { display: grid; gap: 10px; }
+.timeline {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.timeline-unlocked, .timeline-fill {
+  position: absolute; inset: 0 auto 0 0;
+  width: 0;
+}
+.timeline-unlocked { background: #3d3d48; transition: width .25s; }
+.timeline-fill { background: var(--accent); }
+.timeline .tick {
+  position: absolute; top: 0; bottom: 0; width: 2px;
+  background: var(--bg);
+}
+.player-row { display: flex; align-items: center; justify-content: space-between; }
+.time { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3em; }
+.time:last-child { text-align: right; }
+.play-btn {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.play-btn svg { width: 36px; height: 36px; }
+.play-btn .i-stop, .play-btn.playing .i-play { display: none; }
+.play-btn.playing .i-stop { display: block; }
+.play-btn:disabled { opacity: .4; cursor: default; }
+
+/* Tipp */
+.controls { display: grid; gap: 10px; }
+.guess-box { position: relative; }
+#guessInput {
+  width: 100%;
+  height: var(--tap);
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  outline: none;
+}
+#guessInput:focus { border-color: var(--accent); }
+.suggestions {
+  position: absolute;
+  left: 0; right: 0; bottom: calc(100% + 6px);
+  margin: 0; padding: 4px;
+  list-style: none;
+  max-height: 50vh;
+  overflow-y: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, .5);
+  z-index: 10;
+}
+.suggestions li {
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  display: flex; flex-direction: column; justify-content: center;
+  cursor: pointer;
+}
+.suggestions li[aria-selected="true"], .suggestions li:hover { background: var(--border); }
+.suggestions .s-title { font-weight: 600; }
+.suggestions .s-artist { color: var(--muted); font-size: .85rem; }
+.suggestions .empty { color: var(--muted); cursor: default; }
+
+.buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn {
+  min-height: var(--tap);
+  padding: 0 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.btn:disabled { opacity: .4; cursor: default; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-ghost { background: var(--surface); }
+.btn-next { width: 100%; font-size: 1.1rem; }
+
+.shake { animation: shake .35s; }
+@keyframes shake {
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+/* Megoldás */
+.reveal {
+  display: flex; gap: 14px; align-items: center;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.cover {
+  width: 120px; height: 120px; flex: none;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+.reveal-text { min-width: 0; }
+.reveal-text p { margin: 0 0 4px; }
+.reveal-result { font-weight: 700; color: var(--accent); }
+.reveal-result.lost { color: var(--wrong); }
+.reveal-title { font-size: 1.2rem; font-weight: 800; }
+.reveal-artist { color: var(--text); }
+.reveal-album { color: var(--muted); font-size: .9rem; }
+.reveal-link { color: var(--accent); font-size: .9rem; display: inline-block; padding: 6px 0; }
+
+/* Párbeszédablakok */
+.dialog {
+  width: min(92vw, 420px);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 20px;
+}
+.dialog::backdrop { background: rgba(0, 0, 0, .65); }
+.dialog h2 { margin: 0 0 14px; }
+.dialog h3 { margin: 18px 0 8px; font-size: 1rem; color: var(--muted); }
+.dialog .btn { width: 100%; margin-top: 18px; }
+.help { padding-left: 1.2em; margin: 0; display: grid; gap: 8px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
+.stat-grid .n { font-size: 1.6rem; font-weight: 800; }
+.stat-grid .l { font-size: .75rem; color: var(--muted); }
+.dist { display: grid; gap: 4px; }
+.dist-row { display: grid; grid-template-columns: 1.6em 1fr; align-items: center; gap: 6px; font-size: .9rem; }
+.dist-bar {
+  background: var(--surface-2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-align: right;
+  font-weight: 700;
+  min-width: 1.8em;
+}
+.dist-bar.hl { background: var(--accent); color: var(--accent-ink); }
+.dist-bar.loss { background: var(--wrong); color: #fff; }
+
+.footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 10px; }
+.footer a { color: var(--muted); }
+
+@media (min-width: 600px) {
+  .categories { justify-content: center; flex-wrap: wrap; }
+  .cover { width: 150px; height: 150px; }
+}

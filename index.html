@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Songdle HU</title>
+  <meta name="description" content="Magyar dalfelismerős játék végtelen móddal.">
+  <meta name="theme-color" content="#121214">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Songdle HU">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-btn" id="helpBtn" aria-label="Súgó">?</button>
+    <h1 class="logo">Songdle <span>HU</span></h1>
+    <button class="icon-btn" id="statsBtn" aria-label="Statisztika">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M4 20V10h3v10H4zm6.5 0V4h3v16h-3zM17 20v-7h3v7h-3z"/></svg>
+    </button>
+  </header>
+
+  <nav class="categories" id="categories" aria-label="Kategória"></nav>
+
+  <main class="game">
+    <div class="streak-line" id="streakLine"></div>
+
+    <ol class="guesses" id="guesses"></ol>
+
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+
+    <section class="reveal" id="reveal" hidden>
+      <img class="cover" id="revealCover" alt="">
+      <div class="reveal-text">
+        <p class="reveal-result" id="revealResult"></p>
+        <p class="reveal-title" id="revealTitle"></p>
+        <p class="reveal-artist" id="revealArtist"></p>
+        <p class="reveal-album" id="revealAlbum"></p>
+        <a class="reveal-link" id="revealLink" target="_blank" rel="noopener">Meghallgatás a Deezeren ↗</a>
+      </div>
+    </section>
+
+    <section class="player">
+      <div class="timeline" id="timeline">
+        <div class="timeline-unlocked" id="timelineUnlocked"></div>
+        <div class="timeline-fill" id="timelineFill"></div>
+      </div>
+      <div class="player-row">
+        <span class="time" id="timeNow">0:00</span>
+        <button class="play-btn" id="playBtn" aria-label="Lejátszás" disabled>
+          <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+          <svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 7h10v10H7z"/></svg>
+        </button>
+        <span class="time" id="timeMax">0:16</span>
+      </div>
+    </section>
+
+    <section class="controls" id="controls">
+      <div class="guess-box">
+        <input id="guessInput" type="text" inputmode="search" autocomplete="off" autocorrect="off"
+               autocapitalize="off" spellcheck="false" placeholder="Írd be a dal címét…" aria-label="Tipp"
+               aria-autocomplete="list" aria-controls="suggestions" disabled>
+        <ul class="suggestions" id="suggestions" role="listbox" hidden></ul>
+      </div>
+      <div class="buttons">
+        <button class="btn btn-ghost" id="skipBtn" disabled>Kihagyás</button>
+        <button class="btn btn-primary" id="submitBtn" disabled>Tipp</button>
+      </div>
+    </section>
+
+    <button class="btn btn-primary btn-next" id="nextBtn" hidden>Következő dal →</button>
+  </main>
+
+  <footer class="footer">Zenei előnézetek: <a href="https://www.deezer.com" target="_blank" rel="noopener">Deezer</a></footer>
+
+  <dialog id="statsDialog" class="dialog">
+    <form method="dialog">
+      <h2>Statisztika</h2>
+      <div class="stat-grid" id="statGrid"></div>
+      <h3>Hányadikra találtad el</h3>
+      <div class="dist" id="dist"></div>
+      <button class="btn btn-primary" value="close">Bezár</button>
+    </form>
+  </dialog>
+
+  <dialog id="helpDialog" class="dialog">
+    <form method="dialog">
+      <h2>Hogyan kell játszani?</h2>
+      <ul class="help">
+        <li>Válassz kategóriát, majd nyomd meg a ▶ gombot, és hallgasd meg a dal elejét.</li>
+        <li>Először csak <b>1 mp</b>-et hallasz. Minden rossz tipp vagy kihagyás többet mutat: 2, 4, 7, 11, majd 16 mp.</li>
+        <li>Kezdd el gépelni a címet (vagy az előadót), és válassz a listából.</li>
+        <li>6 próbálkozásod van. Utána jön a megoldás, és a <b>Következő dal</b> gombbal végtelenül folytathatod.</li>
+        <li>A sorozatod akkor nő, ha egymás után eltalálod a dalokat.</li>
+      </ul>
+      <button class="btn btn-primary" value="close">Értem</button>
+    </form>
+  </dialog>
+
+  <audio id="audio" preload="auto"></audio>
+
+  <script src="js/config.js"></script>
+  <script src="js/deezer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
