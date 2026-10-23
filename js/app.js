@@ -36,7 +36,8 @@
     toast: $("toast"), confetti: $("confetti"), pointsPill: $("pointsPill"), pointsNum: $("pointsNum"), roundLabel: $("roundLabel"), confirmText: $("confirmText"),
     setBar: $("setBar"), setSlots: $("setSlots"), setRecord: $("setRecord"), revealSet: $("revealSet"),
     roundPts: $("roundPts"), roundNum: $("roundNum"),
-    modeEndless: $("modeEndless"), modeDaily: $("modeDaily"),
+    modeEndless: $("modeEndless"), modeDaily: $("modeDaily"), modeArtist: $("modeArtist"),
+    artistView: $("artistView"), game: document.querySelector(".game"), scroll: $("scroll"),
     volumeBtn: $("volumeBtn"), volumePop: $("volumePop"), volumeRange: $("volumeRange"),
     volumeVal: $("volumeVal"), muteBtn: $("muteBtn"),
   };
@@ -230,7 +231,7 @@
   }
 
   // ---------- Állapot ----------
-  let mode = load("mode", "endless") === "daily" ? "daily" : "endless";
+  let mode = ["daily", "artist"].includes(load("mode", "endless")) ? load("mode", "endless") : "endless";
   let category = load("category", "all");
   if (!CFG.CATEGORIES.some((c) => c.id === category)) category = "all";
   let pool = [];
@@ -367,6 +368,8 @@
     el.segmented.dataset.mode = mode;
     el.modeEndless.setAttribute("aria-selected", String(mode === "endless"));
     el.modeDaily.setAttribute("aria-selected", String(mode === "daily"));
+    el.modeArtist.setAttribute("aria-selected", String(mode === "artist"));
+    document.body.dataset.mode = mode;
     el.dailyBanner.hidden = mode !== "daily";
     const d = diffById(dailyDiff);
     el.dailyBanner.innerHTML = `Mai dal · <b>${prettyDate(dateKey())}</b> · ${d.label} · <b>×${d.multiplier}</b> pont`;
@@ -386,6 +389,20 @@
     badge.hidden = left === 0;
     badge.textContent = left;
     badge.title = `${left} napi dal van hátra`;
+    const ab = $("artistBadge");
+    ab.hidden = adDone();
+    ab.textContent = "1";
+    ab.title = "A mai előadó még nincs meg";
+  }
+
+  // Csak a chip-sort görgetjük, és csak ha a kiválasztott chip kilóg. A scrollIntoView
+  // mobilon az egész oldalt is elcsúsztathatja oldalra.
+  function revealChip(b) {
+    const row = el.categories, r = row.getBoundingClientRect(), c = b.getBoundingClientRect();
+    if (c.left >= r.left + 12 && c.right <= r.right - 28) return;
+    // Betöltéskor azonnal ugrik, csak koppintásra animál (különben oldalra csúszik a sor).
+    const smooth = !reducedMotion.matches && navigator.userActivation && navigator.userActivation.isActive;
+    row.scrollTo({ left: row.scrollLeft + c.left - r.left - (r.width - c.width) / 2, behavior: smooth ? "smooth" : "auto" });
   }
 
   function renderCategories() {
@@ -400,7 +417,7 @@
       b.setAttribute("aria-pressed", String(active));
       b.addEventListener("click", () => changeCategory(c.id));
       el.categories.appendChild(b);
-      if (active) requestAnimationFrame(() => b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }));
+      if (active) requestAnimationFrame(() => revealChip(b));
     }
   }
 
@@ -419,15 +436,8 @@
       b.children[1].textContent = d.label;
       b.addEventListener("click", () => changeDifficulty(d.id));
       el.categories.appendChild(b);
-      if (active) requestAnimationFrame(() => b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }));
+      if (active) requestAnimationFrame(() => revealChip(b));
     }
-    // Napi előadó-találós: külön ablakban nyílik.
-    const b = document.createElement("button");
-    b.className = "chip diff-chip artist-chip" + (adDone() ? " won" : "");
-    b.innerHTML = `<span class="diff-dot" aria-hidden="true">🎤</span><span>Előadó</span>`
-      + (adDone() ? `<span class="diff-state" aria-label="megfejtve">✓</span>` : `<span class="diff-mult">új</span>`);
-    b.addEventListener("click", openArtistGame);
-    el.categories.appendChild(b);
   }
 
   function changeDifficulty(id) {
@@ -474,12 +484,20 @@
   async function enterMode() {
     const token = ++loadToken;
     stopAudio();
+    adLeave();
     round = null;
     stopCountdown();
     resetStage();
     setControls(false);
     showDone(false);
     renderAll();
+    el.artistView.hidden = mode !== "artist";
+    el.game.hidden = mode === "artist";
+    if (mode === "artist") {
+      setLoading(false);
+      el.scroll.scrollTop = 0;
+      return openArtistGame();
+    }
 
     const poolCategory = mode === "daily" ? "all" : category;
     setLoading(true, 0);
@@ -918,6 +936,13 @@
   // A kör pontja: játék közben a még megszerezhető pont, a végén a megszerzett.
   function renderRoundPoints() {
     renderSetBar();
+    if (mode === "artist") {
+      const st = adState();
+      el.roundLabel.textContent = "ma";
+      el.roundNum.textContent = st.done ? (st.gaveUp ? "0" : "+" + st.points) : AD_POINTS(st.guesses.length + 1);
+      el.roundPts.className = "round-pts" + (st.done ? (st.gaveUp ? " lost" : " won") : "");
+      return;
+    }
     if (mode !== "daily") {
       const prevE = el.roundNum.textContent;
       el.roundNum.textContent = gameScore();
@@ -945,8 +970,8 @@
 
   // Az 5 dalos kör állása: dalonként a megszerzett pont, az aktuálisnál a még elérhető.
   function renderSetBar() {
-    el.setBar.hidden = mode === "daily";
-    if (mode === "daily") return;
+    el.setBar.hidden = mode !== "endless";
+    if (mode !== "endless") return;
     el.setSlots.innerHTML = "";
     for (let i = 0; i < SET_SIZE; i++) {
       const r = game.results[i], slot = document.createElement("span");
@@ -1392,7 +1417,12 @@
     activeIndex = i;
     [...el.suggestions.children].forEach((li, j) => li.setAttribute("aria-selected", String(j === i)));
     const li = el.suggestions.children[i];
-    if (li) li.scrollIntoView({ block: "nearest" });
+    // Csak a listát görgetjük (a scrollIntoView az oldalt is mozgathatja).
+    if (li) {
+      const s = el.suggestions;
+      if (li.offsetTop < s.scrollTop) s.scrollTop = li.offsetTop;
+      else if (li.offsetTop + li.offsetHeight > s.scrollTop + s.clientHeight) s.scrollTop = li.offsetTop + li.offsetHeight - s.clientHeight;
+    }
   }
 
   function choose(t) {
@@ -1513,9 +1543,10 @@
   el.shareBtn.addEventListener("click", share);
   el.modeEndless.addEventListener("click", () => changeMode("endless"));
   el.modeDaily.addEventListener("click", () => changeMode("daily"));
+  el.modeArtist.addEventListener("click", () => changeMode("artist"));
 
   document.addEventListener("keydown", (e) => {
-    if (document.querySelector("dialog[open]") || e.target === el.input || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (mode === "artist" || document.querySelector("dialog[open]") || e.target === el.input || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === " " && !el.playBtn.disabled) {
       e.preventDefault();
       playClip();
@@ -1861,12 +1892,12 @@
   const AD_TYPE = { solo: "Szóló", duo: "Duó", band: "Zenekar" };
   const AD_GENDER = { m: "Férfi", f: "Nő", mixed: "Vegyes" };
   const AD_HINT_AFTER = 4;
+  const AD_GIVEUP_AFTER = 5;
   const AD_POINTS = (n) => Math.max(20, 150 - (n - 1) * 20);
   const tagLabel = (id) => (CFG.CATEGORIES.find((c) => c.id === id) || { label: id }).label;
-  const adDialog = $("artistDialog");
   const ad = {
     input: $("adInput"), sugg: $("adSuggestions"), list: $("adGuesses"), empty: $("adEmpty"),
-    meta: $("adMeta"), win: $("adWin"), hint: $("adHintBtn"), search: $("adSearch"), cols: $("adCols"),
+    meta: $("adMeta"), win: $("adWin"), hint: $("adHintBtn"), giveUp: $("adGiveUpBtn"), search: $("adSearch"), cols: $("adCols"),
   };
   let adStats = load("artistStats", { played: 0, streak: 0, maxStreak: 0, lastWin: null, guesses: 0 });
 
@@ -1965,6 +1996,8 @@
     ad.hint.hidden = st.done;
     ad.hint.disabled = left > 0;
     ad.hint.textContent = left > 0 ? `🎧 Hallgass bele (még ${left} tipp)` : "🎧 Hallgass bele";
+    ad.giveUp.hidden = st.done || st.guesses.length < AD_GIVEUP_AFTER;
+    adResetGiveUp();
     adRenderWin(st, ans);
   }
 
@@ -1974,13 +2007,15 @@
     ad.win.innerHTML = "";
     const title = document.createElement("p");
     title.className = "ad-win-title";
-    title.textContent = st.guesses.length === 1 ? "Elsőre! 🤯" : `Eltaláltad ${st.guesses.length} tippből! 🎉`;
+    title.textContent = st.gaveUp ? `Feladva ${st.guesses.length} tipp után`
+      : st.guesses.length === 1 ? "Elsőre! 🤯" : `Eltaláltad ${st.guesses.length} tippből! 🎉`;
+    ad.win.classList.toggle("lost", !!st.gaveUp);
     const nameEl = document.createElement("p");
     nameEl.className = "ad-win-name";
     nameEl.textContent = ans.name;
     const pts = document.createElement("p");
     pts.className = "ad-win-points";
-    pts.textContent = `+${st.points} pont`;
+    pts.textContent = st.gaveUp ? "0 pont · a sorozat nullázódott" : `+${st.points} pont`;
     const next = document.createElement("p");
     next.className = "ad-win-next";
     const h = Math.floor(msToNextDay() / 3600e3), m = Math.floor(msToNextDay() / 60e3) % 60;
@@ -2004,7 +2039,7 @@
       const gi = await adFetch(g);
       lines.push(adCompare(g, ans, gi.fans, aInfo.fans).map(([c]) => emoji[c]).join(""));
     }
-    const text = `Songdle HU 🎤 Napi előadó · ${prettyDate(date)}\n${st.guesses.length} tipp\n${lines.join("\n")}\n${location.origin + location.pathname}`;
+    const text = `Songdle HU 🎤 Napi előadó · ${prettyDate(date)}\n${st.guesses.length} tipp${st.gaveUp ? " · feladva 🏳️" : ""}\n${lines.join("\n")}\n${location.origin + location.pathname}`;
     if (navigator.share) {
       try { await navigator.share({ text }); return; } catch (e) { if (e.name === "AbortError") return; }
     }
@@ -2034,8 +2069,9 @@
       vibrate(40);
     }
     save(adKey(date), st);
-    adRender(true).then(() => { if (st.done) ad.win.scrollIntoView({ block: "nearest" }); });
-    renderCategories();
+    adRender(true).then(() => { if (st.done) el.scroll.scrollTo({ top: 0, behavior: "smooth" }); });
+    updateDailyBadge();
+    renderRoundPoints();
   }
 
   // Keresés a játékban szereplő előadók között (a már tippelteket kihagyva).
@@ -2082,6 +2118,36 @@
     }
   });
 
+  // Feladás: első koppintásra megerősítést kér, a másodikra felfedi a megfejtést.
+  let adGiveUpTimer = 0;
+  function adResetGiveUp() {
+    clearTimeout(adGiveUpTimer);
+    ad.giveUp.classList.remove("confirm");
+    ad.giveUp.textContent = "🏳️ Feladom";
+  }
+  ad.giveUp.addEventListener("click", () => {
+    if (!ad.giveUp.classList.contains("confirm")) {
+      ad.giveUp.classList.add("confirm");
+      ad.giveUp.textContent = "Biztos? Koppints újra";
+      adGiveUpTimer = setTimeout(adResetGiveUp, 3500);
+      return;
+    }
+    const date = dateKey(), st = adState();
+    if (st.done) return;
+    st.done = true;
+    st.gaveUp = true;
+    st.points = 0;
+    adStats.played++;
+    adStats.guesses += st.guesses.length;
+    adStats.streak = 0;
+    save("artistStats", adStats);
+    save(adKey(date), st);
+    vibrate(120);
+    adRender(false).then(() => el.scroll.scrollTo({ top: 0, behavior: "smooth" }));
+    updateDailyBadge();
+    renderRoundPoints();
+  });
+
   // Tipp: a megfejtés legnépszerűbb dalából 10 másodperc.
   let adHintTimer = 0;
   ad.hint.addEventListener("click", async () => {
@@ -2114,18 +2180,14 @@
   function openArtistGame() {
     ad.input.value = "";
     adHideSugg();
-    // A konfetti a dialógus fölött is látsszon.
-    adDialog.appendChild(el.confetti);
     adRender(false);
     adFetch(adAnswer(dateKey()));
-    adDialog.showModal();
-    adDialog.querySelector(".ad-scroll").scrollTop = 0;
   }
-  adDialog.addEventListener("close", () => {
+  // Az oldal elhagyásakor a tipp-lejátszás leáll.
+  function adLeave() {
     clearTimeout(adHintTimer);
     libStop();
-    document.body.appendChild(el.confetti);
-  });
+  }
 
   // ---------- Indítás ----------
   applyVolume();

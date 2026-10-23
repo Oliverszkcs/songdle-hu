@@ -34,7 +34,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
-html, body { margin: 0; height: 100%; }
+html, body { margin: 0; height: 100%; overflow-x: hidden; overscroll-behavior: none; }
 
 body {
   background: var(--bg);
@@ -171,9 +171,9 @@ body.playing .logo-eq i { animation-play-state: running; }
 .segmented {
   position: relative;
   flex: 1;
-  max-width: 300px;
+  max-width: 360px;
   height: 50px;
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
   padding: 5px;
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
@@ -182,7 +182,7 @@ body.playing .logo-eq i { animation-play-state: running; }
 }
 .seg-indicator {
   position: absolute; top: 5px; bottom: 5px; left: 5px;
-  width: calc(50% - 5px);
+  width: calc((100% - 10px) / 3);
   border-radius: 13px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   box-shadow:
@@ -192,15 +192,16 @@ body.playing .logo-eq i { animation-play-state: running; }
   transition: transform .5s var(--ease-spring);
 }
 .segmented[data-mode="daily"] .seg-indicator { transform: translateX(100%); }
+.segmented[data-mode="artist"] .seg-indicator { transform: translateX(200%); }
 .segmented button {
   position: relative;
   display: flex; align-items: center; justify-content: center; gap: 7px;
-  padding: 0 8px;
+  padding: 0 6px;
   border: none;
   background: none;
   color: var(--muted);
   font-weight: 800;
-  font-size: .95rem;
+  font-size: .9rem;
   letter-spacing: .01em;
   cursor: pointer;
   transition: color .35s;
@@ -323,7 +324,13 @@ body.playing .logo-eq i { animation-play-state: running; }
   100% { transform: translate(var(--sx), var(--sy)) scale(0); opacity: 0; }
 }
 @media (max-width: 360px) {
-  .segmented button { font-size: .88rem; gap: 5px; }
+  .segmented { min-width: 0; padding: 4px; }
+  .segmented button { font-size: .8rem; min-width: 0; padding: 0 2px; }
+  .seg-indicator { top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); }
+  .mode-row { gap: 8px; padding-left: 10px; padding-right: 10px; }
+}
+@media (max-width: 345px) {
+  .segmented button { font-size: .72rem; }
 }
 
 .daily-banner {
@@ -1135,7 +1142,20 @@ kbd {
 /* ---------- Méretek ---------- */
 /* ---------- Napi előadó ---------- */
 .artist-chip .diff-mult { text-transform: uppercase; letter-spacing: .06em; }
-.ad-search { position: relative; margin: 14px 0 8px; flex: none; }
+/* Az előadó-oldal a fő nézetben: a dalos játék és a vezérlősáv helyén */
+body[data-mode="artist"] .categories-wrap,
+body[data-mode="artist"] .daily-banner,
+body[data-mode="artist"] .dock { display: none; }
+.artist-view { max-width: 520px; margin: 0 auto; padding: 0 16px 24px; animation: rise .4s var(--ease-out); }
+.ad-top {
+  position: sticky; top: 0; z-index: 5;
+  margin: 0 -16px; padding: 4px 16px 0;
+  background: linear-gradient(var(--bg) 85%, transparent);
+}
+.ad-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ad-title h2 { margin: 0; font-size: 1.35rem; font-weight: 900; }
+.ad-title p { margin: 0; color: var(--muted); font-size: .85rem; }
+.ad-search { position: relative; margin: 10px 0 8px; flex: none; }
 #adInput {
   width: 100%;
   height: 48px;
@@ -1168,9 +1188,7 @@ kbd {
 .ad-scroll { flex: 1; overflow-y: auto; margin: 0 -16px; padding: 0 16px 16px; overscroll-behavior: contain; }
 .ad-cols, .ad-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
 .ad-cols {
-  position: sticky; top: 0; z-index: 2;
-  padding: 6px 0;
-  background: rgba(22, 22, 30, .96);
+  padding: 6px 0 8px;
   font-size: .64rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
   color: var(--muted); text-align: center;
 }
@@ -1209,6 +1227,11 @@ kbd {
   animation: rise .5s var(--ease-out);
 }
 .ad-win p { margin: 0 0 4px; }
+.ad-win.lost { background: linear-gradient(135deg, rgba(255, 84, 112, .14), rgba(255, 84, 112, .04)); border-color: rgba(255, 84, 112, .3); }
+.ad-win.lost .ad-win-title { color: var(--wrong) !important; }
+.ad-win.lost .ad-win-points { color: var(--muted) !important; }
+.ad-giveup { color: var(--wrong); border-color: rgba(255, 84, 112, .3); }
+.ad-giveup.confirm { background: var(--wrong); color: #fff; border-color: transparent; animation: bump .5s var(--ease-spring); }
 .ad-win-title { color: var(--accent) !important; font-weight: 800; font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; }
 .ad-win-name { color: var(--text) !important; font-size: 1.6rem; font-weight: 900; }
 .ad-win-points { color: var(--near) !important; font-weight: 900; }
@@ -1229,14 +1252,22 @@ kbd {
   .play-btn { width: 54px; height: 54px; }
   .reveal-title { font-size: 1.3rem; }
 }
-@media (max-width: 380px) {
+/* Három fül csak ikon nélkül fér el telefonon. */
+@media (max-width: 520px) {
   .segmented button svg { display: none; }
+  .segmented button { gap: 4px; padding: 0 3px; font-size: .86rem; }
+  #artistBadge { min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; }
 }
 @media (max-width: 400px) {
   .topbar { padding-left: 10px; padding-right: 10px; }
   .topbar-side, .topbar-side.right { gap: 6px; width: 86px; }
   .icon-btn { width: 40px; height: 40px; }
   .logo { font-size: 1.25rem; gap: 6px; }
+}
+@media (max-width: 400px) {
+  /* telefonon a díszítő érme helyett több hely jut a három fülnek */
+  .points-pill .coin { display: none; }
+  .points-pill { padding-left: 2px; }
 }
 @media (max-width: 440px) {
   .points-text small, .round-pts small { letter-spacing: .06em; }

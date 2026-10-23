@@ -71,6 +71,11 @@
           <span>Napi</span>
           <span class="seg-badge" id="dailyBadge" hidden></span>
         </button>
+        <button role="tab" id="modeArtist" data-mode="artist">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></g></svg>
+          <span>Előadó</span>
+          <span class="seg-badge" id="artistBadge" hidden></span>
+        </button>
       </div>
       <div class="points-pill" id="pointsPill" title="Ebben a körben szerezhető / összes pont">
         <span class="round-pts" id="roundPts"><b id="roundNum">–</b><small id="roundLabel">kör</small></span>
@@ -88,6 +93,28 @@
     </div>
 
     <main class="scroll" id="scroll">
+      <section class="artist-view" id="artistView" hidden>
+        <div class="ad-top">
+          <div class="ad-title">
+            <h2>Napi előadó</h2>
+            <p id="adMeta"></p>
+          </div>
+          <div class="ad-search" id="adSearch">
+            <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM16 16l5 5"/></svg>
+            <input id="adInput" type="text" placeholder="Írj be egy előadót…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Előadó tippelése" aria-controls="adSuggestions">
+            <ul class="suggestions ad-suggestions" id="adSuggestions" role="listbox" hidden></ul>
+          </div>
+          <div class="ad-tools">
+            <button class="chip" id="adHintBtn" type="button" disabled></button>
+            <button class="chip ad-giveup" id="adGiveUpBtn" type="button" hidden>🏳️ Feladom</button>
+            <span class="ad-legend"><i class="hit"></i>egyezik <i class="near"></i>közel ▲▼ merre</span>
+          </div>
+          <div class="ad-cols" id="adCols" hidden aria-hidden="true"><span>Típus</span><span>Nem</span><span>Év</span><span>Műfaj</span><span>Rajongók</span></div>
+        </div>
+        <div class="ad-win" id="adWin" hidden></div>
+        <ol class="ad-guesses" id="adGuesses"></ol>
+        <p class="ad-empty" id="adEmpty">Találd ki a mai magyar előadót! Minden tipp után látod, mennyire áll közel: <b>típus</b>, <b>nem</b>, <b>születés / alakulás éve</b>, <b>műfaj</b> és <b>rajongók száma</b>.</p>
+      </section>
       <div class="game">
         <section class="stage" id="stage">
           <canvas class="viz" id="viz" aria-hidden="true"></canvas>
@@ -233,31 +260,6 @@
       <button class="chip" id="libCopyBtn" type="button" hidden>Lista másolása</button>
     </div>
     <div class="lib-list" id="libList"></div>
-  </dialog>
-
-  <dialog id="artistDialog" class="dialog dialog-tall">
-    <div class="lib-head">
-      <div>
-        <h2>🎤 Napi előadó</h2>
-        <p class="lib-meta" id="adMeta"></p>
-      </div>
-      <form method="dialog"><button class="icon-btn small" value="close" aria-label="Bezár">×</button></form>
-    </div>
-    <div class="ad-search" id="adSearch">
-      <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM16 16l5 5"/></svg>
-      <input id="adInput" type="text" placeholder="Írj be egy előadót…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Előadó tippelése" aria-controls="adSuggestions">
-      <ul class="suggestions ad-suggestions" id="adSuggestions" role="listbox" hidden></ul>
-    </div>
-    <div class="ad-tools">
-      <button class="chip" id="adHintBtn" type="button" disabled></button>
-      <span class="ad-legend"><i class="hit"></i>egyezik <i class="near"></i>közel ▲▼ merre</span>
-    </div>
-    <div class="ad-scroll">
-      <div class="ad-win" id="adWin" hidden></div>
-      <div class="ad-cols" id="adCols" hidden aria-hidden="true"><span>Típus</span><span>Nem</span><span>Év</span><span>Műfaj</span><span>Rajongók</span></div>
-      <ol class="ad-guesses" id="adGuesses"></ol>
-      <p class="ad-empty" id="adEmpty">Találd ki a mai magyar előadót! Minden tipp után látod, mennyire áll közel: <b>típus</b>, <b>nem</b>, <b>születés / alakulás éve</b>, <b>műfaj</b> és <b>rajongók száma</b>.</p>
-    </div>
   </dialog>
 
   <dialog id="reportDialog" class="dialog">
