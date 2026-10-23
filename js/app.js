@@ -358,7 +358,17 @@
     el.nextBtn.textContent = next ? `${next.icon} ${next.label} →` : "Végtelen mód →";
   }
 
+  // A „Napi” fülön jelzi, hány mai dal van még hátra.
+  function updateDailyBadge() {
+    const left = DIFFS.filter((d) => { const r = dailyResult(d.id); return !r || !r.done; }).length;
+    const badge = $("dailyBadge");
+    badge.hidden = left === 0;
+    badge.textContent = left;
+    badge.title = `${left} napi dal van hátra`;
+  }
+
   function renderCategories() {
+    updateDailyBadge();
     el.categories.innerHTML = "";
     if (mode === "daily") return renderDifficulties();
     for (const c of CFG.CATEGORIES) {
@@ -843,6 +853,18 @@
     const from = shownPoints, to = points, start = performance.now(), dur = 1100;
     if (from === to) return;
     retrigger(el.pointsPill, "bump");
+    if (!reducedMotion.matches) {
+      for (let i = 0; i < 12; i++) {
+        const sp = document.createElement("i");
+        sp.className = "spark";
+        const a = (i / 12) * Math.PI * 2 + Math.random() * 0.4, d = 26 + Math.random() * 22;
+        sp.style.setProperty("--sx", Math.cos(a) * d + "px");
+        sp.style.setProperty("--sy", Math.sin(a) * d + "px");
+        sp.style.animationDelay = Math.random() * 0.12 + "s";
+        el.pointsPill.appendChild(sp);
+        setTimeout(() => sp.remove(), 1100);
+      }
+    }
     const step = (now) => {
       const k = Math.min(1, (now - start) / dur);
       const eased = 1 - Math.pow(1 - k, 3);
