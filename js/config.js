@@ -120,6 +120,11 @@ window.SONGDLE_CONFIG = {
   // Mennyi ideig használjuk egy előadó gyorsítótárazott dallistáját (óra).
   POOL_CACHE_HOURS: 24,
 
+  // Mennyire részesítse előnyben a sorsolás a slágereket (Deezer-népszerűség
+  // alapján, kategórián belül). 0 = minden dal egyforma eséllyel jön;
+  // 3 = a legnépszerűbb negyed kapja a sorsolások kb. felét; 5+ = szinte csak slágerek.
+  POPULARITY_BIAS: 3,
+
   // Ennyi legutóbbi dalt nem sorsolunk újra.
   RECENT_MEMORY: 40,
 };

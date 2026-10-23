@@ -169,7 +169,30 @@
       t.hay = t.nTitle + " " + t.nArtists.join(" ");
     }
     pool.sort((a, b) => a.title.localeCompare(b.title, "hu"));
+    assignWeights(pool);
     return pool;
+  }
+
+  // Népszerűségi súly: a lista rangsor szerinti helyéből (0 = leggyengébb,
+  // 1 = legnagyobb sláger) exponenciálisan, hogy a kiugró értékek ne torzítsanak.
+  function assignWeights(list) {
+    const bias = CFG.POPULARITY_BIAS ?? 3;
+    const byRank = [...list].sort((a, b) => a.rank - b.rank);
+    const n = byRank.length;
+    byRank.forEach((t, i) => {
+      const p = n > 1 ? i / (n - 1) : 1;
+      t.weight = Math.exp(bias * (p - 1));
+    });
+  }
+
+  function weightedPick(list, rnd) {
+    const total = list.reduce((s, t) => s + (t.weight ?? 1), 0);
+    let r = rnd() * total;
+    for (const t of list) {
+      r -= t.weight ?? 1;
+      if (r <= 0) return t;
+    }
+    return list[list.length - 1];
   }
 
   const artistsFor = (cat) => cat === "all" ? CFG.ARTISTS : CFG.ARTISTS.filter((a) => (a.tags || []).includes(cat));
@@ -184,8 +207,11 @@
       const r = rng();
       let tracks;
       try { tracks = await loadArtist(artist); } catch { continue; }
-      const studio = tracks.filter((t) => !isLive(t)).sort((a, b) => a.id - b.id);
-      if (studio.length) return studio[Math.floor(r * studio.length)];
+      const studio = tracks.filter((t) => !isLive(t)).sort((a, b) => a.id - b.id).map((t) => ({ ...t }));
+      if (studio.length) {
+        assignWeights(studio);
+        return weightedPick(studio, () => r);
+      }
     }
     return null;
   }
@@ -393,8 +419,7 @@
   function pickTrack() {
     const recentSet = new Set(load("recent", []));
     const fresh = pool.filter((t) => !recentSet.has(t.id));
-    const from = fresh.length ? fresh : pool;
-    return from[Math.floor(Math.random() * from.length)];
+    return weightedPick(fresh.length ? fresh : pool, Math.random);
   }
 
   async function startRound(track, saved) {
