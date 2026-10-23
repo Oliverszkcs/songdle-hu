@@ -1361,6 +1361,9 @@ button.ad-tile:active { transform: scale(.95); }
 
 /* ---------- Párbaj, kihívás, nehéz mód, évtizedek ---------- */
 .segmented[data-mode="versus"] .seg-indicator { opacity: 0; }
+.sub-cats { padding-top: 0; animation: fade-down .25s var(--ease-out); }
+.sub-cats .chip { min-height: 32px; font-size: .88rem; }
+.decade-chip[aria-expanded="true"]:not([aria-pressed="true"]) { color: var(--text); border-color: var(--border-strong); }
 .chip-sep { flex: none; width: 1px; align-self: stretch; margin: 6px 2px; background: var(--border-strong); }
 .chip.battle-chip { color: var(--text); border-color: rgba(255, 197, 71, .35); background: rgba(255, 197, 71, .1); }
 .chip.hard-chip[aria-pressed="true"] {

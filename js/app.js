@@ -18,7 +18,7 @@
 
   const $ = (id) => document.getElementById(id);
   const el = {
-    categories: $("categories"), categoriesWrap: $("categoriesWrap"), dailyBanner: $("dailyBanner"),
+    categories: $("categories"), decadeRow: $("decadeRow"), categoriesWrap: $("categoriesWrap"), dailyBanner: $("dailyBanner"),
     segmented: $("segmented"), streakLine: $("streakLine"), guesses: $("guesses"), tries: $("tries"),
     status: $("status"), reveal: $("reveal"),
     revealResult: $("revealResult"), revealTitle: $("revealTitle"), revealArtist: $("revealArtist"),
@@ -541,16 +541,20 @@
   // Csak a chip-sort görgetjük, és csak ha a kiválasztott chip kilóg. A scrollIntoView
   // mobilon az egész oldalt is elcsúsztathatja oldalra.
   function revealChip(b) {
-    const row = el.categories, r = row.getBoundingClientRect(), c = b.getBoundingClientRect();
+    const row = b.parentElement, r = row.getBoundingClientRect(), c = b.getBoundingClientRect();
     if (c.left >= r.left + 12 && c.right <= r.right - 28) return;
     // Betöltéskor azonnal ugrik, csak koppintásra animál (különben oldalra csúszik a sor).
     const smooth = !reducedMotion.matches && navigator.userActivation && navigator.userActivation.isActive;
     row.scrollTo({ left: row.scrollLeft + c.left - r.left - (r.width - c.width) / 2, behavior: smooth ? "smooth" : "auto" });
   }
 
+  // Az évtizedek egy csoportban: a „📅 Évtized” chip egy második sort nyit le.
+  let decadesOpen = false;
   function renderCategories() {
     updateDailyBadge();
     el.categories.innerHTML = "";
+    el.decadeRow.innerHTML = "";
+    el.decadeRow.hidden = true;
     if (mode === "daily") return renderDifficulties();
     if (mode === "versus") {
       const b = document.createElement("button");
@@ -560,31 +564,51 @@
       el.categories.appendChild(b);
       return;
     }
-    const chip = (label, cls, onClick) => {
+    const chip = (label, cls, onClick, row = el.categories) => {
       const b = document.createElement("button");
       b.className = "chip" + (cls ? " " + cls : "");
       b.textContent = label;
       b.addEventListener("click", onClick);
-      el.categories.appendChild(b);
+      row.appendChild(b);
       return b;
+    };
+    const catChip = (c, row) => {
+      const active = c.id === category;
+      const b = chip(c.label, "", () => changeCategory(c.id), row);
+      b.setAttribute("aria-pressed", String(active));
+      if (active) requestAnimationFrame(() => revealChip(b));
     };
     chip("⚔️ Párbaj", "battle-chip", openBattle);
     const hardChip = chip("🔥 Nehéz", "hard-chip", toggleHard);
     hardChip.setAttribute("aria-pressed", String(hard));
     hardChip.title = `A részlet a dal közepéről indul, ×${HARD_MULT} pont`;
-    allCats.forEach((c, i) => {
-      // Elválasztó a műfajok és az évtizedek között.
-      if (i === CFG.CATEGORIES.length && DECADES.length) {
-        const sep = document.createElement("span");
-        sep.className = "chip-sep";
-        sep.setAttribute("aria-hidden", "true");
-        el.categories.appendChild(sep);
+    const sep = document.createElement("span");
+    sep.className = "chip-sep";
+    sep.setAttribute("aria-hidden", "true");
+    el.categories.appendChild(sep);
+
+    const decade = decadeOf(category);
+    CFG.CATEGORIES.forEach((c, i) => {
+      catChip(c, el.categories);
+      // A „Mind” után jön az évtized-csoport, hogy rögtön látszódjon.
+      if (i === 0 && DECADES.length) {
+        const open = decadesOpen || !!decade;
+        const b = chip(`📅 Évtized ${open ? "▴" : "▾"}`, "decade-chip", () => {
+          decadesOpen = !open;
+          // Évtized közben a csoport bezárása = vissza a „Mind” kategóriához.
+          if (!decadesOpen && decade) return changeCategory("all");
+          renderCategories();
+        });
+        b.setAttribute("aria-pressed", String(!!decade));
+        b.setAttribute("aria-expanded", String(open));
+        b.setAttribute("aria-controls", "decadeRow");
+        if (decade) requestAnimationFrame(() => revealChip(b));
       }
-      const active = c.id === category;
-      const b = chip(c.label, "", () => changeCategory(c.id));
-      b.setAttribute("aria-pressed", String(active));
-      if (active) requestAnimationFrame(() => revealChip(b));
     });
+    if (decadesOpen || decade) {
+      el.decadeRow.hidden = false;
+      DECADES.forEach((c) => catChip(c, el.decadeRow));
+    }
   }
 
   function toggleHard() {
@@ -650,6 +674,7 @@
     game = { results: [] };
     save("game", game);
     category = id;
+    if (!decadeOf(id)) decadesOpen = false;
     save("category", category);
     save("round", null);
     renderCategories();
