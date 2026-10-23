@@ -30,6 +30,7 @@ window.SONGDLE_CONFIG = {
     { name: "ByeAlex és a Slepp", id: 8787040, tags: ["pop", "alter"] },
     { name: "Rúzsa Magdi", id: 292212, tags: ["pop"] },
     { name: "Manuel", id: 79455642, tags: ["pop", "rap"] },
+    { name: "Bereczki Zoltán", id: 1189933, tags: ["pop"] },
 
     // Alter
     { name: "Quimby", id: 2177, tags: ["alter", "rock"] },
