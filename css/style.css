@@ -1187,12 +1187,7 @@ body[data-mode="artist"] .dock { display: none; }
 .ad-legend i.hit { background: var(--accent); }
 .ad-legend i.near { background: var(--near); }
 .ad-scroll { flex: 1; overflow-y: auto; margin: 0 -16px; padding: 0 16px 16px; overscroll-behavior: contain; }
-.ad-cols, .ad-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-.ad-cols {
-  padding: 6px 0 8px;
-  font-size: .64rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--muted); text-align: center;
-}
+.ad-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
 .ad-guesses { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .ad-row { animation: rise .4s var(--ease-out); }
 .ad-name { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: .92rem; }
@@ -1214,7 +1209,7 @@ body[data-mode="artist"] .dock { display: none; }
 .ad-tile.still { animation: none; }
 button.ad-tile { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; align-content: center; gap: 1px; }
 button.ad-tile:active { transform: scale(.95); }
-.ad-tile small { display: block; font-size: .58rem; font-weight: 700; opacity: .7; text-transform: uppercase; letter-spacing: .04em; }
+.ad-tile small { display: block; font-size: .56rem; font-weight: 700; opacity: .7; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 1px; }
 .ad-tile.hit { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-ink); border-color: transparent; }
 .ad-tile.near { background: var(--near); color: #2a1d00; border-color: transparent; }
 .ad-tile.miss { background: rgba(255, 255, 255, .05); color: rgba(244, 244, 248, .8); }

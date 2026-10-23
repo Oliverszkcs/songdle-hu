@@ -1956,13 +1956,15 @@
   }));
   const AD_TYPE = { solo: "Szóló", duo: "Duó", band: "Zenekar" };
   const AD_GENDER = { m: "Férfi", f: "Nő", mixed: "Vegyes" };
+  const AD_STATUS = { active: "Aktív", split: "Feloszlott", dead: "Elhunyt" };
+  const AD_ESC = { esc: "Indult", adal: "A Dal", no: "Nem" };
   const AD_HINT_AFTER = 4;
   const AD_GIVEUP_AFTER = 5;
   const AD_POINTS = (n) => Math.max(20, 150 - (n - 1) * 20);
   const tagLabel = (id) => (CFG.CATEGORIES.find((c) => c.id === id) || { label: id }).label;
   const ad = {
     input: $("adInput"), sugg: $("adSuggestions"), list: $("adGuesses"), empty: $("adEmpty"),
-    meta: $("adMeta"), win: $("adWin"), hint: $("adHintBtn"), giveUp: $("adGiveUpBtn"), search: $("adSearch"), cols: $("adCols"), help: $("adHelp"),
+    meta: $("adMeta"), win: $("adWin"), hint: $("adHintBtn"), giveUp: $("adGiveUpBtn"), search: $("adSearch"), help: $("adHelp"),
   };
   let adStats = load("artistStats", { played: 0, streak: 0, maxStreak: 0, lastWin: null, guesses: 0 });
 
@@ -2017,34 +2019,59 @@
     const later = ans.year > g.year;
     const more = aFans > gFans;
     const genreText = g.genres.map(tagLabel).join(", ");
+    // Első megjelenés éve: ±3 év közel.
+    const dd = Math.abs(g.debut - ans.debut);
+    const debut = dd === 0 ? "hit" : dd <= 3 ? "near" : "miss";
+    // Státusz: a feloszlott és az elhunyt is „már nem aktív”, ezért egymáshoz közel.
+    const status = g.status === ans.status ? "hit" : g.status !== "active" && ans.status !== "active" ? "near" : "miss";
+    // Eurovízió: aki csak az A Dalban indult, az közel van egy eurovíziós indulóhoz.
+    const gEsc = g.esc || "no", aEsc = ans.esc || "no";
+    const esc = gEsc === aEsc ? "hit" : gEsc !== "no" && aEsc !== "no" ? "near" : "miss";
+    // Két sor, soronként négy mező (telefonon így elfér).
     return [
       {
-        cls: type, text: AD_TYPE[g.type],
+        label: "Típus", cls: type, text: AD_TYPE[g.type],
         why: type === "hit" ? `Típus: egyezik – a mai előadó is ${AD_TYPE[g.type].toLowerCase()}.`
           : type === "near" ? `Típus: közel – a mai előadó is csapat (duó vagy zenekar), de nem ${AD_TYPE[g.type].toLowerCase()}.`
           : `Típus: nem egyezik – a mai előadó nem ${AD_TYPE[g.type].toLowerCase()}.`,
       },
       {
-        cls: gender, text: AD_GENDER[g.gender],
+        label: "Nem", cls: gender, text: AD_GENDER[g.gender],
         why: gender === "hit" ? `Nem: egyezik (${AD_GENDER[g.gender].toLowerCase()}).`
           : gender === "near" ? "Nem: részben egyezik – az egyikük vegyes (férfi és női tagok is), a másik nem."
           : "Nem: nem egyezik.",
       },
       {
-        cls: year, text: g.year + (year === "hit" ? "" : arrow(g.year, ans.year)), sub: born ? "szül." : "alakult",
-        why: `${g.name} ${g.year}-ben ${yearWord}. ` + (year === "hit" ? "Pontosan egyezik a mai előadóval."
-          : `A mai előadó ${later ? "később (▲)" : "korábban (▼)"} született vagy alakult` + (year === "near" ? ", legfeljebb 5 év a különbség." : ", több mint 5 év a különbség.")),
-      },
-      {
-        cls: genre, text: genreText,
+        label: "Műfaj", cls: genre, text: genreText,
         why: genre === "hit" ? "Műfaj: pontosan ugyanazok a műfajok."
           : genre === "near" ? "Műfaj: van közös műfaj, de nem mind egyezik." : "Műfaj: nincs közös műfaj.",
       },
       {
-        cls: fans, text: !gFans ? "–" : fmtFans(gFans) + (fans === "hit" || !known ? "" : arrow(gFans, aFans)), sub: "havi",
+        label: "Státusz", cls: status, text: AD_STATUS[g.status],
+        why: status === "hit" ? `Státusz: egyezik (${AD_STATUS[g.status].toLowerCase()}).`
+          : status === "near" ? "Státusz: közel – egyikük sem aktív már, de az egyik feloszlott, a másik elhunyt."
+          : g.status === "active" ? "Státusz: a mai előadó már nem aktív (feloszlott vagy elhunyt)." : "Státusz: a mai előadó még aktív.",
+      },
+      {
+        label: born ? "Született" : "Alakult", cls: year, text: g.year + (year === "hit" ? "" : arrow(g.year, ans.year)),
+        why: `${g.name} ${g.year}-ben ${yearWord}. ` + (year === "hit" ? "Pontosan egyezik a mai előadóval."
+          : `A mai előadó ${later ? "később (▲)" : "korábban (▼)"} született vagy alakult` + (year === "near" ? ", legfeljebb 5 év a különbség." : ", több mint 5 év a különbség.")),
+      },
+      {
+        label: "Debüt", cls: debut, text: g.debut + (debut === "hit" ? "" : arrow(g.debut, ans.debut)),
+        why: `${g.name} első kiadványa ${g.debut}-ben jelent meg. ` + (debut === "hit" ? "Ugyanabban az évben, mint a mai előadóé."
+          : `A mai előadó ${ans.debut > g.debut ? "később (▲)" : "korábban (▼)"} debütált` + (debut === "near" ? ", legfeljebb 3 év a különbség." : ", több mint 3 év a különbség.")),
+      },
+      {
+        label: "Hallgató", cls: fans, text: !gFans ? "–" : fmtFans(gFans) + (fans === "hit" || !known ? "" : arrow(gFans, aFans)),
         why: !known ? "Hallgatók: ennél az előadónál nincs Spotify-adat."
           : `${g.name}: ${gFans.toLocaleString("hu-HU")} havi hallgató a Spotify-on. ` + (fans === "hit" ? "Nagyjából ugyanannyi, mint a mai előadónak."
           : `A mai előadónak ${more ? "több (▲)" : "kevesebb (▼)"} van` + (fans === "near" ? ", de legfeljebb kétszeres a különbség." : ", több mint kétszeres a különbség.")),
+      },
+      {
+        label: "Eurovízió", cls: esc, text: AD_ESC[gEsc],
+        why: (gEsc === "esc" ? `${g.name} indult az Eurovíziós Dalfesztiválon. ` : gEsc === "adal" ? `${g.name} versenyzett az A Dalban (magyar eurovíziós válogató), de nem jutott ki. ` : `${g.name} nem indult sem az Eurovízión, sem az A Dalban. `)
+          + (esc === "hit" ? "Ebben egyezik a mai előadóval." : esc === "near" ? "A mai előadó is kötődik az Eurovízióhoz, de máshogy." : "A mai előadónál ez másképp van."),
       },
     ];
   }
@@ -2070,16 +2097,13 @@
       t.className = "ad-tile " + c.cls;
       t.setAttribute("aria-label", c.why);
       t.title = c.why;
+      const lab = document.createElement("small");
+      lab.textContent = c.label;
       const v = document.createElement("span");
       v.textContent = c.text;
-      t.appendChild(v);
-      if (c.sub) {
-        const s = document.createElement("small");
-        s.textContent = c.sub;
-        t.appendChild(s);
-      }
+      t.append(lab, v);
       t.addEventListener("click", () => toast(c.why));
-      if (animate) t.style.animationDelay = i * 0.12 + "s";
+      if (animate) t.style.animationDelay = i * 0.08 + "s";
       else t.classList.add("still");
       tiles.appendChild(t);
     });
@@ -2098,7 +2122,6 @@
     // A legújabb tipp kerül felülre.
     rows.filter(Boolean).reverse().forEach((r) => ad.list.appendChild(r));
     ad.empty.hidden = st.guesses.length > 0;
-    ad.cols.hidden = !st.guesses.length;
     ad.search.hidden = st.done;
     const left = AD_HINT_AFTER - st.guesses.length;
     ad.hint.hidden = st.done;
