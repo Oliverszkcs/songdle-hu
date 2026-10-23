@@ -21,7 +21,7 @@
   --skip: #6b6b80;
   --radius: 16px;
   --tap: 52px;
-  --disc: min(54vw, 216px);
+  --disc: clamp(104px, calc(72dvh - 368px), min(58vw, 250px));
   --ease-out: cubic-bezier(.22, 1, .36, 1);
   --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
   --t1: #1ed760;
@@ -93,7 +93,7 @@ body.playing .blob { opacity: .32; transition: opacity 1s; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px 8px;
+  padding: 8px 14px 6px;
   z-index: 20;
 }
 .topbar-side { display: flex; gap: 8px; width: 96px; }
@@ -164,7 +164,7 @@ body.playing .logo-eq i { animation-play-state: running; }
 .mode-row {
   flex: none;
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 0 14px 8px;
+  padding: 0 14px 6px;
   max-width: 552px; width: 100%; margin: 0 auto;
 }
 /* Módváltó: két egyforma fél, alatta egy csúszó, világító kijelölés. */
@@ -323,7 +323,6 @@ body.playing .logo-eq i { animation-play-state: running; }
   100% { transform: translate(var(--sx), var(--sy)) scale(0); opacity: 0; }
 }
 @media (max-width: 360px) {
-  .segmented button svg { display: none; }
   .segmented button { font-size: .88rem; gap: 5px; }
 }
 
@@ -344,7 +343,7 @@ body.playing .logo-eq i { animation-play-state: running; }
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 2px 16px 10px;
+  padding: 2px 16px 6px;
   scrollbar-width: none;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 32px), transparent);
   mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 32px), transparent);
@@ -353,8 +352,8 @@ body.playing .logo-eq i { animation-play-state: running; }
 .chip {
   position: relative; overflow: hidden;
   flex: none;
-  min-height: 40px;
-  padding: 0 16px;
+  min-height: 36px;
+  padding: 0 15px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -378,17 +377,17 @@ body.playing .logo-eq i { animation-play-state: running; }
 .game {
   max-width: 520px;
   margin: 0 auto;
-  padding: 4px 16px 18px;
+  padding: 0 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 /* ---------- Lemez + vizualizáció ---------- */
 .stage {
   position: relative;
-  width: calc(var(--disc) + 76px);
-  height: calc(var(--disc) + 76px);
+  width: calc(var(--disc) + 64px);
+  height: calc(var(--disc) + 64px);
   margin: 0 auto;
   display: grid; place-items: center;
 }
@@ -588,6 +587,33 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 .tries i.right { background: var(--accent); box-shadow: 0 0 12px rgba(30, 215, 96, .7); }
 @keyframes blink { 50% { opacity: .35; } }
 
+/* 5 dalos kör állása */
+.set-bar { display: flex; align-items: center; gap: 10px; }
+.set-slots { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.set-slots span {
+  height: 26px;
+  display: grid; place-items: center;
+  border-radius: 9px;
+  font-size: .78rem; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .05);
+  border: 1px dashed rgba(255, 255, 255, .12);
+  transition: background .4s, color .4s, border-color .4s;
+}
+.set-slots span.current { color: var(--text); border: 1px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .08); }
+.set-slots span.won { color: var(--accent-ink); background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; animation: bump .6s var(--ease-spring); }
+.set-slots span.lost { color: var(--wrong); background: rgba(255, 84, 112, .12); border: 1px solid rgba(255, 84, 112, .3); }
+.set-record {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: .82rem; font-weight: 700; color: rgba(255, 220, 150, .75);
+  background: rgba(255, 197, 71, .1);
+  border: 1px solid rgba(255, 197, 71, .22);
+}
+.set-record b { color: #ffe6a6; font-variant-numeric: tabular-nums; }
+
 .streak-line { color: var(--muted); font-size: .9rem; text-align: center; min-height: 1.3em; }
 .streak-line b { color: var(--text); }
 .flame { display: inline-block; animation: flicker 1.3s ease-in-out infinite; transform-origin: 50% 90%; }
@@ -653,6 +679,14 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   background: rgba(255, 197, 71, .12);
 }
 .reveal-points:empty { display: none; }
+.reveal-set {
+  margin: 12px 0 0 !important;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-weight: 700;
+}
+.reveal-set b { color: #ffe6a6; }
+.reveal-set .rec { color: var(--near); text-shadow: 0 0 14px rgba(255, 197, 71, .5); }
 
 /* ---------- Alsó vezérlősáv ---------- */
 .dock {
@@ -670,16 +704,16 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 .dock-inner {
   max-width: 520px;
   margin: 0 auto;
-  padding: 12px 16px 14px;
+  padding: 10px 16px 12px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .status { margin: 0; text-align: center; color: var(--muted); font-size: .9rem; min-height: 1.3em; font-weight: 500; }
 .status.error { color: var(--wrong); }
 .status.flash { animation: fade-down .35s var(--ease-out); }
 
-.controls { display: grid; gap: 10px; }
+.controls { display: grid; gap: 8px; }
 .guess-box { position: relative; }
 .search-ico { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 #guessInput {
@@ -1045,21 +1079,29 @@ kbd {
 
 /* ---------- Méretek ---------- */
 @media (max-height: 760px) {
-  :root { --disc: min(44vw, 170px); --tap: 48px; }
-  .wave { height: 44px; }
-  .game { gap: 10px; }
-  .dock-inner { gap: 8px; padding-top: 10px; }
+  :root { --tap: 48px; }
+  .wave { height: 40px; }
+  .game { gap: 8px; }
+  .topbar { padding-top: 6px; padding-bottom: 4px; }
+  .dock-inner { gap: 7px; padding-top: 8px; padding-bottom: 10px; }
 }
 @media (max-height: 640px) {
-  :root { --disc: min(36vw, 130px); }
+  :root { --tap: 44px; }
+  .chip { min-height: 32px; }
+  .wave { height: 32px; }
   .play-btn { width: 54px; height: 54px; }
   .reveal-title { font-size: 1.3rem; }
+}
+@media (max-width: 380px) {
+  .segmented button svg { display: none; }
 }
 @media (max-width: 400px) {
   .topbar { padding-left: 10px; padding-right: 10px; }
   .topbar-side, .topbar-side.right { gap: 6px; width: 86px; }
   .icon-btn { width: 40px; height: 40px; }
   .logo { font-size: 1.25rem; gap: 6px; }
+}
+@media (max-width: 440px) {
   .points-text small, .round-pts small { letter-spacing: .06em; }
   .round-pts { min-width: 44px; padding: 0 7px 0 4px; }
   .points-pill { padding: 0 10px 0 4px; gap: 6px; }

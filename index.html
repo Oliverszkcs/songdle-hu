@@ -73,7 +73,7 @@
         </button>
       </div>
       <div class="points-pill" id="pointsPill" title="Ebben a körben szerezhető / összes pont">
-        <span class="round-pts" id="roundPts"><b id="roundNum">–</b><small>kör</small></span>
+        <span class="round-pts" id="roundPts"><b id="roundNum">–</b><small id="roundLabel">kör</small></span>
         <span class="coin" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path fill="#fff8e0" d="M12 3.2l2.6 5.3 5.8.85-4.2 4.1 1 5.8L12 16.5l-5.2 2.75 1-5.8-4.2-4.1 5.8-.85z"/></svg>
         </span>
@@ -123,6 +123,7 @@
               <span>Jelentés</span>
             </button>
           </div>
+          <p class="reveal-set" id="revealSet" hidden></p>
         </section>
 
         <div class="clip-info">
@@ -137,6 +138,10 @@
         </div>
 
         <div class="tries" id="tries" aria-hidden="true"></div>
+        <div class="set-bar" id="setBar" hidden>
+          <div class="set-slots" id="setSlots" aria-label="A kör dalai"></div>
+          <div class="set-record" title="Legjobb 5 dalos kör">🏆 <b id="setRecord">0</b></div>
+        </div>
 
         <div class="streak-line" id="streakLine"></div>
 
@@ -202,6 +207,7 @@
         <li><span class="help-ico">⌨</span><span>Kezdd el gépelni a címet vagy az előadót, és válassz a listából.</span></li>
         <li><span class="help-ico near">~</span><span>Sárga: jó az előadó, de más a dal.</span></li>
         <li><span class="help-ico">⭐</span><span><b>Pontok:</b> 1. tippre 100, aztán 80, 60, 40, 25, 10. A sorozatod bónuszt ad (+5 pont dalonként, max. +50).</span></li>
+        <li><span class="help-ico">🏆</span><span><b>Kör:</b> végtelen módban 5 dal egy kör. A kör pontjait összeadjuk, és a legjobb kör a rekordod.</span></li>
         <li><span class="help-ico">📅</span><span><b>Napi dal:</b> naponta 4 dal, mindenkinek ugyanaz: 🟢 Könnyű (×1), 🟡 Közepes (×2), 🟠 Nehéz (×3) és 🔴 Extrém (×4 pont). Minél nehezebb, annál kevésbé ismert a dal. Mindegyiknek külön sorozata van.</span></li>
       </ul>
       <p class="hint-keys">Billentyűzeten: <kbd>Szóköz</kbd> lejátszás, <kbd>Enter</kbd> tipp / következő dal.</p>

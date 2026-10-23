@@ -8,6 +8,7 @@
   const FULL_PREVIEW = 30;
   const POINTS = [100, 80, 60, 40, 25, 10];
   const STREAK_BONUS = 5, STREAK_BONUS_MAX = 50;
+  const SET_SIZE = 5; // ennyi dal egy kör a végtelen módban
   const DIFFS = CFG.DAILY_DIFFICULTIES;
   const diffById = (id) => DIFFS.find((d) => d.id === id) || DIFFS[0];
   const WAVE_BARS = 64;
@@ -32,7 +33,8 @@
     loadBar: $("loadBar"), loadFill: $("loadFill"),
     statsDialog: $("statsDialog"), statGrid: $("statGrid"), statGridDaily: $("statGridDaily"),
     statPoints: $("statPoints"), dist: $("dist"), helpDialog: $("helpDialog"), confirmDialog: $("confirmDialog"),
-    toast: $("toast"), confetti: $("confetti"), pointsPill: $("pointsPill"), pointsNum: $("pointsNum"),
+    toast: $("toast"), confetti: $("confetti"), pointsPill: $("pointsPill"), pointsNum: $("pointsNum"), roundLabel: $("roundLabel"),
+    setBar: $("setBar"), setSlots: $("setSlots"), setRecord: $("setRecord"), revealSet: $("revealSet"),
     roundPts: $("roundPts"), roundNum: $("roundNum"),
     modeEndless: $("modeEndless"), modeDaily: $("modeDaily"),
     volumeBtn: $("volumeBtn"), volumePop: $("volumePop"), volumeRange: $("volumeRange"),
@@ -247,6 +249,11 @@
   })();
   const dailyStats = (id = dailyDiff) => dailyStatsAll[id];
   let points = load("points", 0);
+  // Végtelen mód: 5 dalos kör (dalonkénti eredmény) és a legjobb kör pontszáma.
+  let game = load("game", { results: [] });
+  let bestGame = load("bestGame", 0);
+  const gameScore = () => game.results.reduce((a, r) => a + r.pts, 0);
+  const gameDone = () => game.results.length >= SET_SIZE;
   let shownPoints = points;
 
   function dailyStreakNow(id = dailyDiff) {
@@ -361,7 +368,7 @@
   }
 
   function updateNextButton() {
-    if (mode !== "daily") { el.nextBtn.textContent = "Következő dal →"; return; }
+    if (mode !== "daily") { el.nextBtn.textContent = gameDone() ? "Új kör →" : "Következő dal →"; return; }
     const next = nextUnplayedDiff();
     el.nextBtn.textContent = next ? `${next.icon} ${next.label} →` : "Végtelen mód →";
   }
@@ -500,6 +507,10 @@
   async function startRound(track, saved) {
     const token = loadToken;
     const fixed = !!track;
+    if (mode !== "daily" && !saved && gameDone()) {
+      game = { results: [] };
+      save("game", game);
+    }
     stopAudio();
     stopCountdown();
     round = null;
@@ -640,6 +651,16 @@
     round.points = scoreFor(won, tries, s.streak, multiplier);
     points += round.points.total;
     save("points", points);
+    if (round.mode === "endless" && !gameDone()) {
+      game.results.push({ won, pts: round.points.total });
+      if (gameDone()) {
+        const score = gameScore();
+        game.record = score > bestGame && score > 0;
+        game.prevBest = bestGame;
+        if (game.record) { bestGame = score; save("bestGame", bestGame); }
+      }
+      save("game", game);
+    }
     persistRound();
     if (silent) return;
     if (round.mode === "daily") renderCategories();
@@ -693,6 +714,15 @@
     el.revealPoints.textContent = p && p.total
       ? `+${p.total} pont` + (p.bonus ? ` (🔥 +${p.bonus})` : "")
       : "";
+    const setOver = round.mode === "endless" && gameDone();
+    el.revealSet.hidden = !setOver;
+    if (setOver) {
+      const score = gameScore();
+      el.revealSet.innerHTML = game.record
+        ? `🏁 Kör vége: <b>${score}</b> pont · <span class="rec">🏆 Új rekord!</span>`
+        : `🏁 Kör vége: <b>${score}</b> pont · rekord: ${bestGame}`;
+      if (game.record && autoplay) setTimeout(confetti, 700);
+    }
     el.reveal.hidden = false;
     retrigger(el.reveal, "in");
     $("scroll").scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
@@ -858,6 +888,16 @@
 
   // A kör pontja: játék közben a még megszerezhető pont, a végén a megszerzett.
   function renderRoundPoints() {
+    renderSetBar();
+    if (mode !== "daily") {
+      const prevE = el.roundNum.textContent;
+      el.roundNum.textContent = gameScore();
+      el.roundLabel.textContent = `kör ${Math.min(game.results.length + (round && !round.done ? 1 : 0), SET_SIZE) || 1}/${SET_SIZE}`;
+      el.roundPts.className = "round-pts" + (gameDone() && game.record ? " won" : "");
+      if (prevE !== el.roundNum.textContent) retrigger(el.roundPts, "tick");
+      return;
+    }
+    el.roundLabel.textContent = "dal";
     let n = null, state = "";
     if (round && round.done) {
       n = round.points ? round.points.total : 0;
@@ -872,6 +912,25 @@
     el.roundNum.textContent = n === null ? "–" : (state === "won" ? "+" : "") + n;
     el.roundPts.className = "round-pts " + state;
     if (prev !== el.roundNum.textContent && n !== null) retrigger(el.roundPts, "tick");
+  }
+
+  // Az 5 dalos kör állása: dalonként a megszerzett pont, az aktuálisnál a még elérhető.
+  function renderSetBar() {
+    el.setBar.hidden = mode === "daily";
+    if (mode === "daily") return;
+    el.setSlots.innerHTML = "";
+    for (let i = 0; i < SET_SIZE; i++) {
+      const r = game.results[i], slot = document.createElement("span");
+      if (r) {
+        slot.className = r.won ? "won" : "lost";
+        slot.textContent = r.won ? r.pts : "✗";
+      } else if (i === game.results.length && round && !round.done) {
+        slot.className = "current";
+        slot.textContent = scoreFor(true, round.attempts.length + 1, stats.streak + 1, 1).total;
+      }
+      el.setSlots.appendChild(slot);
+    }
+    el.setRecord.textContent = bestGame;
   }
 
   function renderPoints() {
