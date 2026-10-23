@@ -421,6 +421,13 @@
       el.categories.appendChild(b);
       if (active) requestAnimationFrame(() => b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }));
     }
+    // Napi előadó-találós: külön ablakban nyílik.
+    const b = document.createElement("button");
+    b.className = "chip diff-chip artist-chip" + (adDone() ? " won" : "");
+    b.innerHTML = `<span class="diff-dot" aria-hidden="true">🎤</span><span>Előadó</span>`
+      + (adDone() ? `<span class="diff-state" aria-label="megfejtve">✓</span>` : `<span class="diff-mult">új</span>`);
+    b.addEventListener("click", openArtistGame);
+    el.categories.appendChild(b);
   }
 
   function changeDifficulty(id) {
@@ -1843,6 +1850,282 @@
     el.statsDialog.scrollTop = 0;
   });
   $("helpBtn").addEventListener("click", () => el.helpDialog.showModal());
+
+  // ---------- Napi előadó ----------
+  // Találós a Napi módban: minden tippnél megmutatjuk, mennyire hasonlít a tippelt
+  // előadó a mai megfejtésre (zöld: egyezik, sárga: részben/közel, nyíl: merre).
+  const AD_INFO = CFG.ARTIST_INFO || {};
+  const adArtists = CFG.ARTISTS.filter((a) => a.id && AD_INFO[a.name]).map((a) => ({
+    ...a, ...AD_INFO[a.name], n: norm(a.name), genres: a.tags.filter((t) => t !== "all"),
+  }));
+  const AD_TYPE = { solo: "Szóló", duo: "Duó", band: "Zenekar" };
+  const AD_GENDER = { m: "Férfi", f: "Nő", mixed: "Vegyes" };
+  const AD_HINT_AFTER = 4;
+  const AD_POINTS = (n) => Math.max(20, 150 - (n - 1) * 20);
+  const tagLabel = (id) => (CFG.CATEGORIES.find((c) => c.id === id) || { label: id }).label;
+  const adDialog = $("artistDialog");
+  const ad = {
+    input: $("adInput"), sugg: $("adSuggestions"), list: $("adGuesses"), empty: $("adEmpty"),
+    meta: $("adMeta"), win: $("adWin"), hint: $("adHintBtn"), search: $("adSearch"), cols: $("adCols"),
+  };
+  let adStats = load("artistStats", { played: 0, streak: 0, maxStreak: 0, lastWin: null, guesses: 0 });
+
+  function adAnswer(date) {
+    let best = null, bestH = -1;
+    for (const a of adArtists) {
+      const h = hashString(`songdle-hu:artist:${date}:${a.id}`);
+      if (h > bestH) { bestH = h; best = a; }
+    }
+    return best;
+  }
+  const adKey = (date) => `artistdle.${date}`;
+  const adState = () => load(adKey(dateKey()), { guesses: [], done: false, points: 0 });
+  const adDone = () => adState().done;
+
+  // Deezer-adat (kép, rajongók) előadónként, egy napig tárolva.
+  const adInfoCache = new Map();
+  function adFetch(a) {
+    if (adInfoCache.has(a.id)) return adInfoCache.get(a.id);
+    const key = "artistInfo." + a.id;
+    const cached = load(key, null);
+    const p = cached && Date.now() - cached.ts < 24 * 3600e3
+      ? Promise.resolve(cached)
+      : withRetry(() => Deezer.artist(a.id)).then((d) => {
+        const v = { ts: Date.now(), fans: d.nb_fan || 0, pic: d.picture_medium || "" };
+        save(key, v);
+        return v;
+      }).catch(() => ({ fans: 0, pic: "" }));
+    adInfoCache.set(a.id, p);
+    return p;
+  }
+
+  const fmtFans = (n) => n >= 1e6 ? (n / 1e6).toFixed(1).replace(".0", "") + "M"
+    : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
+
+  // Egy tipp összevetése a megfejtéssel: [osztály, szöveg] oszloponként.
+  function adCompare(g, ans, gFans, aFans) {
+    const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+    const arrow = (gv, av) => (av > gv ? " ▲" : av < gv ? " ▼" : "");
+    const type = g.type === ans.type ? "hit" : g.type !== "solo" && ans.type !== "solo" ? "near" : "miss";
+    const gender = g.gender === ans.gender ? "hit" : g.gender === "mixed" || ans.gender === "mixed" ? "near" : "miss";
+    const dy = Math.abs(g.year - ans.year);
+    const year = dy === 0 ? "hit" : dy <= 5 ? "near" : "miss";
+    const genre = same(g.genres, ans.genres) ? "hit" : g.genres.some((x) => ans.genres.includes(x)) ? "near" : "miss";
+    const ratio = Math.max(gFans, aFans) / Math.max(1, Math.min(gFans, aFans));
+    const fans = g.id === ans.id || ratio <= 1.15 ? "hit" : ratio <= 2 ? "near" : "miss";
+    return [
+      [type, AD_TYPE[g.type]],
+      [gender, AD_GENDER[g.gender]],
+      [year, g.year + (year === "hit" ? "" : arrow(g.year, ans.year))],
+      [genre, g.genres.map(tagLabel).join(", ")],
+      [fans, fmtFans(gFans) + (fans === "hit" ? "" : arrow(gFans, aFans))],
+    ];
+  }
+
+  async function adRenderRow(g, ans, animate) {
+    const [gi, ai] = await Promise.all([adFetch(g), adFetch(ans)]);
+    const li = document.createElement("li");
+    li.className = "ad-row" + (g.id === ans.id ? " win" : "");
+    const head = document.createElement("div");
+    head.className = "ad-name";
+    const img = document.createElement("img");
+    img.alt = "";
+    if (gi.pic) img.src = gi.pic;
+    const name = document.createElement("b");
+    name.textContent = g.name;
+    head.append(img, name);
+    const tiles = document.createElement("div");
+    tiles.className = "ad-tiles";
+    adCompare(g, ans, gi.fans, ai.fans).forEach(([cls, text], i) => {
+      const t = document.createElement("span");
+      t.className = "ad-tile " + cls;
+      t.textContent = text;
+      if (animate) t.style.animationDelay = i * 0.12 + "s";
+      else t.classList.add("still");
+      tiles.appendChild(t);
+    });
+    li.append(head, tiles);
+    return li;
+  }
+
+  async function adRender(animateLast) {
+    const date = dateKey(), ans = adAnswer(date), st = adState();
+    ad.meta.textContent = `${prettyDate(date)} · ${st.guesses.length} tipp`;
+    const rows = await Promise.all(st.guesses.map((n, i) => {
+      const g = adArtists.find((a) => a.name === n);
+      return g ? adRenderRow(g, ans, animateLast && i === st.guesses.length - 1) : null;
+    }));
+    ad.list.innerHTML = "";
+    // A legújabb tipp kerül felülre.
+    rows.filter(Boolean).reverse().forEach((r) => ad.list.appendChild(r));
+    ad.empty.hidden = st.guesses.length > 0;
+    ad.cols.hidden = !st.guesses.length;
+    ad.search.hidden = st.done;
+    const left = AD_HINT_AFTER - st.guesses.length;
+    ad.hint.hidden = st.done;
+    ad.hint.disabled = left > 0;
+    ad.hint.textContent = left > 0 ? `🎧 Hallgass bele (még ${left} tipp)` : "🎧 Hallgass bele";
+    adRenderWin(st, ans);
+  }
+
+  function adRenderWin(st, ans) {
+    ad.win.hidden = !st.done;
+    if (!st.done) return;
+    ad.win.innerHTML = "";
+    const title = document.createElement("p");
+    title.className = "ad-win-title";
+    title.textContent = st.guesses.length === 1 ? "Elsőre! 🤯" : `Eltaláltad ${st.guesses.length} tippből! 🎉`;
+    const nameEl = document.createElement("p");
+    nameEl.className = "ad-win-name";
+    nameEl.textContent = ans.name;
+    const pts = document.createElement("p");
+    pts.className = "ad-win-points";
+    pts.textContent = `+${st.points} pont`;
+    const next = document.createElement("p");
+    next.className = "ad-win-next";
+    const h = Math.floor(msToNextDay() / 3600e3), m = Math.floor(msToNextDay() / 60e3) % 60;
+    next.textContent = `Új előadó ${h} óra ${m} perc múlva · sorozat: ${adStats.streak}`;
+    const share = document.createElement("button");
+    share.className = "btn btn-ghost";
+    share.type = "button";
+    share.textContent = "Megosztás";
+    share.addEventListener("click", adShare);
+    ad.win.append(title, nameEl, pts, next, share);
+  }
+
+  async function adShare() {
+    const date = dateKey(), ans = adAnswer(date), st = adState();
+    const emoji = { hit: "🟩", near: "🟨", miss: "⬛" };
+    const aInfo = await adFetch(ans);
+    const lines = [];
+    for (const n of st.guesses) {
+      const g = adArtists.find((a) => a.name === n);
+      if (!g) continue;
+      const gi = await adFetch(g);
+      lines.push(adCompare(g, ans, gi.fans, aInfo.fans).map(([c]) => emoji[c]).join(""));
+    }
+    const text = `Songdle HU 🎤 Napi előadó · ${prettyDate(date)}\n${st.guesses.length} tipp\n${lines.join("\n")}\n${location.origin + location.pathname}`;
+    if (navigator.share) {
+      try { await navigator.share({ text }); return; } catch (e) { if (e.name === "AbortError") return; }
+    }
+    toast((await copyText(text)) ? "Eredmény a vágólapon!" : "Nem sikerült másolni.");
+  }
+
+  function adGuess(a) {
+    const date = dateKey(), ans = adAnswer(date), st = adState();
+    if (st.done || st.guesses.includes(a.name)) return;
+    st.guesses.push(a.name);
+    ad.input.value = "";
+    adHideSugg();
+    if (a.id === ans.id) {
+      st.done = true;
+      st.points = AD_POINTS(st.guesses.length);
+      points += st.points;
+      save("points", points);
+      adStats.played++;
+      adStats.guesses += st.guesses.length;
+      adStats.streak = adStats.lastWin === shiftDate(date, -1) ? adStats.streak + 1 : 1;
+      adStats.lastWin = date;
+      adStats.maxStreak = Math.max(adStats.maxStreak, adStats.streak);
+      save("artistStats", adStats);
+      vibrate([30, 40, 30]);
+      setTimeout(() => { confetti(); animatePoints(); }, 700);
+    } else {
+      vibrate(40);
+    }
+    save(adKey(date), st);
+    adRender(true).then(() => { if (st.done) ad.win.scrollIntoView({ block: "nearest" }); });
+    renderCategories();
+  }
+
+  // Keresés a játékban szereplő előadók között (a már tippelteket kihagyva).
+  let adItems = [], adActive = -1;
+  function adRenderSugg() {
+    const q = norm(ad.input.value);
+    const guessed = new Set(adState().guesses);
+    adItems = q ? adArtists.filter((a) => !guessed.has(a.name) && a.n.includes(q))
+      .sort((x, y) => x.n.indexOf(q) - y.n.indexOf(q) || x.name.localeCompare(y.name, "hu")).slice(0, 8) : [];
+    ad.sugg.innerHTML = "";
+    adActive = adItems.length ? 0 : -1;
+    adItems.forEach((a, i) => {
+      const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      if (i === adActive) li.classList.add("active");
+      const text = document.createElement("span");
+      text.className = "s-text";
+      const b = document.createElement("span");
+      b.className = "s-title";
+      b.appendChild(highlighted(a.name, ad.input.value));
+      const sub = document.createElement("span");
+      sub.className = "s-artist";
+      sub.textContent = a.genres.map(tagLabel).join(", ");
+      text.append(b, sub);
+      li.appendChild(text);
+      li.addEventListener("mousedown", (e) => e.preventDefault());
+      li.addEventListener("click", () => adGuess(a));
+      ad.sugg.appendChild(li);
+    });
+    ad.sugg.hidden = !adItems.length;
+  }
+  function adHideSugg() { ad.sugg.hidden = true; adItems = []; }
+  ad.input.addEventListener("input", adRenderSugg);
+  ad.input.addEventListener("blur", () => setTimeout(adHideSugg, 150));
+  ad.input.addEventListener("keydown", (e) => {
+    if (!adItems.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      adActive = (adActive + (e.key === "ArrowDown" ? 1 : -1) + adItems.length) % adItems.length;
+      [...ad.sugg.children].forEach((li, i) => li.classList.toggle("active", i === adActive));
+    } else if (e.key === "Enter" && adActive >= 0) {
+      e.preventDefault();
+      adGuess(adItems[adActive]);
+    }
+  });
+
+  // Tipp: a megfejtés legnépszerűbb dalából 10 másodperc.
+  let adHintTimer = 0;
+  ad.hint.addEventListener("click", async () => {
+    const ans = adAnswer(dateKey());
+    clearTimeout(adHintTimer);
+    ad.hint.classList.add("loading");
+    try {
+      const top = (await withRetry(() => Deezer.artistTop(ans.id, 5)))
+        .filter((t) => t.preview && (t.artist.id === ans.id))
+        .sort((x, y) => y.rank - x.rank)[0];
+      if (!top) throw new Error("Nincs előnézet");
+      const full = await Deezer.track(top.id);
+      libStop();
+      stopAudio();
+      ensureAudioGraph();
+      if (actx && !libSrcNode) { libSrcNode = actx.createMediaElementSource(libAudio); libSrcNode.connect(gainNode); }
+      if (actx && actx.state === "suspended") actx.resume();
+      applyVolume();
+      libAudio.src = full.preview;
+      await libAudio.play();
+      adHintTimer = setTimeout(() => libAudio.pause(), 10000);
+    } catch (e) {
+      console.warn(e);
+      toast("A tippet most nem sikerült lejátszani.");
+    } finally {
+      ad.hint.classList.remove("loading");
+    }
+  });
+
+  function openArtistGame() {
+    ad.input.value = "";
+    adHideSugg();
+    // A konfetti a dialógus fölött is látsszon.
+    adDialog.appendChild(el.confetti);
+    adRender(false);
+    adFetch(adAnswer(dateKey()));
+    adDialog.showModal();
+    adDialog.querySelector(".ad-scroll").scrollTop = 0;
+  }
+  adDialog.addEventListener("close", () => {
+    clearTimeout(adHintTimer);
+    libStop();
+    document.body.appendChild(el.confetti);
+  });
 
   // ---------- Indítás ----------
   applyVolume();

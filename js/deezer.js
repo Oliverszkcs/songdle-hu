@@ -65,5 +65,9 @@
     return jsonp(`/track/${id}`);
   }
 
-  window.Deezer = { jsonp, findArtistId, artistTop, track };
+  function artist(id) {
+    return jsonp(`/artist/${id}`);
+  }
+
+  window.Deezer = { jsonp, findArtistId, artistTop, track, artist };
 })();

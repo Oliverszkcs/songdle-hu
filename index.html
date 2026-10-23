@@ -209,6 +209,7 @@
         <li><span class="help-ico">⭐</span><span><b>Pontok:</b> 1. tippre 100, aztán 80, 60, 40, 25, 10. A sorozatod bónuszt ad (+5 pont dalonként, max. +50).</span></li>
         <li><span class="help-ico">🏆</span><span><b>Kör:</b> végtelen módban 5 dal egy kör. A kör pontjait összeadjuk, és a legjobb kör a rekordod.</span></li>
         <li><span class="help-ico">📅</span><span><b>Napi dal:</b> naponta 4 dal, mindenkinek ugyanaz: 🟢 Könnyű (×1), 🟡 Közepes (×2), 🟠 Nehéz (×3) és 🔴 Extrém (×4 pont). Minél nehezebb, annál kevésbé ismert a dal. Mindegyiknek külön sorozata van.</span></li>
+        <li><span class="help-ico">🎤</span><span><b>Napi előadó:</b> a Napi fülön az „Előadó” lapon a mai előadót kell kitalálni. Minden tippnél látod, mennyire áll közel: zöld = egyezik, sárga = részben vagy közel, ▲▼ = régebbi vagy újabb, kevesebb vagy több rajongó. 4 tipp után belehallgathatsz egy dalába.</span></li>
       </ul>
       <p class="hint-keys">Billentyűzeten: <kbd>Szóköz</kbd> lejátszás, <kbd>Enter</kbd> tipp / következő dal.</p>
       <button class="btn btn-primary" value="close">Kezdjük!</button>
@@ -232,6 +233,31 @@
       <button class="chip" id="libCopyBtn" type="button" hidden>Lista másolása</button>
     </div>
     <div class="lib-list" id="libList"></div>
+  </dialog>
+
+  <dialog id="artistDialog" class="dialog dialog-tall">
+    <div class="lib-head">
+      <div>
+        <h2>🎤 Napi előadó</h2>
+        <p class="lib-meta" id="adMeta"></p>
+      </div>
+      <form method="dialog"><button class="icon-btn small" value="close" aria-label="Bezár">×</button></form>
+    </div>
+    <div class="ad-search" id="adSearch">
+      <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM16 16l5 5"/></svg>
+      <input id="adInput" type="text" placeholder="Írj be egy előadót…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Előadó tippelése" aria-controls="adSuggestions">
+      <ul class="suggestions ad-suggestions" id="adSuggestions" role="listbox" hidden></ul>
+    </div>
+    <div class="ad-tools">
+      <button class="chip" id="adHintBtn" type="button" disabled></button>
+      <span class="ad-legend"><i class="hit"></i>egyezik <i class="near"></i>közel ▲▼ merre</span>
+    </div>
+    <div class="ad-scroll">
+      <div class="ad-win" id="adWin" hidden></div>
+      <div class="ad-cols" id="adCols" hidden aria-hidden="true"><span>Típus</span><span>Nem</span><span>Év</span><span>Műfaj</span><span>Rajongók</span></div>
+      <ol class="ad-guesses" id="adGuesses"></ol>
+      <p class="ad-empty" id="adEmpty">Találd ki a mai magyar előadót! Minden tipp után látod, mennyire áll közel: <b>típus</b>, <b>nem</b>, <b>születés / alakulás éve</b>, <b>műfaj</b> és <b>rajongók száma</b>.</p>
+    </div>
   </dialog>
 
   <dialog id="reportDialog" class="dialog">
