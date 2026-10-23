@@ -490,7 +490,8 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 .play-btn .i-play { margin-left: 3px; }
 .play-btn .i-stop, .play-btn.playing .i-play { display: none; }
 .play-btn.playing .i-stop { display: block; }
-.play-btn:disabled { opacity: .35; cursor: default; }
+/* Letiltva is sötét marad a nyíl: csak a gomb halványul, a nyíl nem. */
+.play-btn:disabled { cursor: default; background: rgba(255, 255, 255, .6); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
 .play-btn .spinner {
   position: absolute; inset: -6px;
   border-radius: 50%;
@@ -511,10 +512,6 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 @keyframes ring-out { from { transform: scale(1); opacity: .7; } to { transform: scale(1.8); opacity: 0; } }
 .disc.revealed ~ .play-btn {
   width: 52px; height: 52px;
-  background: rgba(10, 10, 16, .55);
-  color: #fff;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
   transform: translate(calc(var(--disc) * .36), calc(var(--disc) * .36));
 }
 .disc.revealed ~ .play-btn svg { width: 24px; height: 24px; }
@@ -1152,11 +1149,8 @@ body[data-mode="artist"] .categories-wrap,
 body[data-mode="artist"] .daily-banner,
 body[data-mode="artist"] .dock { display: none; }
 .artist-view { max-width: 520px; margin: 0 auto; padding: 0 16px 24px; animation: rise .4s var(--ease-out); }
-.ad-top {
-  position: sticky; top: 0; z-index: 5;
-  margin: 0 -16px; padding: 4px 16px 0;
-  background: linear-gradient(var(--bg) 85%, transparent);
-}
+/* Nem ragad a tetejére: az új tipp úgyis felülre kerül, így a lista nem csúszik alá. */
+.ad-top { position: relative; z-index: 5; padding: 4px 0 0; }
 .ad-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .ad-title h2 { margin: 0; font-size: 1.35rem; font-weight: 900; }
 .ad-title p { margin: 0; color: var(--muted); font-size: .85rem; }
@@ -1312,7 +1306,7 @@ button.ad-tile:active { transform: scale(.95); }
   .dock-inner { max-width: 600px; gap: 10px; padding: 14px 16px 18px; }
   .artist-view { max-width: 680px; width: 100%; padding-top: 8px; }
   .ad-top {
-    top: 8px; margin: 0 0 14px; padding: 16px 18px 4px;
+    margin: 0 0 14px; padding: 16px 18px 4px;
     border-radius: 20px; border: 1px solid var(--border);
     background: var(--glass-strong); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
