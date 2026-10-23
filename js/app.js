@@ -724,8 +724,8 @@
     el.revealTitle.textContent = t.title;
     el.revealArtist.textContent = artistLine(t);
     el.revealAlbum.textContent = t.album;
-    // A megjelenés éve csak eltalált dalnál látszik.
-    if (round.won && round.year && round.year !== "0000") {
+    // A megjelenés éve a megoldásnál (nyerés és vesztés esetén is).
+    if (round.year && round.year !== "0000") {
       const y = document.createElement("span");
       y.className = "reveal-year";
       y.textContent = round.year;
