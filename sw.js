@@ -1,6 +1,6 @@
 // Csak az alkalmazás saját fájljait tároljuk. A Deezer API-t, a hangot és a
 // borítókat nem: azok mindig a hálózatról jönnek.
-const CACHE = "songdle-hu-v3";
+const CACHE = "songdle-hu-v4";
 const SHELL = [
   "./",
   "index.html",
@@ -16,8 +16,15 @@ const SHELL = [
   "icons/apple-touch-icon.png",
 ];
 
+// Fájlonként tároljuk, és egy sikertelen fájl nem buktatja el a telepítést:
+// a service worker így akkor is aktív lesz, ha a gyorsítótár nem elérhető.
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => Promise.allSettled(SHELL.map((u) => c.add(u))))
+      .catch(() => {})
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (e) => {
@@ -37,7 +44,7 @@ self.addEventListener("fetch", (e) => {
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
+          caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
         }
         return res;
       })
