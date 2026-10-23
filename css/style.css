@@ -690,6 +690,7 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   border: 1px solid var(--border);
   vertical-align: 1px;
 }
+.reveal-year.bump { animation: bump-text .6s var(--ease-spring); }
 .reveal-meta { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
 .reveal-emoji { letter-spacing: 2px; font-size: 1rem; }
 .reveal-points {

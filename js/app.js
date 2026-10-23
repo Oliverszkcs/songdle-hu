@@ -601,6 +601,8 @@
       save("recent", recent.slice(0, CFG.RECENT_MEMORY));
     }
     persistRound();
+    // Az eredeti év előre lekérve, hogy a megoldásnál már kész legyen.
+    originalYear(round.track, round.year);
 
     el.audio.src = round.preview;
     el.audio.load();
@@ -726,6 +728,59 @@
     return s;
   }
 
+  // Eredeti megjelenési év. A Deezer gyakran egy későbbi válogatás évét adja (pl. egy
+  // 2024-es „Best of” lemezét), ezért a MusicBrainz első megjelenési dátumával
+  // pontosítunk: az azonos előadójú, azonos című felvételek (a „Dal I.”, „Dal II”
+  // változatokkal együtt) legkorábbi éve. Dalonként egyszer kérdezzük le.
+  const PART_SUFFIX = /^(.*?)(?: (?:i|ii|iii|iv|v|vi|[1-9]))?$/;
+  // Összevetéshez: névelő („A 67-es út”) és sorszám („… II.”) nélkül.
+  const songKey = (s) => norm(s).replace(/^az? /, "").match(PART_SUFFIX)[1];
+  // Egy dalhoz egyszerre csak egy kérés fut (a kör eleji előtöltés és a megoldás közös).
+  const yearRequests = new Map();
+  function originalYear(t, deezerYear) {
+    const cached = load("year." + t.id, null);
+    if (cached) return Promise.resolve(cached);
+    if (!yearRequests.has(t.id)) {
+      yearRequests.set(t.id, lookupYear(t, deezerYear).finally(() => yearRequests.delete(t.id)));
+    }
+    return yearRequests.get(t.id);
+  }
+  async function lookupYear(t, deezerYear) {
+    const key = "year." + t.id;
+    const fallback = deezerYear && deezerYear !== "0000" ? deezerYear : null;
+    try {
+      const raw = t.title.replace(/\s*[([].*?[)\]]/g, "").replace(/\s+-\s+.*$/, "").trim() || t.title;
+      const q = `recording:"${raw.replace(/"/g, "")}" AND artist:"${t.artist.replace(/"/g, "")}"`;
+      const url = "https://musicbrainz.org/ws/2/recording?" + new URLSearchParams({ query: q, fmt: "json", limit: "40" });
+      const get = async () => {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 6000);
+        try { return await fetch(url, { signal: ctrl.signal }); } finally { clearTimeout(timer); }
+      };
+      let res = await get();
+      // A MusicBrainz másodpercenként egy kérést enged; túlterheléskor egyszer újrapróbáljuk.
+      if (res.status === 503 || res.status === 429) {
+        await new Promise((r) => setTimeout(r, 1500));
+        res = await get();
+      }
+      if (!res.ok) return fallback;
+      const data = await res.json();
+      const want = songKey(raw), artist = norm(t.artist);
+      let best = fallback ? +fallback : Infinity;
+      for (const r of data.recordings || []) {
+        const credit = norm((r["artist-credit"] || []).map((a) => a.name).join(" "));
+        if (!credit.includes(artist) || songKey(r.title) !== want) continue;
+        const yr = parseInt(String(r["first-release-date"] || "").slice(0, 4), 10);
+        if (yr > 1900 && yr < best) best = yr;
+      }
+      const result = Number.isFinite(best) ? String(best) : fallback;
+      if (result) save(key, result);
+      return result;
+    } catch {
+      return fallback;
+    }
+  }
+
   function showReveal(autoplay) {
     const t = round.track;
     setControls(false);
@@ -749,13 +804,21 @@
     el.revealTitle.textContent = t.title;
     el.revealArtist.textContent = artistLine(t);
     el.revealAlbum.textContent = t.album;
-    // A megjelenés éve a megoldásnál (nyerés és vesztés esetén is).
+    // A megjelenés éve a megoldásnál (nyerés és vesztés esetén is). Előbb a Deezer-évet
+    // mutatjuk, majd a MusicBrainz szerinti eredeti évre cseréljük, ha az korábbi.
+    const y = document.createElement("span");
+    y.className = "reveal-year";
+    const shownRound = round;
     if (round.year && round.year !== "0000") {
-      const y = document.createElement("span");
-      y.className = "reveal-year";
       y.textContent = round.year;
       el.revealAlbum.append(" ", y);
     }
+    originalYear(t, round.year).then((v) => {
+      if (round !== shownRound || !v || v === y.textContent) return;
+      y.textContent = v;
+      if (!y.isConnected) el.revealAlbum.append(" ", y);
+      retrigger(y, "bump");
+    });
     el.revealEmoji.textContent = emojiRow(round);
     const p = round.points;
     el.revealPoints.textContent = p && p.total
