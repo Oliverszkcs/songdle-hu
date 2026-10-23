@@ -549,6 +549,12 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   color: transparent;
 }
 .clip-len.bump { animation: bump-text .6s var(--ease-spring); }
+/* Tippelés közben elég a gyűrű és a hossz: a hullámforma és az idők csak a megfejtésnél látszanak. */
+.game:has(#reveal[hidden]) .wave-wrap,
+.game:has(#reveal[hidden]) .clip-info .time { visibility: hidden; }
+.game:has(#reveal[hidden]) .wave-wrap { display: none; }
+.game:has(#reveal[hidden]) { --disc: clamp(104px, calc(72dvh - 300px), min(64vw, 270px)); }
+.game:has(#reveal[hidden]) .clip-info { justify-content: center; margin-top: 0; }
 @keyframes bump-text { 40% { transform: scale(1.35); } }
 
 .wave-wrap { display: grid; gap: 4px; }
@@ -1187,14 +1193,14 @@ body[data-mode="artist"] .dock { display: none; }
 .ad-legend i.hit { background: var(--accent); }
 .ad-legend i.near { background: var(--near); }
 .ad-scroll { flex: 1; overflow-y: auto; margin: 0 -16px; padding: 0 16px 16px; overscroll-behavior: contain; }
-.ad-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.ad-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
 .ad-guesses { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .ad-row { animation: rise .4s var(--ease-out); }
 .ad-name { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: .92rem; }
 .ad-name img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background: var(--surface-2); flex: none; }
 .ad-row.win .ad-name b { color: var(--accent); }
 .ad-tile {
-  min-height: 52px;
+  min-height: 44px;
   display: grid; place-items: center;
   padding: 4px 3px;
   border-radius: 10px;
