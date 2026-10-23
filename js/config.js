@@ -19,7 +19,7 @@ window.SONGDLE_CONFIG = {
     { id: "alter", label: "Alter" },
     { id: "rap", label: "Rap" },
     { id: "rock", label: "Rock" },
-    { id: "trash", label: "Bűnös élvezet" },
+    { id: "trash", label: "Trash" },
     { id: "mulatos", label: "Mulatós" },
     { id: "retro", label: "Retró" },
     { id: "disco", label: "Diszkó" },
@@ -64,7 +64,7 @@ window.SONGDLE_CONFIG = {
     { name: "Bëlga", id: 101, tags: ["rap"] },
     { name: "Beton.Hofi", id: 80234972, tags: ["rap"] },
 
-    // Bűnös élvezet (id: trash, hogy a mentett állások megmaradjanak)
+    // Trash
     { name: "Kkevin", id: 91432962, tags: ["trash", "rap"] },
     { name: "Bruno X Spacc", id: 98175162, tags: ["trash", "rap"] },
     { name: "L.L. Junior", id: 992816, tags: ["trash", "pop"] },
@@ -193,6 +193,30 @@ window.SONGDLE_CONFIG = {
     { id: 67564105, note: "What I Got Is What You Need – nem a magyar Unique (Deezer összevont oldal, kiadó: Unidisc)" },
     { id: 983829632, note: "Eso No Es un Beso – nem a magyar Fluor (Deezer összevont oldal, kiadó: Fluor)" },
     { id: 827642422, note: "Tan Digital – nem a magyar Fluor (Deezer összevont oldal, kiadó: Fluor)" },
+    { id: 3553557211, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3553557201, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3553557281, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3531999631, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3531999641, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3531999691, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3531999681, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3531999711, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3531999621, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3531999651, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3531999611, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3531999671, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3463163381, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 3463163361, note: "Dreamy Records lo-fi – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 4236714762, note: "Tricky (Avenue Bandz Conglomerate) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 4236714842, note: "Tricky (Avenue Bandz Conglomerate) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 4236714792, note: "Tricky (Avenue Bandz Conglomerate) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 4236714772, note: "Tricky (Avenue Bandz Conglomerate) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 4236714782, note: "Tricky (Avenue Bandz Conglomerate) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 4236714892, note: "Tricky (Avenue Bandz Conglomerate) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 74712653, note: "Feel The Wife Vibe (BEAT Music Fund) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 4058590471, note: "Twizy/Ari (BaldRich, FDL) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 4070070251, note: "Twizy/Ari (BaldRich, FDL) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 2823601622, note: "Twizy/Ari (BaldRich, FDL) – nem a magyar Vini (Deezer összevont oldal)" },
   ],
 
   // Ennyi legutóbbi dalt nem sorsolunk újra.
@@ -209,8 +233,8 @@ window.SONGDLE_CONFIG = {
   //   status: "active", "split" (feloszlott) vagy "dead" (elhunyt) – a Wikipédia „aktív évek” alapján
   //   esc:    "esc" (indult az Eurovízión) vagy "adal" (csak az A Dalban); ha nincs, nem indult
   // A műfaj az előadó tags mezőjéből jön. Aki nincs itt, az nem lehet napi előadó.
-  // Forrás: Wikidata / magyar Wikipédia; a Follow The Flow, Elefánt és Bruno X Spacc
-  // éve az első Deezer-megjelenés alapján becsült.
+  // Forrás: Wikidata / magyar Wikipédia / MusicBrainz; a Follow The Flow, Elefánt, Bruno X Spacc
+  // és Vini éve az első Deezer-megjelenés alapján becsült.
   ARTIST_INFO: {
     "Azahriah":                  { type: "solo", gender: "m", year: 2002, listeners: 680526, debut: 2019, status: "active" },
     "Follow The Flow":           { type: "band", gender: "m", year: 2017, listeners: 266745, debut: 2017, status: "active" },
@@ -248,6 +272,7 @@ window.SONGDLE_CONFIG = {
     "Marics Peti":               { type: "solo", gender: "m", year: 1996, listeners: 481081, debut: 2021, status: "active" },
     "Fluor":                     { type: "solo", gender: "m", year: 1987, listeners: 146990, debut: 2004, status: "active" },
     "Mirror Glimpse":            { type: "duo", gender: "m", year: 2021, listeners: 124617, debut: 2021, status: "active" },
+    "Vini":                      { type: "solo", gender: "m", year: 2003, listeners: 573433, debut: 2021, status: "active" },
     "Kis Grófo":                 { type: "solo", gender: "m", year: 1993, listeners: 101902, debut: 2006, status: "active" },
     "Lagzi Lajcsi":              { type: "solo", gender: "m", year: 1961, listeners: 29936, debut: 1987, status: "active" },
     "Dupla KáVé":                { type: "duo", gender: "m", year: 1998, listeners: 23520, debut: 1999, status: "active" },
@@ -268,6 +293,22 @@ window.SONGDLE_CONFIG = {
     "Fenyő Miklós":              { type: "solo", gender: "m", year: 1947, listeners: 41457, debut: 1983, status: "dead" },
     "Generál":                   { type: "band", gender: "m", year: 1971, listeners: 7135, debut: 1973, status: "active" },
     "Delhusa Gjon":              { type: "solo", gender: "m", year: 1953, listeners: 7814, debut: 1976, status: "active", esc: "esc" },
+    "Edda Művek":                { type: "band", gender: "m", year: 1974, listeners: 122877, debut: 1980, status: "active" },
+    "P. Mobil":                  { type: "band", gender: "m", year: 1973, listeners: 64585, debut: 1978, status: "active" },
+    "Piramis":                   { type: "band", gender: "m", year: 1974, listeners: 36608, debut: 1977, status: "split" },
+    "Korál":                     { type: "band", gender: "m", year: 1974, listeners: 39309, debut: 1980, status: "split" },
+    "Beatrice":                  { type: "band", gender: "m", year: 1969, listeners: 286745, debut: 1979, status: "active" },
+    "Karthago":                  { type: "band", gender: "m", year: 1979, listeners: 23840, debut: 1981, status: "active" },
+    "Bergendy":                  { type: "band", gender: "m", year: 1958, listeners: 19153, debut: 1971, status: "split" },
+    "Apostol":                   { type: "band", gender: "m", year: 1970, listeners: 27323, debut: 1978, status: "active" },
+    "Demjén Ferenc":             { type: "solo", gender: "m", year: 1946, listeners: 67330, debut: 1977, status: "active" },
+    "Koncz Zsuzsa":              { type: "solo", gender: "f", year: 1946, listeners: 35626, debut: 1962, status: "active" },
+    "Kovács Kati":               { type: "solo", gender: "f", year: 1944, listeners: 28819, debut: 1966, status: "active" },
+    "Cserháti Zsuzsa":           { type: "solo", gender: "f", year: 1948, listeners: 41894, debut: 1980, status: "dead" },
+    "Máté Péter":                { type: "solo", gender: "m", year: 1947, listeners: 80810, debut: 1978, status: "dead" },
+    "Szécsi Pál":                { type: "solo", gender: "m", year: 1944, listeners: 27779, debut: 1967, status: "dead" },
+    "Szűcs Judith":              { type: "solo", gender: "f", year: 1953, listeners: 3165, debut: 1978, status: "active" },
+    "Katona Klári":              { type: "solo", gender: "f", year: 1953, listeners: 19203, debut: 1972, status: "active" },
     "Neoton Família":            { type: "band", gender: "mixed", year: 1965, listeners: 95920, debut: 1969, status: "split" },
     "Hungária":                  { type: "band", gender: "mixed", year: 1967, listeners: 50123, debut: 1967, status: "split" },
     "Dolly Roll":                { type: "band", gender: "mixed", year: 1983, listeners: 32407, debut: 1983, status: "split" },
