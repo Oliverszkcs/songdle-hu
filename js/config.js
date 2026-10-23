@@ -9,6 +9,8 @@
 // rajongó). Kétértelmű neveknél (pl. Omega, Republic) érdemes ID-t megadni.
 // ID-t így találsz: deezer.com → előadó oldala → az URL végén lévő szám
 // (deezer.com/artist/<id>). Egy előadónak több címkéje is lehet.
+// Az `only` opcionális: ha megadod, az előadótól csak ezek a dalok kerülnek be
+// (cím alapján, zárójeles kiegészítések nélkül).
 window.SONGDLE_CONFIG = {
   CATEGORIES: [
     { id: "all", label: "Mind" },
@@ -68,7 +70,9 @@ window.SONGDLE_CONFIG = {
     { name: "Desh", id: 1442145, tags: ["trash", "rap"] },
     { name: "LMEN PRALA", id: 14814623, tags: ["trash"] },
     { name: "Marics Peti", id: 171192717, tags: ["trash"] },
-    { name: "Beerseewalk", id: 5400018, tags: ["trash", "rap"] },
+    { name: "BSW", id: 9812410, tags: ["trash"] },
+    // A régi Beerseewalk névről csak a Picsa; a többi dal a BSW-től jön.
+    { name: "Beerseewalk", id: 5400018, tags: ["trash", "rap"], only: ["Picsa"] },
     { name: "Fluor", id: 1569284, tags: ["trash", "rap"] },
 
     // Mulatós

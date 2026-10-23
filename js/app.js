@@ -145,7 +145,12 @@
         const a = artists[next++];
         try {
           // src: melyik beállított előadótól jött a dal (a dallista így csoportosít)
-          results.push(...(await loadArtist(a)).map((t) => ({ ...t, src: a.name })));
+          let list = await loadArtist(a);
+          if (a.only) {
+            const want = new Set(a.only.map(baseTitle));
+            list = list.filter((t) => want.has(baseTitle(t.title)));
+          }
+          results.push(...list.map((t) => ({ ...t, src: a.name })));
         } catch (e) { console.warn("Nem sikerült:", a.name, e); }
         onProgress(++done, artists.length);
       }
