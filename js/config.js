@@ -136,6 +136,12 @@ window.SONGDLE_CONFIG = {
     { id: "extreme", label: "Extrém", icon: "🔴", from: 0, to: 0.25, multiplier: 4 },
   ],
 
+  // Kitiltott dalok: ezek senkinél nem jönnek ki. A játékban jelentett dalokat
+  // a Dallista → „Jelentett” → „Lista másolása” gombbal lehet ide bemásolni.
+  BLOCKED_TRACKS: [
+    // { id: 123456, note: "Cím – Előadó: duplikált" },
+  ],
+
   // Ennyi legutóbbi dalt nem sorsolunk újra.
   RECENT_MEMORY: 40,
 };

@@ -915,6 +915,43 @@ kbd {
 .diff-row span:first-child { text-align: left; white-space: nowrap; font-weight: 700; }
 .diff-row.head { background: none; padding-top: 0; padding-bottom: 0; font-size: .68rem; font-weight: 600; color: var(--muted); animation: none; }
 
+/* ---------- Jelentés ---------- */
+.report-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: .75rem; font-weight: 700;
+  cursor: pointer;
+  transition: color .2s, background .2s, border-color .2s;
+}
+.report-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.report-btn.reported { color: var(--near); border-color: rgba(255, 197, 71, .4); background: rgba(255, 197, 71, .1); }
+.report-song { color: var(--text) !important; font-weight: 700; margin: -6px 0 6px; }
+.report-reasons { display: grid; gap: 8px; margin-top: 12px; }
+.report-reasons .btn { justify-content: flex-start; min-height: 48px; font-weight: 700; font-size: .95rem; }
+
+.lib-tools { display: flex; gap: 8px; margin: -2px 0 10px; flex-wrap: wrap; }
+.lib-search[hidden] + .lib-tools { margin-top: 14px; }
+.lib-tools .chip { min-height: 36px; font-size: .85rem; }
+.lib-reported li { align-items: center; }
+.lib-reported .reason { color: var(--near) !important; }
+.lib-restore {
+  flex: none;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: .78rem; font-weight: 700;
+  cursor: pointer;
+}
+.lib-tracks li.is-blocked { opacity: .45; }
+.lib-tracks li.is-blocked b::after { content: " ⚑"; color: var(--near); }
+
 /* ---------- Dallista ---------- */
 .topbar-side.right { width: 96px; }
 .dialog-tall[open] {

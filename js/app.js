@@ -153,9 +153,16 @@
 
   const isLive = (t) => /\blive\b|\bél[őo]\b|koncert/i.test(t.title);
 
+  // Kitiltott dalok: a configban megadottak teljesen kimaradnak; a játékos által
+  // jelentettek bent maradnak (tippelni lehet rájuk), csak nem sorsoljuk őket.
+  const configBlocked = new Set((CFG.BLOCKED_TRACKS || []).map((b) => (typeof b === "object" ? b.id : b)));
+  let reported = load("reported", []);
+  const isReported = (id) => reported.some((r) => r.id === id);
+
   function buildPool(tracks) {
     const byKey = new Map();
     for (const t of tracks) {
+      if (configBlocked.has(t.id)) continue;
       t.base = baseTitle(t.title);
       t.key = t.base + "|" + norm(t.artist);
       const prev = byKey.get(t.key);
@@ -206,7 +213,7 @@
   function pickDailyTrack(date, diff) {
     let best = null, bestScore = -1;
     for (const t of pool) {
-      if (isLive(t) || t.pct < diff.from || (t.pct >= diff.to && diff.to < 1)) continue;
+      if (isLive(t) || isReported(t.id) || t.pct < diff.from || (t.pct >= diff.to && diff.to < 1)) continue;
       const score = hashString(`songdle-hu:${date}:${diff.id}:${t.id}`);
       if (score > bestScore) { best = t; bestScore = score; }
     }
@@ -484,8 +491,9 @@
   // ---------- Kör ----------
   function pickTrack() {
     const recentSet = new Set(load("recent", []));
-    const fresh = pool.filter((t) => !recentSet.has(t.id));
-    return weightedPick(fresh.length ? fresh : pool, Math.random);
+    const allowed = pool.filter((t) => !isReported(t.id));
+    const fresh = allowed.filter((t) => !recentSet.has(t.id));
+    return weightedPick(fresh.length ? fresh : allowed.length ? allowed : pool, Math.random);
   }
 
   async function startRound(track, saved) {
@@ -688,6 +696,7 @@
     retrigger(el.reveal, "in");
     $("scroll").scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
 
+    renderReportBtn();
     updateNextButton();
     if (round.mode === "daily") startCountdown();
     else setStatus("Koppints a lemezre a teljes előnézethez.");
@@ -1303,6 +1312,25 @@
     el.input.focus();
   });
 
+  // Vágólap: a modern API, ha nem megy (pl. http, fókusz nélkül), a régi módszer.
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;";
+      (document.querySelector("dialog[open]") || document.body).appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch { /* nem támogatott */ }
+      ta.remove();
+      return ok;
+    }
+  }
+
   // ---------- Megosztás ----------
   async function share() {
     if (!round || !round.done) return;
@@ -1323,11 +1351,10 @@
         await navigator.share({ text });
         return;
       }
-      await navigator.clipboard.writeText(text);
-      toast("Vágólapra másolva! ✨");
     } catch (e) {
-      if (e && e.name !== "AbortError") toast("Nem sikerült megosztani.");
+      if (e && e.name === "AbortError") return;
     }
+    toast(await copyText(text) ? "Vágólapra másolva! ✨" : "Nem sikerült megosztani.");
   }
 
   // ---------- Gombok és billentyűk ----------
@@ -1419,6 +1446,45 @@
     });
   }
 
+  // ---------- Dal jelentése ----------
+  const reportBtn = $("reportBtn"), reportDialog = $("reportDialog");
+
+  function renderReportBtn() {
+    if (!round) return;
+    const on = isReported(round.track.id);
+    reportBtn.classList.toggle("reported", on);
+    reportBtn.lastElementChild.textContent = on ? "Jelentve · visszavonás" : "Jelentés";
+  }
+
+  function setReported(t, reason) {
+    reported = reported.filter((r) => r.id !== t.id);
+    if (reason) reported.push({ id: t.id, title: t.title, artist: artistLine(t), reason, ts: Date.now() });
+    save("reported", reported);
+  }
+
+  reportBtn.addEventListener("click", () => {
+    if (!round) return;
+    const t = round.track;
+    if (isReported(t.id)) {
+      setReported(t, null);
+      renderReportBtn();
+      toast("Jelentés visszavonva.");
+      return;
+    }
+    $("reportSong").textContent = trackLabel(t);
+    reportDialog.returnValue = "";
+    reportDialog.showModal();
+    reportDialog.scrollTop = 0;
+  });
+
+  reportDialog.addEventListener("close", () => {
+    const reason = reportDialog.returnValue;
+    if (!reason || !round) return;
+    setReported(round.track, reason);
+    renderReportBtn();
+    toast("Köszi! Ez a dal többé nem jön ki. ⚑");
+  });
+
   // ---------- Dallista ----------
   const libDialog = $("libraryDialog"), libList = $("libList"), libSearch = $("libSearch"), libMeta = $("libMeta");
   const LIB_MAX_RESULTS = 300;
@@ -1439,10 +1505,77 @@
       : t.feat.length ? `feat. ${t.feat.join(", ")} · ${t.album}` : t.album, q));
     text.append(title, sub);
     li.append(img, text);
+    if (isReported(t.id)) li.classList.add("is-blocked");
     return li;
   }
 
+  // „Jelentett” nézet: a jelentett dalok listája visszaállítással és másolással.
+  let libView = "all";
+  const libTools = $("libTools"), libReportedBtn = $("libReportedBtn"), libCopyBtn = $("libCopyBtn");
+
+  function renderLibTools() {
+    libTools.hidden = !reported.length && libView === "all";
+    libReportedBtn.textContent = `⚑ Jelentett (${reported.length})`;
+    libReportedBtn.setAttribute("aria-pressed", String(libView === "reported"));
+    libCopyBtn.hidden = libView !== "reported" || !reported.length;
+  }
+
+  function renderReported() {
+    libMeta.textContent = `${reported.length} jelentett dal · ezek nálad nem jönnek ki`;
+    libList.innerHTML = "";
+    if (!reported.length) {
+      const p = document.createElement("p");
+      p.className = "lib-empty";
+      p.textContent = "Nincs jelentett dal.";
+      libList.appendChild(p);
+      return;
+    }
+    const ul = document.createElement("ul");
+    ul.className = "lib-tracks lib-reported";
+    for (const r of [...reported].sort((a, b) => b.ts - a.ts)) {
+      const li = document.createElement("li");
+      const text = document.createElement("span");
+      text.className = "t";
+      const title = document.createElement("b");
+      title.textContent = r.title;
+      const sub = document.createElement("span");
+      sub.textContent = r.artist;
+      const reason = document.createElement("span");
+      reason.className = "reason";
+      reason.textContent = "⚑ " + r.reason;
+      text.append(title, sub, reason);
+      const restore = document.createElement("button");
+      restore.className = "lib-restore";
+      restore.type = "button";
+      restore.textContent = "Visszaállítás";
+      restore.addEventListener("click", () => {
+        setReported({ id: r.id }, null);
+        if (round) renderReportBtn();
+        renderLibrary();
+      });
+      li.append(text, restore);
+      ul.appendChild(li);
+    }
+    libList.appendChild(ul);
+  }
+
+  libReportedBtn.addEventListener("click", () => {
+    libView = libView === "reported" ? "all" : "reported";
+    libSearch.value = "";
+    renderLibrary();
+    libList.scrollTop = 0;
+  });
+
+  // A config.js BLOCKED_TRACKS listájába bemásolható formátum.
+  libCopyBtn.addEventListener("click", async () => {
+    const lines = reported.map((r) => `    { id: ${r.id}, note: ${JSON.stringify(`${r.title} – ${r.artist}: ${r.reason}`)} },`);
+    toast(await copyText(lines.join("\n")) ? "Lista vágólapra másolva!" : "Nem sikerült másolni.");
+  });
+
   function renderLibrary() {
+    renderLibTools();
+    $("libSearch").parentElement.hidden = libView === "reported";
+    if (libView === "reported") return renderReported();
     const q = libSearch.value;
     const tokens = norm(q).split(" ").filter(Boolean);
     const label = mode === "daily" ? "Mind" : CFG.CATEGORIES.find((c) => c.id === category).label;
@@ -1510,6 +1643,7 @@
     libTimer = setTimeout(renderLibrary, 120);
   });
   $("libraryBtn").addEventListener("click", () => {
+    libView = "all";
     libSearch.value = "";
     renderLibrary();
     libList.scrollTop = 0;

@@ -117,6 +117,10 @@
           <div class="reveal-meta">
             <span class="reveal-emoji" id="revealEmoji" aria-hidden="true"></span>
             <span class="reveal-points" id="revealPoints"></span>
+            <button class="report-btn" id="reportBtn" type="button">
+              <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 21V4m0 0h11l-2 4 2 4H5"/></svg>
+              <span>Jelentés</span>
+            </button>
           </div>
         </section>
 
@@ -216,7 +220,28 @@
       <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM16 16l5 5"/></svg>
       <input id="libSearch" type="search" placeholder="Keresés címre vagy előadóra…" autocomplete="off" spellcheck="false" aria-label="Keresés a dallistában">
     </div>
+    <div class="lib-tools" id="libTools" hidden>
+      <button class="chip" id="libReportedBtn" type="button" aria-pressed="false"></button>
+      <button class="chip" id="libCopyBtn" type="button" hidden>Lista másolása</button>
+    </div>
     <div class="lib-list" id="libList"></div>
+  </dialog>
+
+  <dialog id="reportDialog" class="dialog">
+    <form method="dialog">
+      <h2>Dal jelentése</h2>
+      <p class="report-song" id="reportSong"></p>
+      <p>Mi a gond vele? A jelentett dal nálad többé nem jön ki.</p>
+      <div class="report-reasons">
+        <button class="btn btn-ghost" value="Rossz kategória">🏷️ Rossz kategória</button>
+        <button class="btn btn-ghost" value="Duplikált / élő / remix">👯 Duplikált, élő vagy remix verzió</button>
+        <button class="btn btn-ghost" value="Rossz az eleje">🔇 Rossz az eleje (csend, beszéd)</button>
+        <button class="btn btn-ghost" value="Nem ez a dal szól">🎧 Nem ez a dal szól</button>
+        <button class="btn btn-ghost" value="Nem magyar dal">🌍 Nem magyar dal</button>
+        <button class="btn btn-ghost" value="Egyéb">💬 Egyéb</button>
+      </div>
+      <button class="btn btn-primary" value="">Mégse</button>
+    </form>
   </dialog>
 
   <dialog id="confirmDialog" class="dialog">
