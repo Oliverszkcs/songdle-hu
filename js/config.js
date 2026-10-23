@@ -125,6 +125,16 @@ window.SONGDLE_CONFIG = {
   // 2 = a legnépszerűbb negyed kapja a sorsolások kb. 45%-át; 5+ = szinte csak slágerek.
   POPULARITY_BIAS: 2,
 
+  // Napi nehézségek: mindegyik külön napi dal. A `from`–`to` a népszerűségi
+  // sáv (0 = legkevésbé ismert, 1 = legnagyobb sláger) az összes dal között;
+  // a `multiplier` a pontszorzó.
+  DAILY_DIFFICULTIES: [
+    { id: "easy", label: "Könnyű", icon: "🟢", from: 0.85, to: 1, multiplier: 1 },
+    { id: "medium", label: "Közepes", icon: "🟡", from: 0.55, to: 0.85, multiplier: 2 },
+    { id: "hard", label: "Nehéz", icon: "🟠", from: 0.25, to: 0.55, multiplier: 3 },
+    { id: "extreme", label: "Extrém", icon: "🔴", from: 0, to: 0.25, multiplier: 4 },
+  ],
+
   // Ennyi legutóbbi dalt nem sorsolunk újra.
   RECENT_MEMORY: 40,
 };

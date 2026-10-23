@@ -788,6 +788,43 @@ kbd {
 .dist-bar.hl { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: var(--accent-ink); }
 .dist-bar.loss { background: rgba(255, 84, 112, .8); color: #fff; }
 
+/* ---------- Napi nehézségek ---------- */
+.diff-chip { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px 0 10px; }
+.diff-dot { font-size: .8rem; }
+.diff-mult {
+  font-size: .72rem; font-weight: 800;
+  padding: 1px 6px; border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+}
+.chip[aria-pressed="true"] .diff-mult { background: rgba(0, 0, 0, .15); }
+.diff-state {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: .7rem; font-weight: 900;
+  animation: pop-in .4s var(--ease-spring);
+}
+.diff-chip.won .diff-state { background: var(--accent); color: var(--accent-ink); }
+.diff-chip.lost .diff-state { background: var(--wrong); color: #fff; }
+.chip[aria-pressed="true"].won .diff-state { background: var(--accent-ink); color: var(--accent); }
+
+.diff-table { display: grid; gap: 4px; }
+.diff-row {
+  display: grid;
+  grid-template-columns: 1.6fr repeat(4, 1fr);
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: center;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  animation: rise .5s var(--ease-out) backwards;
+}
+.diff-row span:first-child { text-align: left; white-space: nowrap; font-weight: 700; }
+.diff-row.head { background: none; padding-top: 0; padding-bottom: 0; font-size: .68rem; font-weight: 600; color: var(--muted); animation: none; }
+
 /* ---------- Dallista ---------- */
 .topbar-side.right { width: 96px; }
 .dialog-tall[open] {

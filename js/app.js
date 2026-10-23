@@ -7,7 +7,9 @@
   const MAX_LEN = LENGTHS[MAX_TRIES - 1];
   const FULL_PREVIEW = 30;
   const POINTS = [100, 80, 60, 40, 25, 10];
-  const STREAK_BONUS = 5, STREAK_BONUS_MAX = 50, DAILY_MULTIPLIER = 2;
+  const STREAK_BONUS = 5, STREAK_BONUS_MAX = 50;
+  const DIFFS = CFG.DAILY_DIFFICULTIES;
+  const diffById = (id) => DIFFS.find((d) => d.id === id) || DIFFS[0];
   const WAVE_BARS = 64;
   const DEFAULT_TINT = ["#1ed760", "#2bb3ff", "#8b5cf6"];
   const LS = "songdle.";
@@ -181,6 +183,7 @@
     const n = byRank.length;
     byRank.forEach((t, i) => {
       const p = n > 1 ? i / (n - 1) : 1;
+      t.pct = p;
       t.weight = Math.exp(bias * (p - 1));
     });
   }
@@ -197,23 +200,17 @@
 
   const artistsFor = (cat) => cat === "all" ? CFG.ARTISTS : CFG.ARTISTS.filter((a) => (a.tags || []).includes(cat));
 
-  // A napi dal mindenkinek ugyanaz: a dátumból számolt seed választ előadót,
-  // majd az előadó (azonosító szerint rendezett) dalai közül egyet.
-  async function pickDailyTrack(date) {
-    const rng = mulberry32(hashString("songdle-hu:" + date));
-    const candidates = CFG.ARTISTS.filter((a) => a.id);
-    for (let i = 0; i < 8; i++) {
-      const artist = candidates[Math.floor(rng() * candidates.length)];
-      const r = rng();
-      let tracks;
-      try { tracks = await loadArtist(artist); } catch { continue; }
-      const studio = tracks.filter((t) => !isLive(t)).sort((a, b) => a.id - b.id).map((t) => ({ ...t }));
-      if (studio.length) {
-        assignWeights(studio);
-        return weightedPick(studio, () => r);
-      }
+  // A napi dal mindenkinek ugyanaz: a nehézség népszerűségi sávjából az a dal
+  // nyer, amelyiknek a (dátum, nehézség, dal) hash-e a legnagyobb. Így ha két
+  // játékos dallistája kicsit eltér, a nyertes akkor is ugyanaz marad.
+  function pickDailyTrack(date, diff) {
+    let best = null, bestScore = -1;
+    for (const t of pool) {
+      if (isLive(t) || t.pct < diff.from || (t.pct >= diff.to && diff.to < 1)) continue;
+      const score = hashString(`songdle-hu:${date}:${diff.id}:${t.id}`);
+      if (score > bestScore) { best = t; bestScore = score; }
     }
-    return null;
+    return best;
   }
 
   // ---------- Állapot ----------
@@ -228,13 +225,37 @@
 
   const defaultStats = () => ({ played: 0, wins: 0, streak: 0, maxStreak: 0, dist: [0, 0, 0, 0, 0, 0, 0] });
   let stats = Object.assign(defaultStats(), load("stats", {}));
-  let dailyStats = Object.assign(defaultStats(), { lastWin: null }, load("dailyStats", {}));
+  let dailyDiff = diffById(load("dailyDiff", DIFFS[0].id)).id;
+  // Nehézségenként külön napi statisztika. A régi (egyetlen) napi statisztika a Közepesbe kerül.
+  const dailyStatsAll = (() => {
+    const saved = load("dailyStats2", null);
+    const legacy = saved ? null : load("dailyStats", null);
+    const all = {};
+    for (const d of DIFFS) {
+      all[d.id] = Object.assign(defaultStats(), { lastWin: null },
+        saved ? saved[d.id] : legacy && d.id === "medium" ? legacy : {});
+    }
+    return all;
+  })();
+  const dailyStats = (id = dailyDiff) => dailyStatsAll[id];
   let points = load("points", 0);
   let shownPoints = points;
 
-  function dailyStreakNow() {
-    const today = dateKey();
-    return dailyStats.lastWin === today || dailyStats.lastWin === shiftDate(today, -1) ? dailyStats.streak : 0;
+  function dailyStreakNow(id = dailyDiff) {
+    const s = dailyStats(id), today = dateKey();
+    return s.lastWin === today || s.lastWin === shiftDate(today, -1) ? s.streak : 0;
+  }
+
+  const dailyKey = (date, id) => `daily.${date}.${id}`;
+  const dailyResult = (id) => load(dailyKey(dateKey(), id), null);
+  function nextUnplayedDiff() {
+    const start = DIFFS.findIndex((d) => d.id === dailyDiff);
+    for (let k = 1; k < DIFFS.length; k++) {
+      const d = DIFFS[(start + k) % DIFFS.length];
+      const r = dailyResult(d.id);
+      if (!r || !r.done) return d;
+    }
+    return null;
   }
 
   function setStatus(msg, isError) {
@@ -325,14 +346,21 @@
     el.segmented.dataset.mode = mode;
     el.modeEndless.setAttribute("aria-selected", String(mode === "endless"));
     el.modeDaily.setAttribute("aria-selected", String(mode === "daily"));
-    el.categoriesWrap.hidden = mode !== "endless";
     el.dailyBanner.hidden = mode !== "daily";
-    el.dailyBanner.innerHTML = `Mai dal · <b>${prettyDate(dateKey())}</b> · dupla pont`;
-    el.nextBtn.textContent = mode === "daily" ? "Végtelen mód →" : "Következő dal →";
+    const d = diffById(dailyDiff);
+    el.dailyBanner.innerHTML = `Mai dal · <b>${prettyDate(dateKey())}</b> · ${d.label} · <b>×${d.multiplier}</b> pont`;
+    updateNextButton();
+  }
+
+  function updateNextButton() {
+    if (mode !== "daily") { el.nextBtn.textContent = "Következő dal →"; return; }
+    const next = nextUnplayedDiff();
+    el.nextBtn.textContent = next ? `${next.icon} ${next.label} →` : "Végtelen mód →";
   }
 
   function renderCategories() {
     el.categories.innerHTML = "";
+    if (mode === "daily") return renderDifficulties();
     for (const c of CFG.CATEGORIES) {
       const b = document.createElement("button");
       b.className = "chip";
@@ -343,6 +371,35 @@
       el.categories.appendChild(b);
       if (active) requestAnimationFrame(() => b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }));
     }
+  }
+
+  function renderDifficulties() {
+    for (const d of DIFFS) {
+      const b = document.createElement("button");
+      b.className = "chip diff-chip";
+      b.dataset.diff = d.id;
+      const active = d.id === dailyDiff;
+      b.setAttribute("aria-pressed", String(active));
+      const r = dailyResult(d.id);
+      const state = r && r.done ? (r.won ? "won" : "lost") : "";
+      if (state) b.classList.add(state);
+      b.innerHTML = `<span class="diff-dot" aria-hidden="true">${d.icon}</span><span></span><span class="diff-mult">×${d.multiplier}</span>`
+        + (state ? `<span class="diff-state" aria-label="${state === "won" ? "megfejtve" : "nem sikerült"}">${state === "won" ? "✓" : "✗"}</span>` : "");
+      b.children[1].textContent = d.label;
+      b.addEventListener("click", () => changeDifficulty(d.id));
+      el.categories.appendChild(b);
+      if (active) requestAnimationFrame(() => b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }));
+    }
+  }
+
+  function changeDifficulty(id) {
+    if (id === dailyDiff) return;
+    // A félbehagyott napi kör el van mentve, később folytatható.
+    dailyDiff = id;
+    save("dailyDiff", id);
+    renderMode();
+    renderCategories();
+    enterMode();
   }
 
   async function changeCategory(id) {
@@ -396,15 +453,14 @@
 
     if (mode === "daily") {
       const date = dateKey();
-      const track = await pickDailyTrack(date);
-      if (token !== loadToken) return;
+      const saved = load(dailyKey(date, dailyDiff), null);
+      // Ha ma már elkezdte, ugyanaz a dal marad akkor is, ha közben frissült a dallista.
+      const track = (saved && pool.find((p) => p.id === saved.trackId)) || pickDailyTrack(date, diffById(dailyDiff));
       if (!track) {
         setLoading(false);
         return setStatus("Nem sikerült betölteni a mai dalt. Próbáld újra később.", true);
       }
-      const resolved = pool.find((p) => p.id === track.id) || buildPool([track])[0];
-      const saved = load("daily." + date, null);
-      return startRound(resolved, saved && saved.trackId === track.id ? saved : null);
+      return startRound(track, saved && saved.trackId === track.id ? saved : null);
     }
 
     const saved = load("round", null);
@@ -448,7 +504,7 @@
         if (token !== loadToken) return;
         if (!full.preview) throw new Error("Nincs előnézet");
         round = {
-          mode, date: mode === "daily" ? dateKey() : null, track: t,
+          mode, date: mode === "daily" ? dateKey() : null, diff: mode === "daily" ? dailyDiff : null, track: t,
           attempts: saved ? saved.attempts : [], done: !!(saved && saved.done), won: !!(saved && saved.won),
           points: saved && saved.points ? saved.points : null,
           preview: full.preview,
@@ -494,7 +550,7 @@
   function persistRound() {
     if (!round) return;
     if (round.mode === "daily") {
-      save("daily." + round.date, {
+      save(dailyKey(round.date, round.diff), {
         trackId: round.track.id, attempts: round.attempts, done: round.done, won: round.won, points: round.points,
       });
     } else if (!round.done) {
@@ -531,10 +587,9 @@
     }
   }
 
-  function scoreFor(won, tries, streakAfter, isDaily) {
+  function scoreFor(won, tries, streakAfter, multiplier) {
     if (!won) return { base: 0, bonus: 0, total: 0 };
-    let base = POINTS[tries - 1];
-    if (isDaily) base *= DAILY_MULTIPLIER;
+    const base = POINTS[tries - 1] * multiplier;
     const bonus = Math.min(Math.max(streakAfter - 1, 0) * STREAK_BONUS, STREAK_BONUS_MAX);
     return { base, bonus, total: base + bonus };
   }
@@ -546,7 +601,7 @@
 
     let s;
     if (round.mode === "daily") {
-      s = dailyStats;
+      s = dailyStats(round.diff);
       if (won) {
         s.streak = s.lastWin === shiftDate(round.date, -1) ? s.streak + 1 : 1;
         s.lastWin = round.date;
@@ -559,13 +614,16 @@
     if (won) s.wins++;
     s.maxStreak = Math.max(s.maxStreak, s.streak);
     s.dist[won ? tries - 1 : MAX_TRIES]++;
-    save(round.mode === "daily" ? "dailyStats" : "stats", s);
+    if (round.mode === "daily") save("dailyStats2", dailyStatsAll);
+    else save("stats", s);
 
-    round.points = scoreFor(won, tries, s.streak, round.mode === "daily");
+    const multiplier = round.mode === "daily" ? diffById(round.diff).multiplier : 1;
+    round.points = scoreFor(won, tries, s.streak, multiplier);
     points += round.points.total;
     save("points", points);
     persistRound();
     if (silent) return;
+    if (round.mode === "daily") renderCategories();
 
     stopAudio();
     buildWave(false);
@@ -620,6 +678,7 @@
     retrigger(el.reveal, "in");
     $("scroll").scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
 
+    updateNextButton();
     if (round.mode === "daily") startCountdown();
     else setStatus("Koppints a lemezre a teljes előnézethez.");
     if (autoplay) playClip();
@@ -765,10 +824,10 @@
   function renderStreak() {
     const flame = '<span class="flame">🔥</span>';
     if (mode === "daily") {
-      const st = dailyStreakNow();
+      const st = dailyStreakNow(), s = dailyStats(), d = diffById(dailyDiff);
       el.streakLine.innerHTML = st > 0
-        ? `${flame} Napi sorozat: <b>${st}</b> · legjobb: ${dailyStats.maxStreak}`
-        : dailyStats.played ? `Napi legjobb sorozat: ${dailyStats.maxStreak}` : "Találd ki a mai dalt!";
+        ? `${flame} ${d.label} sorozat: <b>${st}</b> nap · legjobb: ${s.maxStreak}`
+        : s.played ? `${d.label} legjobb sorozat: ${s.maxStreak} nap` : "Találd ki a mai dalt!";
     } else {
       el.streakLine.innerHTML = stats.streak > 0
         ? `${flame} Sorozat: <b>${stats.streak}</b> · legjobb: ${stats.maxStreak}`
@@ -1227,9 +1286,9 @@
     if (!round || !round.done) return;
     const url = location.origin + location.pathname;
     const head = round.mode === "daily"
-      ? `Songdle HU 📅 ${round.date}`
+      ? `Songdle HU 📅 ${round.date} · ${diffById(round.diff).icon} ${diffById(round.diff).label}`
       : `Songdle HU 🎵 ${CFG.CATEGORIES.find((c) => c.id === category).label}`;
-    const streak = round.mode === "daily" ? dailyStreakNow() : stats.streak;
+    const streak = round.mode === "daily" ? dailyStreakNow(round.diff) : stats.streak;
     const lines = [head, emojiRow(round)];
     const extra = [];
     if (round.points && round.points.total) extra.push(`+${round.points.total} pont`);
@@ -1257,8 +1316,10 @@
     if (round && !round.done) registerAttempt({ type: "skip" });
   });
   el.nextBtn.addEventListener("click", () => {
-    if (mode === "daily") changeMode("endless");
-    else startRound();
+    if (mode !== "daily") return startRound();
+    const next = nextUnplayedDiff();
+    if (next) changeDifficulty(next.id);
+    else changeMode("endless");
   });
   el.shareBtn.addEventListener("click", share);
   el.modeEndless.addEventListener("click", () => changeMode("endless"));
@@ -1288,12 +1349,35 @@
     }
   }
 
+  function renderDailyTable() {
+    const box = el.statGridDaily;
+    box.className = "diff-table";
+    box.innerHTML = "";
+    const head = document.createElement("div");
+    head.className = "diff-row head";
+    head.innerHTML = "<span></span><span>Játszott</span><span>Nyert</span><span>Sorozat</span><span>Legjobb</span>";
+    box.appendChild(head);
+    DIFFS.forEach((d, i) => {
+      const s = dailyStats(d.id);
+      const pct = s.played ? Math.round((s.wins / s.played) * 100) + "%" : "–";
+      const row = document.createElement("div");
+      row.className = "diff-row";
+      row.style.animationDelay = i * 60 + "ms";
+      for (const v of [`${d.icon} ${d.label}`, s.played, pct, dailyStreakNow(d.id), s.maxStreak]) {
+        const c = document.createElement("span");
+        c.textContent = v;
+        row.appendChild(c);
+      }
+      box.appendChild(row);
+    });
+  }
+
   function renderStats() {
     el.statPoints.textContent = points.toLocaleString("hu-HU");
     statCells(el.statGrid, stats, stats.streak);
-    statCells(el.statGridDaily, dailyStats, dailyStreakNow());
-    const s = mode === "daily" ? dailyStats : stats;
-    $("distTitle").textContent = `Hányadikra találtad el (${mode === "daily" ? "napi" : "végtelen"})`;
+    renderDailyTable();
+    const s = mode === "daily" ? dailyStats() : stats;
+    $("distTitle").textContent = `Hányadikra találtad el (${mode === "daily" ? "napi · " + diffById(dailyDiff).label : "végtelen"})`;
     const max = Math.max(1, ...s.dist);
     el.dist.innerHTML = "";
     s.dist.forEach((v, i) => {
@@ -1410,7 +1494,11 @@
     libDialog.showModal();
   });
 
-  $("statsBtn").addEventListener("click", () => { renderStats(); el.statsDialog.showModal(); });
+  $("statsBtn").addEventListener("click", () => {
+    renderStats();
+    el.statsDialog.showModal();
+    el.statsDialog.scrollTop = 0;
+  });
   $("helpBtn").addEventListener("click", () => el.helpDialog.showModal());
 
   // ---------- Indítás ----------
