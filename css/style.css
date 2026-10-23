@@ -788,6 +788,71 @@ kbd {
 .dist-bar.hl { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: var(--accent-ink); }
 .dist-bar.loss { background: rgba(255, 84, 112, .8); color: #fff; }
 
+/* ---------- Dallista ---------- */
+.topbar-side.right { width: 96px; }
+.dialog-tall[open] {
+  width: min(94vw, 520px);
+  height: min(88dvh, 760px);
+  display: flex; flex-direction: column;
+  padding: 18px 16px 0;
+}
+.lib-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.lib-head h2 { margin: 0; }
+.lib-meta { margin: 2px 0 0; font-size: .85rem; }
+.lib-search { position: relative; margin: 14px 0 10px; flex: none; }
+#libSearch {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px 0 42px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, .3);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+#libSearch:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(30, 215, 96, .15); }
+.lib-list { flex: 1; overflow-y: auto; margin: 0 -16px; padding: 0 16px 16px; overscroll-behavior: contain; }
+.lib-group { border-bottom: 1px solid var(--border); }
+.lib-group summary {
+  list-style: none;
+  display: flex; align-items: center; gap: 12px;
+  min-height: 56px;
+  padding: 6px 4px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.lib-group summary::-webkit-details-marker { display: none; }
+.lib-group summary img {
+  width: 40px; height: 40px; flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+.lib-group summary .name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-group summary .count {
+  font-size: .8rem; color: var(--muted);
+  padding: 2px 8px; border-radius: 999px; background: var(--surface);
+}
+.lib-group summary .chev { color: var(--muted); transition: transform .3s var(--ease-out); }
+.lib-group[open] summary .chev { transform: rotate(90deg); }
+.lib-tracks { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 2px; animation: rise .3s var(--ease-out); }
+.lib-tracks li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 4px 6px 8px;
+  border-radius: 10px;
+}
+.lib-tracks li:hover { background: var(--surface); }
+.lib-tracks img { width: 36px; height: 36px; flex: none; border-radius: 6px; object-fit: cover; background: var(--surface-2); }
+.lib-tracks .t { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.lib-list { overflow-x: hidden; }
+.lib-list mark { background: none; color: var(--accent); }
+.lib-tracks .t b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-tracks .t span { font-size: .8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-tracks mark { background: none; color: var(--accent); }
+.lib-empty { text-align: center; color: var(--muted); padding: 30px 0; }
+
 /* ---------- Méretek ---------- */
 @media (max-height: 760px) {
   :root { --disc: min(44vw, 170px); --tap: 48px; }
@@ -799,6 +864,12 @@ kbd {
   :root { --disc: min(36vw, 130px); }
   .play-btn { width: 54px; height: 54px; }
   .reveal-title { font-size: 1.3rem; }
+}
+@media (max-width: 400px) {
+  .topbar { padding-left: 10px; padding-right: 10px; }
+  .topbar-side, .topbar-side.right { gap: 6px; width: 86px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .logo { font-size: 1.25rem; gap: 6px; }
 }
 @media (min-width: 600px) {
   .categories { justify-content: center; flex-wrap: wrap; -webkit-mask-image: none; mask-image: none; }

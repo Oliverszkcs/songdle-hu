@@ -138,7 +138,10 @@
     async function worker() {
       while (next < artists.length) {
         const a = artists[next++];
-        try { results.push(...(await loadArtist(a))); } catch (e) { console.warn("Nem sikerült:", a.name, e); }
+        try {
+          // src: melyik beállított előadótól jött a dal (a dallista így csoportosít)
+          results.push(...(await loadArtist(a)).map((t) => ({ ...t, src: a.name })));
+        } catch (e) { console.warn("Nem sikerült:", a.name, e); }
         onProgress(++done, artists.length);
       }
     }
@@ -1284,6 +1287,103 @@
       el.dist.appendChild(row);
     });
   }
+
+  // ---------- Dallista ----------
+  const libDialog = $("libraryDialog"), libList = $("libList"), libSearch = $("libSearch"), libMeta = $("libMeta");
+  const LIB_MAX_RESULTS = 300;
+
+  function libTrackItem(t, q) {
+    const li = document.createElement("li");
+    const img = document.createElement("img");
+    img.alt = "";
+    img.loading = "lazy";
+    img.decoding = "async";
+    if (t.md5) img.src = coverUrl(t.md5, 120);
+    const text = document.createElement("span");
+    text.className = "t";
+    const title = document.createElement("b");
+    title.appendChild(highlighted(t.title, q));
+    const sub = document.createElement("span");
+    sub.appendChild(highlighted(t.artist !== t.src ? `${artistLine(t)} · ${t.album}`
+      : t.feat.length ? `feat. ${t.feat.join(", ")} · ${t.album}` : t.album, q));
+    text.append(title, sub);
+    li.append(img, text);
+    return li;
+  }
+
+  function renderLibrary() {
+    const q = libSearch.value;
+    const tokens = norm(q).split(" ").filter(Boolean);
+    const label = mode === "daily" ? "Mind" : CFG.CATEGORIES.find((c) => c.id === category).label;
+    const groups = new Map();
+    let shown = 0, matched = 0;
+    for (const t of pool) {
+      if (tokens.length && !tokens.every((tok) => t.hay.includes(tok))) continue;
+      matched++;
+      if (tokens.length && shown >= LIB_MAX_RESULTS) continue;
+      shown++;
+      const g = t.src || t.artist;
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(t);
+    }
+    libMeta.textContent = tokens.length
+      ? `${matched} találat · ${label}`
+      : `${pool.length} dal · ${groups.size} előadó · ${label}`;
+    libList.innerHTML = "";
+    if (!groups.size) {
+      const p = document.createElement("p");
+      p.className = "lib-empty";
+      p.textContent = pool.length ? "Nincs találat." : "A dalok még töltődnek…";
+      libList.appendChild(p);
+      return;
+    }
+    const names = [...groups.keys()].sort((a, b) => a.localeCompare(b, "hu"));
+    for (const name of names) {
+      const tracks = groups.get(name);
+      const det = document.createElement("details");
+      det.className = "lib-group";
+      const sum = document.createElement("summary");
+      const avatar = document.createElement("img");
+      avatar.alt = "";
+      avatar.loading = "lazy";
+      const withCover = tracks.find((t) => t.md5);
+      if (withCover) avatar.src = coverUrl(withCover.md5, 120);
+      const nm = document.createElement("span");
+      nm.className = "name";
+      nm.appendChild(highlighted(name, q));
+      const count = document.createElement("span");
+      count.className = "count";
+      count.textContent = tracks.length;
+      const chev = document.createElement("span");
+      chev.className = "chev";
+      chev.textContent = "›";
+      sum.append(avatar, nm, count, chev);
+      det.appendChild(sum);
+      // A dalokat csak kinyitáskor rajzoljuk ki (több ezer elem is lehet).
+      const fill = () => {
+        if (det.querySelector(".lib-tracks")) return;
+        const ul = document.createElement("ul");
+        ul.className = "lib-tracks";
+        for (const t of tracks) ul.appendChild(libTrackItem(t, q));
+        det.appendChild(ul);
+      };
+      det.addEventListener("toggle", () => { if (det.open) fill(); });
+      if (tokens.length) { det.open = true; fill(); }
+      libList.appendChild(det);
+    }
+  }
+
+  let libTimer = 0;
+  libSearch.addEventListener("input", () => {
+    clearTimeout(libTimer);
+    libTimer = setTimeout(renderLibrary, 120);
+  });
+  $("libraryBtn").addEventListener("click", () => {
+    libSearch.value = "";
+    renderLibrary();
+    libList.scrollTop = 0;
+    libDialog.showModal();
+  });
 
   $("statsBtn").addEventListener("click", () => { renderStats(); el.statsDialog.showModal(); });
   $("helpBtn").addEventListener("click", () => el.helpDialog.showModal());

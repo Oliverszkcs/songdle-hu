@@ -45,6 +45,9 @@
         Songdle<span class="logo-hu">HU</span>
       </h1>
       <div class="topbar-side right">
+        <button class="icon-btn" id="libraryBtn" aria-label="Dallista">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M4 6h11M4 12h11M4 18h7"/><path fill="currentColor" d="M17 8.5v7.1a2.5 2.5 0 1 0 2 2.4V10h2V8.5h-4z"/></svg>
+        </button>
         <button class="icon-btn" id="statsBtn" aria-label="Statisztika">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M4 20V10h3v10H4zm6.5 0V4h3v16h-3zM17 20v-7h3v7h-3z"/></svg>
         </button>
@@ -187,6 +190,21 @@
       <p class="hint-keys">Billentyűzeten: <kbd>Szóköz</kbd> lejátszás, <kbd>Enter</kbd> tipp / következő dal.</p>
       <button class="btn btn-primary" value="close">Kezdjük!</button>
     </form>
+  </dialog>
+
+  <dialog id="libraryDialog" class="dialog dialog-tall">
+    <div class="lib-head">
+      <div>
+        <h2>Dallista</h2>
+        <p class="lib-meta" id="libMeta"></p>
+      </div>
+      <form method="dialog"><button class="icon-btn small" value="close" aria-label="Bezár">×</button></form>
+    </div>
+    <div class="lib-search">
+      <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM16 16l5 5"/></svg>
+      <input id="libSearch" type="search" placeholder="Keresés címre vagy előadóra…" autocomplete="off" spellcheck="false" aria-label="Keresés a dallistában">
+    </div>
+    <div class="lib-list" id="libList"></div>
   </dialog>
 
   <dialog id="confirmDialog" class="dialog">
