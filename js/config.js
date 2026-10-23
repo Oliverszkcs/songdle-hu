@@ -34,6 +34,7 @@ window.SONGDLE_CONFIG = {
     { name: "Rúzsa Magdi", id: 292212, tags: ["pop"] },
     { name: "Manuel", id: 79455642, tags: ["pop", "rap"] },
     { name: "Bereczki Zoltán", id: 1189933, tags: ["pop"] },
+    { name: "Filo", id: 84045292, tags: ["pop", "rap"] },
 
     // Alter
     { name: "Quimby", id: 2177, tags: ["alter", "rock"] },
@@ -74,7 +75,8 @@ window.SONGDLE_CONFIG = {
     { name: "BSW", id: 9812410, tags: ["trash"] },
     // A régi Beerseewalk névről csak a Picsa; a többi dal a BSW-től jön.
     { name: "Beerseewalk", id: 5400018, tags: ["trash", "rap"], only: ["Picsa"] },
-    { name: "Fluor", id: 1569284, tags: ["trash", "rap"] },
+    { name: "Fluor", id: 1569284, tags: ["trash", "rap"], top: 5 },
+    { name: "Belaño", id: 50033762, tags: ["trash", "rap"] },
     { name: "Mirror Glimpse", id: 127032772, tags: ["trash", "rap"], top: 8 },
 
     // Mulatós
