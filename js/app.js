@@ -296,10 +296,12 @@
   let toastTimer = 0;
   function toast(msg) {
     el.toast.textContent = msg;
+    // Hosszabb magyarázat: szélesebb doboz, tovább látszik.
+    el.toast.classList.toggle("long", msg.length > 50);
     el.toast.hidden = false;
     retrigger(el.toast, "show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { el.toast.hidden = true; }, 2200);
+    toastTimer = setTimeout(() => { el.toast.hidden = true; }, Math.max(2200, msg.length * 55));
   }
 
   const vibrate = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch { /* nem támogatott */ } };
@@ -1960,7 +1962,7 @@
   const tagLabel = (id) => (CFG.CATEGORIES.find((c) => c.id === id) || { label: id }).label;
   const ad = {
     input: $("adInput"), sugg: $("adSuggestions"), list: $("adGuesses"), empty: $("adEmpty"),
-    meta: $("adMeta"), win: $("adWin"), hint: $("adHintBtn"), giveUp: $("adGiveUpBtn"), search: $("adSearch"), cols: $("adCols"),
+    meta: $("adMeta"), win: $("adWin"), hint: $("adHintBtn"), giveUp: $("adGiveUpBtn"), search: $("adSearch"), cols: $("adCols"), help: $("adHelp"),
   };
   let adStats = load("artistStats", { played: 0, streak: 0, maxStreak: 0, lastWin: null, guesses: 0 });
 
@@ -2009,12 +2011,41 @@
     const known = gFans > 0 && aFans > 0;
     const ratio = known ? Math.max(gFans, aFans) / Math.min(gFans, aFans) : Infinity;
     const fans = g.id === ans.id ? "hit" : !known ? "miss" : ratio <= 1.15 ? "hit" : ratio <= 2 ? "near" : "miss";
+    // Szólónál a születési, duónál és zenekarnál az alakulás éve számít.
+    const born = g.type === "solo";
+    const yearWord = born ? "született" : "alakult";
+    const later = ans.year > g.year;
+    const more = aFans > gFans;
+    const genreText = g.genres.map(tagLabel).join(", ");
     return [
-      [type, AD_TYPE[g.type]],
-      [gender, AD_GENDER[g.gender]],
-      [year, g.year + (year === "hit" ? "" : arrow(g.year, ans.year))],
-      [genre, g.genres.map(tagLabel).join(", ")],
-      [fans, !gFans ? "–" : fmtFans(gFans) + (fans === "hit" || !known ? "" : arrow(gFans, aFans))],
+      {
+        cls: type, text: AD_TYPE[g.type],
+        why: type === "hit" ? `Típus: egyezik – a mai előadó is ${AD_TYPE[g.type].toLowerCase()}.`
+          : type === "near" ? `Típus: közel – a mai előadó is csapat (duó vagy zenekar), de nem ${AD_TYPE[g.type].toLowerCase()}.`
+          : `Típus: nem egyezik – a mai előadó nem ${AD_TYPE[g.type].toLowerCase()}.`,
+      },
+      {
+        cls: gender, text: AD_GENDER[g.gender],
+        why: gender === "hit" ? `Nem: egyezik (${AD_GENDER[g.gender].toLowerCase()}).`
+          : gender === "near" ? "Nem: részben egyezik – az egyikük vegyes (férfi és női tagok is), a másik nem."
+          : "Nem: nem egyezik.",
+      },
+      {
+        cls: year, text: g.year + (year === "hit" ? "" : arrow(g.year, ans.year)), sub: born ? "szül." : "alakult",
+        why: `${g.name} ${g.year}-ben ${yearWord}. ` + (year === "hit" ? "Pontosan egyezik a mai előadóval."
+          : `A mai előadó ${later ? "később (▲)" : "korábban (▼)"} született vagy alakult` + (year === "near" ? ", legfeljebb 5 év a különbség." : ", több mint 5 év a különbség.")),
+      },
+      {
+        cls: genre, text: genreText,
+        why: genre === "hit" ? "Műfaj: pontosan ugyanazok a műfajok."
+          : genre === "near" ? "Műfaj: van közös műfaj, de nem mind egyezik." : "Műfaj: nincs közös műfaj.",
+      },
+      {
+        cls: fans, text: !gFans ? "–" : fmtFans(gFans) + (fans === "hit" || !known ? "" : arrow(gFans, aFans)), sub: "havi",
+        why: !known ? "Hallgatók: ennél az előadónál nincs Spotify-adat."
+          : `${g.name}: ${gFans.toLocaleString("hu-HU")} havi hallgató a Spotify-on. ` + (fans === "hit" ? "Nagyjából ugyanannyi, mint a mai előadónak."
+          : `A mai előadónak ${more ? "több (▲)" : "kevesebb (▼)"} van` + (fans === "near" ? ", de legfeljebb kétszeres a különbség." : ", több mint kétszeres a különbség.")),
+      },
     ];
   }
 
@@ -2032,10 +2063,22 @@
     head.append(img, name);
     const tiles = document.createElement("div");
     tiles.className = "ad-tiles";
-    adCompare(g, ans, g.listeners, ans.listeners).forEach(([cls, text], i) => {
-      const t = document.createElement("span");
-      t.className = "ad-tile " + cls;
-      t.textContent = text;
+    adCompare(g, ans, g.listeners, ans.listeners).forEach((c, i) => {
+      // Koppintásra elmagyarázza, mit jelent a mező.
+      const t = document.createElement("button");
+      t.type = "button";
+      t.className = "ad-tile " + c.cls;
+      t.setAttribute("aria-label", c.why);
+      t.title = c.why;
+      const v = document.createElement("span");
+      v.textContent = c.text;
+      t.appendChild(v);
+      if (c.sub) {
+        const s = document.createElement("small");
+        s.textContent = c.sub;
+        t.appendChild(s);
+      }
+      t.addEventListener("click", () => toast(c.why));
       if (animate) t.style.animationDelay = i * 0.12 + "s";
       else t.classList.add("still");
       tiles.appendChild(t);
@@ -2100,7 +2143,7 @@
     for (const n of st.guesses) {
       const g = adArtists.find((a) => a.name === n);
       if (!g) continue;
-      lines.push(adCompare(g, ans, g.listeners, ans.listeners).map(([c]) => emoji[c]).join(""));
+      lines.push(adCompare(g, ans, g.listeners, ans.listeners).map((c) => emoji[c.cls]).join(""));
     }
     const text = `Songdle HU 🎤 Napi előadó · ${prettyDate(date)}\n${st.guesses.length} tipp${st.gaveUp ? " · feladva 🏳️" : ""}\n${lines.join("\n")}\n${location.origin + location.pathname}`;
     if (navigator.share) {
@@ -2244,6 +2287,8 @@
     ad.input.value = "";
     adHideSugg();
     adRender(false);
+    // Első tipp előtt nyitva a magyarázat, később csak kérésre.
+    ad.help.open = !adState().guesses.length;
     adFetch(adAnswer(dateKey()));
   }
   // Az oldal elhagyásakor a tipp-lejátszás leáll.

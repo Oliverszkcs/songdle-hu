@@ -113,7 +113,19 @@
         </div>
         <div class="ad-win" id="adWin" hidden></div>
         <ol class="ad-guesses" id="adGuesses"></ol>
-        <p class="ad-empty" id="adEmpty">Találd ki a mai magyar előadót! Minden tipp után látod, mennyire áll közel: <b>típus</b>, <b>nem</b>, <b>születés / alakulás éve</b>, <b>műfaj</b> és <b>Spotify havi hallgatók</b>.</p>
+        <p class="ad-empty" id="adEmpty">Találd ki a mai magyar előadót! Írj be bárkit a játékból, és megmutatjuk, miben hasonlít a megfejtésre.</p>
+        <details class="ad-help" id="adHelp">
+          <summary>Hogyan működik?</summary>
+          <p class="ad-help-key"><i class="hit"></i><b>Zöld</b> – egyezik &nbsp; <i class="near"></i><b>Sárga</b> – közel &nbsp; <i></i><b>Szürke</b> – nem talált</p>
+          <dl>
+            <dt>Típus</dt><dd>Szóló, duó vagy zenekar. Sárga, ha mindkettő csapat (duó vs. zenekar).</dd>
+            <dt>Nem</dt><dd>Férfi, nő vagy vegyes. Sárga, ha az egyik vegyes felállású.</dd>
+            <dt>Év</dt><dd>Szólóelőadónál a <b>születés</b> éve, duónál és zenekarnál az <b>alakulás</b> éve. Sárga: legfeljebb 5 év eltérés. ▲ = a mai előadó később született / alakult, ▼ = korábban.</dd>
+            <dt>Műfaj</dt><dd>A játék kategóriái (pl. Pop, Rap, Mulatós). Zöld, ha mind egyezik, sárga, ha van közös.</dd>
+            <dt>Hallgatók</dt><dd>Spotify havi hallgatók. Zöld: ±15%-on belül, sárga: legfeljebb kétszeres eltérés. ▲ = a mai előadónak több van.</dd>
+          </dl>
+          <p>Koppints bármelyik mezőre a részletes magyarázatért. 4 tipp után kérhetsz egy 10 mp-es zenei súgót, 5 tipp után fel is adhatod. Pont: 150 az első tippre, utána tippenként 20-szal kevesebb (legalább 20).</p>
+        </details>
       </section>
       <div class="game">
         <section class="stage" id="stage">
