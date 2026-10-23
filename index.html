@@ -4,7 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Songdle HU</title>
-  <meta name="description" content="Magyar dalfelismerős játék végtelen móddal.">
+  <meta name="description" content="Magyar dalfelismerős játék: ismerd fel a dalt az első másodpercekből! Végtelen mód, napi dal, napi előadó és párbaj.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Songdle HU">
+  <meta property="og:title" content="Songdle HU – Felismered a dalt?">
+  <meta property="og:description" content="Magyar dalfelismerős játék: 1 másodpercből indulsz. Végtelen mód, napi dal, napi előadó és párbaj a barátaiddal.">
+  <meta property="og:url" content="https://songdle.hu/">
+  <meta property="og:image" content="https://songdle.hu/icons/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="hu_HU">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://songdle.hu/icons/og-image.png">
   <meta name="theme-color" content="#0b0b10">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -106,9 +117,11 @@
           </div>
           <div class="ad-tools">
             <button class="chip" id="adHintBtn" type="button" disabled></button>
+            <button class="chip" id="adTitleBtn" type="button" disabled></button>
             <button class="chip ad-giveup" id="adGiveUpBtn" type="button" hidden>🏳️ Feladom</button>
           </div>
         </div>
+        <p class="ad-title-hint" id="adTitleHint" hidden></p>
         <div class="ad-win" id="adWin" hidden></div>
         <ol class="ad-guesses" id="adGuesses"></ol>
         <p class="ad-empty" id="adEmpty">Találd ki a mai magyar előadót! Minden tipp után látod, miben hasonlít a megfejtésre.</p>
@@ -125,7 +138,7 @@
             <dt>Hallgató</dt><dd>Spotify havi hallgatók. Sárga: legfeljebb kétszeres eltérés.</dd>
             <dt>Eurovízió</dt><dd>Indult-e. Az A Dal-induló sárga.</dd>
           </dl>
-          <p>▲▼ a mai előadó felé mutat. Koppints egy mezőre a részletekért. 4 tipp után zenei súgó, 5 után feladhatod.</p>
+          <p>▲▼ a mai előadó felé mutat. Koppints egy mezőre a részletekért. 4 tipp után zenei súgó és egy dalcím (ez utóbbi −40 pont), 5 után feladhatod.</p>
         </details>
       </section>
       <div class="game">
@@ -182,6 +195,10 @@
           <div class="set-slots" id="setSlots" aria-label="A kör dalai"></div>
           <div class="set-record" title="Legjobb 5 dalos kör">🏆 <b id="setRecord">0</b></div>
         </div>
+        <div class="vs-bar" id="vsBar" hidden>
+          <div class="vs-row"><b class="vs-name">Te</b><div class="set-slots" id="vsMe"></div><b class="vs-score" id="vsMeScore">0</b></div>
+          <div class="vs-row opp"><b class="vs-name" id="vsOppName"></b><div class="set-slots" id="vsOpp"></div><b class="vs-score" id="vsOppScore">0</b></div>
+        </div>
 
         <div class="streak-line" id="streakLine"></div>
 
@@ -232,6 +249,13 @@
       <div class="stat-grid" id="statGrid"></div>
       <h3>📅 Napi dal</h3>
       <div class="stat-grid" id="statGridDaily"></div>
+      <div class="cal-nav">
+        <button class="icon-btn small" type="button" id="calPrev" aria-label="Előző hónap">‹</button>
+        <b id="calTitle"></b>
+        <button class="icon-btn small" type="button" id="calNext" aria-label="Következő hónap">›</button>
+      </div>
+      <div class="cal" id="cal"></div>
+      <p class="stat-note cal-key"><i class="won"></i> eltalált napi dalok (minél több, annál zöldebb) · <i class="lost"></i> egy sem · 🎤 pötty: megvolt az előadó</p>
       <h3>🎤 Napi előadó</h3>
       <div class="stat-grid" id="statGridArtist"></div>
       <p class="stat-note" id="statArtistNote"></p>
@@ -252,6 +276,8 @@
         <li><span class="help-ico">⭐</span><span><b>Pontok:</b> 1. tippre 100, aztán 80, 60, 40, 25, 10. A sorozatod bónuszt ad (+5 pont dalonként, max. +50).</span></li>
         <li><span class="help-ico">🏆</span><span><b>Kör:</b> végtelen módban 5 dal egy kör. A kör pontjait összeadjuk, és a legjobb kör a rekordod.</span></li>
         <li><span class="help-ico">📅</span><span><b>Napi dal:</b> naponta 4 dal, mindenkinek ugyanaz: 🟢 Könnyű (×1), 🟡 Közepes (×2), 🟠 Nehéz (×3) és 🔴 Extrém (×4 pont). Minél nehezebb, annál kevésbé ismert a dal. Mindegyiknek külön sorozata van.</span></li>
+        <li><span class="help-ico">🔥</span><span><b>Nehéz mód:</b> a részlet a dal közepéről indul, a pont ×1,5. <b>Évtizedek:</b> a kategóriák végén csak egy évtized dalai jönnek.</span></li>
+        <li><span class="help-ico">⚔️</span><span><b>Párbaj:</b> nyiss egy szobát, küldd el a kódot egy barátodnak, és élőben játsszatok ugyanarra az 5 dalra. <b>Kihívás:</b> egy kör végén a Megosztás linkjén a barátod ugyanazt az 5 dalt kapja, és látja a pontodat.</span></li>
         <li><span class="help-ico">🎤</span><span><b>Előadó:</b> a harmadik fülön naponta egy előadót kell kitalálni. Minden tipp 8 mezőt mutat (típus, nem, műfaj, státusz, születés/alakulás, debüt, Spotify havi hallgatók, Eurovízió): zöld = egyezik, sárga = közel, ▲▼ = merre van a megfejtés. Bármelyik mezőre koppintva elmagyarázza. 4 tipp után belehallgathatsz egy dalába, 5 után feladhatod.</span></li>
       </ul>
       <p class="hint-keys">Billentyűzeten: <kbd>Szóköz</kbd> lejátszás, <kbd>Enter</kbd> tipp / következő dal.</p>
@@ -292,6 +318,29 @@
         <button class="btn btn-ghost" value="Egyéb">💬 Egyéb</button>
       </div>
       <button class="btn btn-primary" value="">Mégse</button>
+    </form>
+  </dialog>
+
+  <dialog id="battleDialog" class="dialog">
+    <form method="dialog">
+      <h2>⚔️ Párbaj</h2>
+      <p>Játssz élőben egy barátoddal: ugyanazt az 5 dalt kapjátok egyszerre, és aki több pontot gyűjt, nyer.</p>
+      <label class="field"><span>A neved</span><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="pl. Bence"></label>
+      <div class="battle-step" id="battleStart">
+        <button type="button" class="btn btn-primary" id="battleHostBtn">Szoba nyitása</button>
+        <p class="battle-or">vagy csatlakozz egy kóddal</p>
+        <div class="battle-join">
+          <input id="battleCode" maxlength="4" placeholder="KÓD" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Szoba kódja">
+          <button type="button" class="btn btn-ghost" id="battleJoinBtn">Csatlakozás</button>
+        </div>
+      </div>
+      <div class="battle-step" id="battleWait" hidden>
+        <p class="battle-code" id="battleCodeShow"></p>
+        <p>Küldd el a kódot vagy a linket a barátodnak!</p>
+        <button type="button" class="btn btn-ghost" id="battleShareBtn">Link megosztása</button>
+      </div>
+      <p class="battle-status" id="battleStatus" role="status" aria-live="polite"></p>
+      <button class="btn btn-ghost" value="cancel">Mégse</button>
     </form>
   </dialog>
 

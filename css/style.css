@@ -1358,3 +1358,81 @@ button.ad-tile:active { transform: scale(.95); }
   *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
   .blob { animation: none !important; }
 }
+
+/* ---------- Párbaj, kihívás, nehéz mód, évtizedek ---------- */
+.segmented[data-mode="versus"] .seg-indicator { opacity: 0; }
+.chip-sep { flex: none; width: 1px; align-self: stretch; margin: 6px 2px; background: var(--border-strong); }
+.chip.battle-chip { color: var(--text); border-color: rgba(255, 197, 71, .35); background: rgba(255, 197, 71, .1); }
+.chip.hard-chip[aria-pressed="true"] {
+  background: linear-gradient(135deg, #ff8a3d, var(--wrong));
+  color: #1a0505;
+  box-shadow: 0 6px 20px rgba(255, 84, 112, .35);
+}
+
+.vs-bar { display: grid; gap: 6px; }
+.vs-row { display: flex; align-items: center; gap: 10px; }
+.vs-name { flex: none; width: 4.6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; color: var(--text); }
+.vs-row.opp .vs-name { color: #ffd58a; }
+.vs-score { flex: none; min-width: 2.6em; text-align: right; font-variant-numeric: tabular-nums; font-size: .95rem; }
+.vs-row.opp .set-slots span.current { border-color: rgba(255, 197, 71, .45); color: #ffd58a; }
+
+.ad-title-hint {
+  margin: 0 0 10px; padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 197, 71, .1);
+  border: 1px solid rgba(255, 197, 71, .25);
+  color: var(--muted); text-align: center;
+}
+.ad-title-hint b { color: var(--text); }
+
+/* Napi naptár a statisztikában */
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 6px; }
+.cal-nav b { text-transform: capitalize; }
+.cal-nav .icon-btn:disabled { opacity: .3; cursor: default; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-head { text-align: center; font-size: .7rem; font-weight: 700; color: var(--muted); }
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid; place-items: center;
+  border-radius: 9px;
+  font-size: .8rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  background: var(--surface);
+}
+.cal-day.won {
+  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent) calc(35% + var(--lvl, 0) * 65%), rgba(255, 255, 255, .05));
+}
+.cal-day.lost { color: var(--wrong); background: rgba(255, 84, 112, .12); }
+.cal-day.today { outline: 2px solid rgba(255, 255, 255, .5); outline-offset: -2px; }
+.cal-day.future { opacity: .35; }
+.cal-day.artist::after {
+  content: ""; position: absolute; top: 4px; right: 4px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #ffd58a; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .35);
+}
+.cal-key i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.cal-key i.won { background: var(--accent); }
+.cal-key i.lost { background: rgba(255, 84, 112, .5); }
+
+/* Párbaj ablak */
+.field { display: grid; gap: 6px; margin: 12px 0; }
+.field span { font-size: .85rem; font-weight: 700; color: var(--muted); }
+.field input, .battle-join input {
+  min-height: 48px; padding: 0 14px;
+  border-radius: 12px; border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--text);
+  font: inherit; font-size: 16px;
+}
+.battle-step { display: grid; gap: 10px; margin: 6px 0 10px; }
+.battle-or { text-align: center; margin: 2px 0 !important; font-size: .85rem; }
+.battle-join { display: flex; gap: 8px; }
+.battle-join input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: .3em; font-weight: 800; text-align: center; }
+.battle-code {
+  margin: 0 !important; text-align: center;
+  font-size: 2.6rem; font-weight: 900; letter-spacing: .25em;
+  color: var(--text) !important;
+}
+.battle-status { min-height: 1.3em; text-align: center; font-weight: 600; }
+.battle-status.error { color: var(--wrong) !important; }

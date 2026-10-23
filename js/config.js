@@ -25,6 +25,17 @@ window.SONGDLE_CONFIG = {
     { id: "disco", label: "Diszkó" },
   ],
 
+  // Évtized-kategóriák (a végtelen mód chipjei között). A dalok évét a
+  // data/years.json adja (tools/build-years.mjs készíti); év nélküli dal kimarad.
+  DECADES: [
+    { id: "d1960", label: "60-70-es évek", from: 1900, to: 1979 },
+    { id: "d1980", label: "80-as évek", from: 1980, to: 1989 },
+    { id: "d1990", label: "90-es évek", from: 1990, to: 1999 },
+    { id: "d2000", label: "2000-es évek", from: 2000, to: 2009 },
+    { id: "d2010", label: "2010-es évek", from: 2010, to: 2019 },
+    { id: "d2020", label: "2020-as évek", from: 2020, to: 2099 },
+  ],
+
   ARTISTS: [
     // Pop
     { name: "Azahriah", id: 57553912, tags: ["pop", "rap"] },
@@ -35,6 +46,14 @@ window.SONGDLE_CONFIG = {
     { name: "Manuel", id: 79455642, tags: ["pop", "rap"] },
     { name: "Bereczki Zoltán", id: 1189933, tags: ["pop"] },
     { name: "Filo", id: 84045292, tags: ["pop", "rap"] },
+    { name: "Zséda", id: 1481181, tags: ["pop"] },
+    { name: "Tóth Vera", id: 281048, tags: ["pop"] },
+    { name: "Molnár Ferenc Caramel", id: 676029, tags: ["pop"] },
+    { name: "Tóth Gabi", id: 7780, tags: ["pop"] },
+    { name: "Rácz Gergő", id: 266125, tags: ["pop"] },
+    { name: "Pápai Joci", id: 281597, tags: ["pop"] },
+    { name: "Radics Gigi", id: 1678972, tags: ["pop"] },
+    { name: "Wolf Kati", id: 5415292, tags: ["pop"] },
 
     // Alter
     { name: "Quimby", id: 2177, tags: ["alter", "rock"] },
@@ -88,6 +107,9 @@ window.SONGDLE_CONFIG = {
     { name: "Bunyós Pityu", id: 5123792, tags: ["mulatos"] },
     { name: "Bódi Guszti", id: 4821636, tags: ["mulatos"] },
     { name: "Sláger Tibó", id: 7076161, tags: ["mulatos"] },
+    { name: "MC Hawer és Tekknő", id: 7917112, tags: ["mulatos", "trash"] },
+    { name: "Romantic", id: 288469, tags: ["mulatos"] },
+    { name: "Bódi Csabi", id: 5511227, tags: ["mulatos"] },
 
     // Rock
     { name: "Tankcsapda", id: 86, tags: ["rock"] },
@@ -179,6 +201,33 @@ window.SONGDLE_CONFIG = {
     { id: 3332864101, note: "Pintxos – nem a magyar Desh (Deezer összevont oldal, kiadó: Lofi Jazz Records)" },
     { id: 4298088992, note: "Freaky Friday – nem a magyar Desh (Deezer összevont oldal, kiadó: Lofi Jazz Records)" },
     { id: 1908841947, note: "Bloomin – nem a magyar Desh (Deezer összevont oldal, kiadó: Lofi Jazz Records)" },
+    { id: 4280788032, note: "Beatrice: egy másik, külföldi Beatrice (angol nyelvű saját kiadás)" },
+    { id: 4296871922, note: "Beatrice: egy másik, külföldi Beatrice (angol nyelvű saját kiadás)" },
+    { id: 4320489082, note: "Beatrice: egy másik, külföldi Beatrice (angol nyelvű saját kiadás)" },
+    { id: 2527564991, note: "Beatrice: egy másik, külföldi Beatrice (angol nyelvű saját kiadás)" },
+    { id: 1975181817, note: "Beatrice: egy másik, külföldi Beatrice (angol nyelvű saját kiadás)" },
+    { id: 3794547082, note: "Beatrice: egy másik, külföldi Beatrice (angol nyelvű saját kiadás)" },
+    { id: 2079436907, note: "Beatrice: egy másik, külföldi Beatrice (angol nyelvű saját kiadás)" },
+    { id: 2147064, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 2147065, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 2147066, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 2147067, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 2147068, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 2147069, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 2147070, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 2147071, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 2147072, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 2147073, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 68662124, note: "Karthago: a német Karthago együttes (Bacillus / M.i.G.)" },
+    { id: 4262339601, note: "Unique: ausztrál Unique (Classified Records / Spoontech)" },
+    { id: 4124158081, note: "Unique: ausztrál Unique (Classified Records / Spoontech)" },
+    { id: 4048696041, note: "Unique: ausztrál Unique (Classified Records / Spoontech)" },
+    { id: 4152386232, note: "Unique: ausztrál Unique (Classified Records / Spoontech)" },
+    { id: 4070241081, note: "Apostol: külföldi Apostol (angol nyelvű saját kiadás)" },
+    { id: 4214768162, note: "Apostol: külföldi Apostol (angol nyelvű saját kiadás)" },
+    { id: 4142161701, note: "Korál: Dancing by the Ocean – nem a magyar Korál" },
+    { id: 1590608902, note: "Majka: Aureola – lengyel dal (Żyleta), nem magyar" },
+    { id: 3019129, note: "Katona Klári: Bunt wie ein Blumenstrauß – német nyelvű (Amiga)" },
     { id: 2054540477, note: "Sunbeams – nem a magyar Desh (Deezer összevont oldal, kiadó: Hip Dozer)" },
     { id: 3001351431, note: "Flashbacks – nem a magyar Desh (Deezer összevont oldal, kiadó: Hip Dozer)" },
     { id: 2064360047, note: "Do You – nem a magyar Desh (Deezer összevont oldal, kiadó: Steezyasfuck)" },
@@ -225,6 +274,17 @@ window.SONGDLE_CONFIG = {
   // Ennyi körig nem jön újra ugyanaz az előadó (végtelen módban).
   ARTIST_GAP: 3,
 
+  // Nehéz mód: a részlet a dal egy véletlen pontjáról indul (HARD_START mp között), a pont ×HARD_MULTIPLIER.
+  HARD_START: [5, 15],
+  HARD_MULTIPLIER: 1.5,
+
+  // Párbaj és kihívás: ennyi dalból áll egy meccs.
+  VERSUS_SONGS: 5,
+
+  // Látogatottság (GoatCounter, sütik nélkül). Regisztrálj a goatcounter.com-on, és írd ide
+  // a kódodat (pl. "songdlehu" → https://songdlehu.goatcounter.com). Üresen nincs mérés.
+  GOATCOUNTER: "",
+
   // Napi előadó-találós (a Napi mód „Előadó” lapja). Előadónként:
   //   type:   "solo" (szóló), "duo" (duó) vagy "band" (zenekar)
   //   gender: "m" (férfi), "f" (nő) vagy "mixed" (vegyes)
@@ -243,6 +303,14 @@ window.SONGDLE_CONFIG = {
     "Rúzsa Magdi":               { type: "solo", gender: "f", year: 1985, listeners: 14569, debut: 2006, status: "active", esc: "esc" },
     "Manuel":                    { type: "solo", gender: "m", year: 2000, listeners: 387441, debut: 2019, status: "active" },
     "Bereczki Zoltán":           { type: "solo", gender: "m", year: 1976, listeners: 243886, debut: 2001, status: "active" },
+    "Zséda":                     { type: "solo", gender: "f", year: 1974, listeners: 27652, debut: 2002, status: "active" },
+    "Tóth Vera":                 { type: "solo", gender: "f", year: 1985, listeners: 9204, debut: 2004, status: "active" },
+    "Molnár Ferenc Caramel":     { type: "solo", gender: "m", year: 1982, listeners: 92425, debut: 2005, status: "active" },
+    "Tóth Gabi":                 { type: "solo", gender: "f", year: 1988, listeners: 21616, debut: 2005, status: "active", esc: "adal" },
+    "Rácz Gergő":                { type: "solo", gender: "m", year: 1976, listeners: 172860, debut: 2006, status: "active", esc: "adal" },
+    "Pápai Joci":                { type: "solo", gender: "m", year: 1981, listeners: 132672, debut: 2005, status: "active", esc: "esc" },
+    "Radics Gigi":               { type: "solo", gender: "f", year: 1996, listeners: 49790, debut: 2012, status: "active", esc: "adal" },
+    "Wolf Kati":                 { type: "solo", gender: "f", year: 1974, listeners: 8214, debut: 2009, status: "active", esc: "esc" },
     "Quimby":                    { type: "band", gender: "m", year: 1991, listeners: 137018, debut: 1993, status: "active" },
     "Halott Pénz":               { type: "band", gender: "m", year: 2004, listeners: 388494, debut: 2009, status: "active" },
     "Wellhello":                 { type: "duo", gender: "m", year: 2014, listeners: 294679, debut: 2014, status: "active" },
@@ -271,6 +339,7 @@ window.SONGDLE_CONFIG = {
     "T. Danny":                  { type: "solo", gender: "m", year: 1998, listeners: 501554, debut: 2017, status: "active" },
     "Desh":                      { type: "solo", gender: "m", year: 2001, listeners: 790384, debut: 2019, status: "active" },
     "Marics Peti":               { type: "solo", gender: "m", year: 1996, listeners: 481081, debut: 2021, status: "active" },
+    "BSW":                       { type: "band", gender: "m", year: 2006, listeners: 380434, debut: 2010, status: "active" },
     "Fluor":                     { type: "solo", gender: "m", year: 1987, listeners: 146990, debut: 2004, status: "active" },
     "Mirror Glimpse":            { type: "duo", gender: "m", year: 2021, listeners: 124617, debut: 2021, status: "active" },
     "Vini":                      { type: "solo", gender: "m", year: 2003, listeners: 573433, debut: 2021, status: "active" },
@@ -281,6 +350,7 @@ window.SONGDLE_CONFIG = {
     "Bunyós Pityu":              { type: "solo", gender: "m", year: 1964, listeners: 14701, debut: 2006, status: "active" },
     "Bódi Guszti":               { type: "solo", gender: "m", year: 1958, listeners: 65452, debut: 1990, status: "active" },
     "Sláger Tibó":               { type: "solo", gender: "m", year: 1967, listeners: 921, debut: 2009, status: "active" },
+    "MC Hawer és Tekknő":        { type: "duo", gender: "m", year: 2000, listeners: 85026, debut: 2000, status: "active" },
     "Tankcsapda":                { type: "band", gender: "m", year: 1989, listeners: 184694, debut: 1989, status: "active" },
     "Ossian":                    { type: "band", gender: "m", year: 1986, listeners: 39178, debut: 1988, status: "active" },
     "Kowalsky meg a Vega":       { type: "band", gender: "m", year: 1999, listeners: 162827, debut: 2003, status: "active" },

@@ -128,7 +128,15 @@
     const cacheKey = "artist3." + (artist.id || norm(artist.name));
     const cached = load(cacheKey, null);
     if (cached && Date.now() - cached.ts < CFG.POOL_CACHE_HOURS * 3600e3) return cached.tracks;
+    // Offline (vagy ha a Deezer nem válaszol) a régebbi lista is jó.
+    if (cached && !navigator.onLine) return cached.tracks;
+    try { return await fetchArtist(artist, cacheKey); } catch (e) {
+      if (cached) return cached.tracks;
+      throw e;
+    }
+  }
 
+  async function fetchArtist(artist, cacheKey) {
     let id = artist.id;
     if (!id) id = await withRetry(() => Deezer.findArtistId(artist.name));
     let tracks = [];
@@ -140,6 +148,63 @@
     }
     save(cacheKey, { ts: Date.now(), tracks });
     return tracks;
+  }
+
+  // Hangrészletek gyorsítótára: a legutóbbi CLIP_KEEP dal teljes előnézete a böngészőben marad,
+  // így gyenge térerőn (vagy offline) is lehet játszani. A következő dalt előre letöltjük.
+  const CLIP_CACHE = "songdle-clips-v1", CLIP_KEEP = 30;
+  const clipKey = (id) => new URL(`__clip/${id}`, location.href).href;
+  async function cachedClip(id) {
+    try {
+      const res = await (await caches.open(CLIP_CACHE)).match(clipKey(id));
+      if (!res) return null;
+      return { blob: await res.blob(), meta: JSON.parse(decodeURIComponent(res.headers.get("x-meta") || "%7B%7D")) };
+    } catch { return null; }
+  }
+  async function storeClip(id, blob, meta) {
+    try {
+      const c = await caches.open(CLIP_CACHE);
+      await c.put(clipKey(id), new Response(blob, {
+        headers: { "content-type": blob.type || "audio/mpeg", "x-meta": encodeURIComponent(JSON.stringify(meta)) },
+      }));
+      const keys = await c.keys();
+      await Promise.all(keys.slice(0, Math.max(0, keys.length - CLIP_KEEP)).map((k) => c.delete(k)));
+    } catch { /* nincs Cache API vagy betelt */ }
+  }
+  async function cachedClipIds() {
+    try {
+      return (await (await caches.open(CLIP_CACHE)).keys()).map((r) => +r.url.split("/").pop());
+    } catch { return []; }
+  }
+
+  // Egy dal hangja és adatai: a gyorsítótárból, vagy a Deezerről (és eltesszük).
+  const clipRequests = new Map();
+  function loadClip(t) {
+    if (!clipRequests.has(t.id)) {
+      clipRequests.set(t.id, fetchClip(t).finally(() => setTimeout(() => clipRequests.delete(t.id), 60e3)));
+    }
+    return clipRequests.get(t.id);
+  }
+  async function fetchClip(t) {
+    const hit = await cachedClip(t.id);
+    if (hit) return { ...hit.meta, blob: hit.blob };
+    const full = await Deezer.track(t.id);
+    if (!full.preview) throw new Error("Nincs előnézet");
+    const meta = {
+      preview: full.preview,
+      md5: (full.album && full.album.md5_image) || t.md5,
+      year: ((full.release_date || (full.album && full.album.release_date) || "").match(/^\d{4}/) || [""])[0],
+      feat: full.contributors ? [...new Set(full.contributors.map((c) => c.name))] : null,
+    };
+    try {
+      const res = await fetch(full.preview);
+      if (res.ok) {
+        const blob = await res.blob();
+        storeClip(t.id, blob, meta);
+        return { ...meta, blob };
+      }
+    } catch { /* streamelve játsszuk */ }
+    return meta;
   }
 
   const nameKey = (s) => norm(s).split(" ").sort().join(" ");
@@ -239,7 +304,23 @@
     return list[list.length - 1];
   }
 
-  const artistsFor = (cat) => cat === "all" ? CFG.ARTISTS : CFG.ARTISTS.filter((a) => (a.tags || []).includes(cat));
+  // Évtized-kategóriák: minden előadó dalaiból a megjelenési év szerint szűrünk.
+  const DECADES = CFG.DECADES || [];
+  const decadeOf = (id) => DECADES.find((d) => d.id === id);
+  const allCats = [...CFG.CATEGORIES, ...DECADES];
+  const catLabel = (id) => (allCats.find((c) => c.id === id) || { label: id }).label;
+  const artistsFor = (cat) => cat === "all" || decadeOf(cat) ? CFG.ARTISTS : CFG.ARTISTS.filter((a) => (a.tags || []).includes(cat));
+
+  // A dalok megjelenési éve (tools/build-years.mjs készíti); csak az évtized-kategóriákhoz kell.
+  let yearsData = null;
+  async function loadYears() {
+    if (yearsData) return yearsData;
+    try {
+      const res = await fetch("data/years.json");
+      yearsData = res.ok ? (await res.json()).years || {} : {};
+    } catch { yearsData = {}; }
+    return yearsData;
+  }
 
   // A napi dal mindenkinek ugyanaz: a nehézség népszerűségi sávjából az a dal
   // nyer, amelyiknek a (dátum, nehézség, dal) hash-e a legnagyobb. Így ha két
@@ -256,9 +337,18 @@
   }
 
   // ---------- Állapot ----------
+  // A „versus” (párbaj, kihívás) módot nem mentjük: újratöltés után a mentett fülre térünk vissza.
   let mode = ["daily", "artist"].includes(load("mode", "endless")) ? load("mode", "endless") : "endless";
   let category = load("category", "all");
-  if (!CFG.CATEGORIES.some((c) => c.id === category)) category = "all";
+  if (!allCats.some((c) => c.id === category)) category = "all";
+  // Nehéz mód (végtelen): a részlet a dal egy véletlen pontjáról indul, több pontért.
+  let hard = load("hard", false);
+  const HARD_MULT = CFG.HARD_MULTIPLIER || 1.5;
+  const hardOffset = () => {
+    const [a, b] = CFG.HARD_START || [5, 15];
+    return Math.round(a + Math.random() * (b - a));
+  };
+  const multOf = (r) => r.mode === "daily" ? diffById(r.diff).multiplier : r.offset ? HARD_MULT : 1;
   let pool = [];
   // round: { mode, date?, track, attempts: [{type, label, key?}], done, won, points, preview, md5 }
   let round = null;
@@ -287,6 +377,15 @@
   const gameScore = () => game.results.reduce((a, r) => a + r.pts, 0);
   const gameDone = () => game.results.length >= SET_SIZE;
   let shownPoints = points;
+  // Párbaj (élő, két játékos) és kihívás (link egy barát 5 dalos körével):
+  // { kind: "battle" | "challenge", ids, idx, results: [{won, pts, tries}],
+  //   opp: { name, score?, results: [], live: {} }, waiting }
+  let versus = null;
+  const VS_SONGS = CFG.VERSUS_SONGS || 5;
+  const vsScore = (results) => (results || []).reduce((a, r) => a + (r ? r.pts : 0), 0);
+  const vsOver = () => versus && versus.results.filter(Boolean).length >= versus.ids.length;
+  const vsOppOver = () => versus && (versus.kind === "challenge" || versus.oppGone
+    || versus.opp.results.filter(Boolean).length >= versus.ids.length);
 
   function dailyStreakNow(id = dailyDiff) {
     const s = dailyStats(id), today = dateKey();
@@ -397,13 +496,30 @@
     el.modeDaily.setAttribute("aria-selected", String(mode === "daily"));
     el.modeArtist.setAttribute("aria-selected", String(mode === "artist"));
     document.body.dataset.mode = mode;
-    el.dailyBanner.hidden = mode !== "daily";
-    const d = diffById(dailyDiff);
-    el.dailyBanner.innerHTML = `Mai dal · <b>${prettyDate(dateKey())}</b> · ${d.label} · <b>×${d.multiplier}</b> pont`;
+    el.dailyBanner.hidden = mode !== "daily" && mode !== "versus";
+    if (mode === "versus") {
+      el.dailyBanner.textContent = "";
+      const b = document.createElement("b");
+      b.textContent = versus.opp.name;
+      el.dailyBanner.append(versus.kind === "battle" ? "⚔️ Párbaj · Te vs " : "🎯 Kihívás · ", b,
+        versus.kind === "battle" ? ` · ${versus.ids.length} dal` : ` · ${versus.opp.score} pont – győzd le!`);
+    } else {
+      const d = diffById(dailyDiff);
+      el.dailyBanner.innerHTML = `Mai dal · <b>${prettyDate(dateKey())}</b> · ${d.label} · <b>×${d.multiplier}</b> pont`;
+    }
     updateNextButton();
   }
 
   function updateNextButton() {
+    el.nextBtn.disabled = false;
+    if (mode === "versus") {
+      if (!vsOver()) {
+        const waiting = versus.waiting;
+        el.nextBtn.textContent = waiting ? "Várakozás…" : "Következő dal →";
+        el.nextBtn.disabled = waiting;
+      } else el.nextBtn.textContent = versus.kind === "battle" && peerConn ? "🔁 Visszavágó" : "Vissza a játékba →";
+      return;
+    }
     if (mode !== "daily") { el.nextBtn.textContent = gameDone() ? "Új kör →" : "Következő dal →"; return; }
     const next = nextUnplayedDiff();
     el.nextBtn.textContent = next ? `${next.icon} ${next.label} →` : "Végtelen mód →";
@@ -436,16 +552,56 @@
     updateDailyBadge();
     el.categories.innerHTML = "";
     if (mode === "daily") return renderDifficulties();
-    for (const c of CFG.CATEGORIES) {
+    if (mode === "versus") {
       const b = document.createElement("button");
       b.className = "chip";
-      b.textContent = c.label;
-      const active = c.id === category;
-      b.setAttribute("aria-pressed", String(active));
-      b.addEventListener("click", () => changeCategory(c.id));
+      b.textContent = versus.kind === "battle" ? "✕ Kilépés a párbajból" : "✕ Kilépés a kihívásból";
+      b.addEventListener("click", () => leaveVersus());
       el.categories.appendChild(b);
-      if (active) requestAnimationFrame(() => revealChip(b));
+      return;
     }
+    const chip = (label, cls, onClick) => {
+      const b = document.createElement("button");
+      b.className = "chip" + (cls ? " " + cls : "");
+      b.textContent = label;
+      b.addEventListener("click", onClick);
+      el.categories.appendChild(b);
+      return b;
+    };
+    chip("⚔️ Párbaj", "battle-chip", openBattle);
+    const hardChip = chip("🔥 Nehéz", "hard-chip", toggleHard);
+    hardChip.setAttribute("aria-pressed", String(hard));
+    hardChip.title = `A részlet a dal közepéről indul, ×${HARD_MULT} pont`;
+    allCats.forEach((c, i) => {
+      // Elválasztó a műfajok és az évtizedek között.
+      if (i === CFG.CATEGORIES.length && DECADES.length) {
+        const sep = document.createElement("span");
+        sep.className = "chip-sep";
+        sep.setAttribute("aria-hidden", "true");
+        el.categories.appendChild(sep);
+      }
+      const active = c.id === category;
+      const b = chip(c.label, "", () => changeCategory(c.id));
+      b.setAttribute("aria-pressed", String(active));
+      if (active) requestAnimationFrame(() => revealChip(b));
+    });
+  }
+
+  function toggleHard() {
+    hard = !hard;
+    save("hard", hard);
+    renderCategories();
+    // Ha a dalt még el sem kezdte, rögtön erre a dalra is érvényes.
+    const fresh = round && round.mode === "endless" && !round.done && !round.attempts.length
+      && !el.playBtn.classList.contains("playing");
+    if (fresh) {
+      round.offset = hard ? hardOffset() : 0;
+      persistRound();
+      renderAll();
+    }
+    toast(hard
+      ? `🔥 Nehéz mód: a részlet a dal közepéről indul, ×${HARD_MULT} pont${fresh ? "" : " (a következő daltól)"}.`
+      : `Nehéz mód kikapcsolva${fresh ? "" : " (a következő daltól)"}.`);
   }
 
   function renderDifficulties() {
@@ -502,6 +658,7 @@
 
   function changeMode(m) {
     if (m === mode) return;
+    if (mode === "versus") closeVersus();
     // A félbehagyott végtelen kör megmarad, visszaváltáskor folytatható.
     mode = m;
     save("mode", mode);
@@ -528,7 +685,7 @@
       return openArtistGame();
     }
 
-    const poolCategory = mode === "daily" ? "all" : category;
+    const poolCategory = mode === "endless" ? category : "all";
     setLoading(true, 0);
     setStatus("Dalok betöltése…");
     const tracks = await loadArtists(artistsFor(poolCategory), (d, n) => {
@@ -538,11 +695,20 @@
     });
     if (token !== loadToken) return;
     pool = buildPool(tracks);
+    const decade = decadeOf(poolCategory);
+    if (decade) {
+      const years = await loadYears();
+      if (token !== loadToken) return;
+      pool = pool.filter((t) => years[t.id] >= decade.from && years[t.id] <= decade.to);
+      assignWeights(pool);
+    }
     if (!pool.length) {
       setLoading(false);
-      setStatus("Nem sikerült dalokat betölteni. Ellenőrizd az internetkapcsolatot, és frissítsd az oldalt.", true);
+      setStatus(decade ? "Ebben az évtizedben most nincs dal. Válassz másikat!"
+        : "Nem sikerült dalokat betölteni. Ellenőrizd az internetkapcsolatot, és frissítsd az oldalt.", true);
       return;
     }
+    if (mode === "versus") return vsStartSong();
 
     if (mode === "daily") {
       const date = dateKey();
@@ -601,7 +767,7 @@
   async function startRound(track, saved) {
     const token = loadToken;
     const fixed = !!track;
-    if (mode !== "daily" && !saved && gameDone()) {
+    if (mode === "endless" && !saved && gameDone()) {
       game = { results: [] };
       save("game", game);
     }
@@ -619,24 +785,24 @@
     setLoading(true, 1);
 
     for (let tries = 0; tries < 5 && !round; tries++) {
-      const t = track || pickTrack();
+      // Offline (vagy ha többször nem sikerül) a már letöltött dalok közül sorsolunk.
+      const t = track || ((!navigator.onLine || tries > 1) && await pickCachedTrack()) || takePrefetched() || pickTrack();
       if (!fixed) track = null;
       setStatus("Dal betöltése…");
       try {
-        // Friss előnézet-URL, mert a linkek lejárnak.
-        const full = await Deezer.track(t.id);
+        const clip = await loadClip(t);
         if (token !== loadToken) return;
-        if (!full.preview) throw new Error("Nincs előnézet");
         round = {
           mode, date: mode === "daily" ? dateKey() : null, diff: mode === "daily" ? dailyDiff : null, track: t,
           attempts: saved ? saved.attempts : [], done: !!(saved && saved.done), won: !!(saved && saved.won),
           points: saved && saved.points ? saved.points : null,
-          preview: full.preview,
-          md5: (full.album && full.album.md5_image) || t.md5,
-          year: ((full.release_date || (full.album && full.album.release_date) || "").match(/^\d{4}/) || [""])[0],
+          // Nehéz módban a részlet kezdőpontja (mp); a mentett körnél a régi marad.
+          offset: saved ? saved.offset || 0 : mode === "endless" && hard ? hardOffset() : 0,
+          preview: clip.preview, blob: clip.blob || null,
+          md5: clip.md5 || t.md5, year: clip.year || "",
         };
-        if (!t.feat.length && full.contributors) {
-          t.feat = [...new Set(full.contributors.map((c) => c.name))].filter((n) => n !== t.artist);
+        if (!t.feat.length && clip.feat) {
+          t.feat = clip.feat.filter((n) => norm(n) !== norm(t.artist));
           t.nArtists = [t.artist, ...t.feat].map(norm);
           t.hay = t.nTitle + " " + t.nArtists.join(" ");
         }
@@ -657,12 +823,12 @@
     }
     persistRound();
     // Az eredeti év előre lekérve, hogy a megoldásnál már kész legyen.
-    originalYear(round.track, round.year);
+    if (navigator.onLine) originalYear(round.track, round.year);
 
-    el.audio.src = round.preview;
-    el.audio.load();
+    setAudioSource();
     buildWave(true);
     renderAll();
+    prefetchNext();
 
     if (round.done) {
       // Már lejátszott napi dal: csak a megoldást mutatjuk.
@@ -674,14 +840,51 @@
     el.playBtn.classList.add("pulse");
   }
 
+  // A letöltött hangot helyi (blob) címről játsszuk, különben a Deezer-linkről.
+  let blobUrl = "";
+  function setAudioSource() {
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    blobUrl = round.blob ? URL.createObjectURL(round.blob) : "";
+    el.audio.src = blobUrl || round.preview;
+    el.audio.load();
+  }
+
+  // A következő dal előre: sorsolás és letöltés, amíg ezt játssza.
+  let prefetched = null;
+  function prefetchNext() {
+    let t = null;
+    if (round.mode === "versus") {
+      const id = versus.ids[versus.idx + 1];
+      t = id && pool.find((p) => p.id === id);
+    } else if (round.mode === "endless") {
+      t = pickTrack();
+      prefetched = { track: t, category };
+    }
+    if (t && navigator.onLine) loadClip(t).catch(() => {});
+  }
+  function takePrefetched() {
+    const p = prefetched;
+    prefetched = null;
+    if (!p || mode !== "endless" || p.category !== category || !pool.includes(p.track)) return null;
+    return isReported(p.track.id) || (round && round.track.id === p.track.id) ? null : p.track;
+  }
+  async function pickCachedTrack() {
+    const ids = new Set(await cachedClipIds());
+    const recent = new Set(load("recent", []).slice(0, 10));
+    const list = pool.filter((t) => ids.has(t.id) && !isReported(t.id));
+    const fresh = list.filter((t) => !recent.has(t.id));
+    const from = fresh.length ? fresh : list;
+    return from.length ? from[Math.floor(Math.random() * from.length)] : null;
+  }
+
   function persistRound() {
-    if (!round) return;
+    if (!round || round.mode === "versus") return;
     if (round.mode === "daily") {
       save(dailyKey(round.date, round.diff), {
         trackId: round.track.id, attempts: round.attempts, done: round.done, won: round.won, points: round.points,
       });
     } else if (!round.done) {
-      save("round", { category, trackId: round.track.id, attempts: round.attempts });
+      save("round", { category, trackId: round.track.id, attempts: round.attempts, offset: round.offset });
     } else {
       save("round", null);
     }
@@ -690,12 +893,14 @@
   function currentLength() {
     if (!round) return LENGTHS[0];
     if (round.done) return FULL_PREVIEW;
-    return LENGTHS[Math.min(round.attempts.length, MAX_TRIES - 1)];
+    // Nehéz módban a dal végéig tarthat a részlet.
+    return Math.min(LENGTHS[Math.min(round.attempts.length, MAX_TRIES - 1)], FULL_PREVIEW - (round.offset || 0));
   }
   const scaleLength = () => (round && round.done ? FULL_PREVIEW : MAX_LEN);
 
   function registerAttempt(attempt) {
     round.attempts.push(attempt);
+    if (round.mode === "versus" && attempt.type !== "right" && round.attempts.length < MAX_TRIES) vsSendProgress();
     if (attempt.type === "right") return finishRound(true);
     if (round.attempts.length >= MAX_TRIES) return finishRound(false);
     persistRound();
@@ -716,7 +921,7 @@
 
   function scoreFor(won, tries, streakAfter, multiplier) {
     if (!won) return { base: 0, bonus: 0, total: 0 };
-    const base = POINTS[tries - 1] * multiplier;
+    const base = Math.round(POINTS[tries - 1] * multiplier);
     const bonus = Math.min(Math.max(streakAfter - 1, 0) * STREAK_BONUS, STREAK_BONUS_MAX);
     return { base, bonus, total: base + bonus };
   }
@@ -726,6 +931,31 @@
     round.won = won;
     const tries = round.attempts.length;
 
+    // Párbajban és kihívásban nincs sorozat, statisztika és összpont: csak a meccs számít.
+    if (round.mode === "versus") {
+      round.points = scoreFor(won, tries, 0, 1);
+      versus.results[versus.idx] = { won, pts: round.points.total, tries };
+      vsSendProgress();
+      countEvent(won ? "versus-song-won" : "versus-song-lost");
+    } else finishStats(won, tries, silent);
+    if (silent) return;
+    if (round.mode === "daily") renderCategories();
+
+    stopAudio();
+    buildWave(false);
+    renderAll(true);
+    if (won) {
+      confetti();
+      vibrate([30, 40, 30]);
+      floatPoints(round.points.total);
+      if (round.mode !== "versus") setTimeout(() => animatePoints(), 500);
+    } else {
+      vibrate(150);
+    }
+    showReveal(true);
+  }
+
+  function finishStats(won, tries, silent) {
     let s;
     if (round.mode === "daily") {
       s = dailyStats(round.diff);
@@ -744,12 +974,12 @@
     if (round.mode === "daily") save("dailyStats2", dailyStatsAll);
     else save("stats", s);
 
-    const multiplier = round.mode === "daily" ? diffById(round.diff).multiplier : 1;
-    round.points = scoreFor(won, tries, s.streak, multiplier);
+    round.points = scoreFor(won, tries, s.streak, multOf(round));
     points += round.points.total;
     save("points", points);
     if (round.mode === "endless" && !silent && !gameDone()) {
-      game.results.push({ won, pts: round.points.total });
+      // A dal azonosítója a kihíváshoz kell (a kör 5 dala megosztható).
+      game.results.push({ won, pts: round.points.total, id: round.track.id });
       if (gameDone()) {
         const score = gameScore();
         game.record = score > bestGame && score > 0;
@@ -759,21 +989,6 @@
       save("game", game);
     }
     persistRound();
-    if (silent) return;
-    if (round.mode === "daily") renderCategories();
-
-    stopAudio();
-    buildWave(false);
-    renderAll(true);
-    if (won) {
-      confetti();
-      vibrate([30, 40, 30]);
-      floatPoints(round.points.total);
-      setTimeout(() => animatePoints(), 500);
-    } else {
-      vibrate(150);
-    }
-    showReveal(true);
   }
 
   function emojiRow(r) {
@@ -880,8 +1095,10 @@
       ? `+${p.total} pont` + (p.bonus ? ` (🔥 +${p.bonus})` : "")
       : "";
     const setOver = round.mode === "endless" && gameDone();
-    el.revealSet.hidden = !setOver;
-    if (setOver) {
+    el.revealSet.hidden = !setOver && !(round.mode === "versus" && vsOver());
+    if (round.mode === "versus") {
+      if (vsOver()) renderVsSummary(autoplay);
+    } else if (setOver) {
       const score = gameScore();
       el.revealSet.innerHTML = game.record
         ? `🏁 Kör vége: <b>${score}</b> pont · <span class="rec">🏆 Új rekord!</span>`
@@ -895,6 +1112,7 @@
     renderReportBtn();
     updateNextButton();
     if (round.mode === "daily") startCountdown();
+    else if (round.mode === "versus" && versus.waiting) setStatus(`Várakozás: ${versus.opp.name} még ezen a dalon dolgozik…`);
     else setStatus("Koppints a lemezre a teljes előnézethez.");
     if (autoplay) playClip();
     el.nextBtn.focus({ preventScroll: true });
@@ -978,7 +1196,8 @@
     const total = scaleLength();
     el.timeMax.textContent = fmt(total);
     el.timeNow.textContent = fmt(0);
-    el.clipLen.textContent = !round ? " " : round.done ? "Teljes előnézet" : `${currentLength()} mp`;
+    el.clipLen.textContent = !round ? " " : round.done ? "Teljes előnézet"
+      : `${currentLength()} mp` + (round.offset ? ` · 🔥 ${fmt(round.offset)}-tól` : "");
     el.ringUnlocked.style.strokeDashoffset = round ? 100 - (currentLength() / total) * 100 : 100;
     el.ringProgress.style.strokeDashoffset = 100;
     if (round && !round.done) {
@@ -1044,6 +1263,8 @@
       el.streakLine.innerHTML = st > 0
         ? `${flame} ${d.label} sorozat: <b>${st}</b> nap · legjobb: ${s.maxStreak}`
         : s.played ? `${d.label} legjobb sorozat: ${s.maxStreak} nap` : "Találd ki a mai dalt!";
+    } else if (mode === "versus") {
+      el.streakLine.textContent = vsOppLine();
     } else {
       el.streakLine.innerHTML = stats.streak > 0
         ? `${flame} Sorozat: <b>${stats.streak}</b> · legjobb: ${stats.maxStreak}`
@@ -1057,8 +1278,14 @@
     if (mode === "artist") {
       const st = adState();
       el.roundLabel.textContent = "ma";
-      el.roundNum.textContent = st.done ? (st.gaveUp ? "0" : "+" + st.points) : AD_POINTS(st.guesses.length + 1);
+      el.roundNum.textContent = st.done ? (st.gaveUp ? "0" : "+" + st.points) : adPointsFor(st.guesses.length + 1, st);
       el.roundPts.className = "round-pts" + (st.done ? (st.gaveUp ? " lost" : " won") : "");
+      return;
+    }
+    if (mode === "versus") {
+      el.roundNum.textContent = vsScore(versus.results);
+      el.roundLabel.textContent = `dal ${Math.min(versus.idx + 1, versus.ids.length)}/${versus.ids.length}`;
+      el.roundPts.className = "round-pts";
       return;
     }
     if (mode !== "daily") {
@@ -1078,7 +1305,7 @@
       const daily = round.mode === "daily";
       const s = daily ? dailyStats(round.diff) : stats;
       const streakAfter = daily ? (s.lastWin === shiftDate(round.date, -1) ? s.streak + 1 : 1) : s.streak + 1;
-      n = scoreFor(true, round.attempts.length + 1, streakAfter, daily ? diffById(round.diff).multiplier : 1).total;
+      n = scoreFor(true, round.attempts.length + 1, streakAfter, multOf(round)).total;
     }
     const prev = el.roundNum.textContent;
     el.roundNum.textContent = n === null ? "–" : (state === "won" ? "+" : "") + n;
@@ -1089,6 +1316,7 @@
   // Az 5 dalos kör állása: dalonként a megszerzett pont, az aktuálisnál a még elérhető.
   function renderSetBar() {
     el.setBar.hidden = mode !== "endless";
+    renderVsBar();
     if (mode !== "endless") return;
     el.setSlots.innerHTML = "";
     for (let i = 0; i < SET_SIZE; i++) {
@@ -1098,7 +1326,7 @@
         slot.textContent = r.won ? r.pts : "✗";
       } else if (i === game.results.length && round && !round.done) {
         slot.className = "current";
-        slot.textContent = scoreFor(true, round.attempts.length + 1, stats.streak + 1, 1).total;
+        slot.textContent = scoreFor(true, round.attempts.length + 1, stats.streak + 1, multOf(round)).total;
       }
       el.setSlots.appendChild(slot);
     }
@@ -1243,8 +1471,10 @@
     el.playBtn.classList.remove("pulse");
     const token = ++playToken;
     el.playBtn.classList.add("loading");
+    // Nehéz módban a részlet a kör kezdőpontjától szól; a megfejtés után az elejétől.
+    const start = round.done ? 0 : round.offset || 0;
     try {
-      el.audio.currentTime = 0;
+      el.audio.currentTime = start;
       await el.audio.play();
     } catch (e) {
       if (token !== playToken) return; // közben megállították (pl. kihagyás)
@@ -1262,7 +1492,7 @@
     const total = scaleLength();
     const tick = () => {
       if (token !== playToken) return;
-      const t = el.audio.currentTime;
+      const t = Math.max(0, el.audio.currentTime - start);
       el.ringProgress.style.strokeDashoffset = 100 - Math.min(t / total, 1) * 100;
       el.timeNow.textContent = fmt(t);
       renderWaveState(t, false);
@@ -1277,7 +1507,7 @@
   });
   el.audio.addEventListener("playing", () => el.playBtn.classList.remove("loading"));
   el.audio.addEventListener("error", () => {
-    if (!round || !el.audio.getAttribute("src")) return;
+    if (!round || !el.audio.getAttribute("src") || el.audio.src.startsWith("blob:")) return;
     // Lejárt előnézet-link: frissítjük.
     Deezer.track(round.track.id).then((full) => {
       if (full.preview && full.preview !== round.preview) {
@@ -1622,20 +1852,16 @@
   }
 
   // ---------- Megosztás ----------
-  async function share() {
-    if (!round || !round.done) return;
-    const url = location.origin + location.pathname;
-    const head = round.mode === "daily"
-      ? `Songdle HU 📅 ${round.date} · ${diffById(round.diff).icon} ${diffById(round.diff).label}`
-      : `Songdle HU 🎵 ${CFG.CATEGORIES.find((c) => c.id === category).label}`;
-    const streak = round.mode === "daily" ? dailyStreakNow(round.diff) : stats.streak;
-    const lines = [head, emojiRow(round)];
-    const extra = [];
-    if (round.points && round.points.total) extra.push(`+${round.points.total} pont`);
-    if (streak > 0) extra.push(`🔥 ${streak}`);
-    if (extra.length) lines.push(extra.join(" · "));
-    lines.push(url);
-    const text = lines.join("\n");
+  const homeUrl = () => location.origin + location.pathname;
+  // Kihívás-link: a kör dalai (36-os számrendszerben), a pontszám és a név.
+  function challengeUrl(ids, score) {
+    const p = new URLSearchParams({ k: ids.map((id) => id.toString(36)).join("-"), p: score });
+    const nick = load("nick", "");
+    if (nick) p.set("n", nick);
+    return homeUrl() + "?" + p;
+  }
+
+  async function shareText(text) {
     try {
       if (navigator.share && matchMedia("(hover: none)").matches) {
         await navigator.share({ text });
@@ -1645,6 +1871,27 @@
       if (e && e.name === "AbortError") return;
     }
     toast(await copyText(text) ? "Vágólapra másolva! ✨" : "Nem sikerült megosztani.");
+  }
+
+  async function share() {
+    if (!round || !round.done) return;
+    if (round.mode === "versus") return vsShare();
+    const head = round.mode === "daily"
+      ? `Songdle HU 📅 ${round.date} · ${diffById(round.diff).icon} ${diffById(round.diff).label}`
+      : `Songdle HU 🎵 ${catLabel(category)}` + (round.offset ? " · 🔥 nehéz" : "");
+    const streak = round.mode === "daily" ? dailyStreakNow(round.diff) : stats.streak;
+    const lines = [head, emojiRow(round)];
+    const extra = [];
+    if (round.points && round.points.total) extra.push(`+${round.points.total} pont`);
+    if (streak > 0) extra.push(`🔥 ${streak}`);
+    if (extra.length) lines.push(extra.join(" · "));
+    // Kör vége: a link kihívás – a barát ugyanazt az 5 dalt kapja.
+    const ids = game.results.map((r) => r.id).filter(Boolean);
+    if (round.mode === "endless" && gameDone() && ids.length === SET_SIZE) {
+      lines.push(`🎯 Kör: ${gameScore()} pont – meg tudod verni?`, challengeUrl(ids, gameScore()));
+      countEvent("challenge-sent");
+    } else lines.push(homeUrl());
+    return shareText(lines.join("\n"));
   }
 
   // ---------- Gombok és billentyűk ----------
@@ -1659,6 +1906,7 @@
     el.input.blur();
   });
   el.nextBtn.addEventListener("click", () => {
+    if (mode === "versus") return vsNext();
     if (mode !== "daily") return startRound();
     const next = nextUnplayedDiff();
     if (next) changeDifficulty(next.id);
@@ -1679,6 +1927,342 @@
       el.nextBtn.click();
     }
   });
+
+  // ---------- Párbaj és kihívás ----------
+  // Közös meccs-motor: mindkét fél ugyanazt a VS_SONGS dalt kapja, dalonként a tippek
+  // száma szerinti pontért (sorozatbónusz nélkül). A párbajban a gépek közvetlenül
+  // (WebRTC, PeerJS) beszélnek egymással; a következő dal akkor jön, ha mindketten végeztek.
+  const PEER_PREFIX = "songdlehu-";
+  const PEER_LIB = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+  let peer = null, peerConn = null, peerHost = false;
+
+  // Egy sorozat összeállítása: különböző előadóktól, a népszerűbb dalok felé húzva.
+  function pickSet(list, n) {
+    const out = [], used = new Set();
+    const cands = list.filter((t) => !isLive(t) && !isReported(t.id));
+    while (out.length < n) {
+      const left = cands.filter((t) => !out.includes(t) && !artistsOf(t).some((a) => used.has(a)));
+      const from = left.length ? left : cands.filter((t) => !out.includes(t));
+      if (!from.length) break;
+      const t = weightedPick(from, Math.random);
+      out.push(t);
+      artistsOf(t).forEach((a) => used.add(a));
+    }
+    return out.map((t) => t.id);
+  }
+
+  function startVersus(kind, ids, opp) {
+    stopAudio();
+    versus = { kind, ids, idx: 0, results: [], opp: { results: [], live: {}, ...opp }, waiting: false };
+    mode = "versus";
+    renderMode();
+    renderCategories();
+    enterMode();
+    countEvent(kind + "-start");
+  }
+
+  // A meccs dalai a teljes dallistából jönnek; ha egy dal nincs meg (más a dallista), a Deezerről pótoljuk.
+  async function vsStartSong() {
+    const id = versus.ids[versus.idx];
+    let t = pool.find((p) => p.id === id);
+    if (!t) {
+      try {
+        const full = await Deezer.track(id);
+        t = buildPool([slimTrack(full)])[0];
+        pool.push(t);
+      } catch { /* alább kezeljük */ }
+    }
+    if (!t) return setStatus("Ezt a dalt nem sikerült betölteni.", true);
+    startRound(t, null);
+  }
+
+  function vsNext() {
+    if (vsOver()) {
+      if (versus.kind === "battle" && peerConn) return vsRematch();
+      return leaveVersus();
+    }
+    // Párbajban megvárjuk, hogy az ellenfél is végezzen ezzel a dallal.
+    if (versus.kind === "battle" && !versus.oppGone && !versus.opp.results[versus.idx]) {
+      versus.waiting = true;
+      updateNextButton();
+      setStatus(`Várakozás: ${versus.opp.name} még ezen a dalon dolgozik…`);
+      return;
+    }
+    versus.waiting = false;
+    versus.idx++;
+    vsStartSong();
+  }
+
+  function leaveVersus() {
+    closeVersus();
+    mode = load("mode", "endless");
+    renderMode();
+    renderCategories();
+    enterMode();
+  }
+
+  function closeVersus() {
+    if (peerConn) { try { peerConn.send({ type: "bye" }); } catch { /* már zárva */ } }
+    peerClose();
+    versus = null;
+  }
+
+  function renderVsBar() {
+    const bar = $("vsBar");
+    bar.hidden = mode !== "versus" || !versus;
+    if (bar.hidden) return;
+    const fill = (box, results, live, current) => {
+      box.innerHTML = "";
+      versus.ids.forEach((_, i) => {
+        const r = results[i], slot = document.createElement("span");
+        if (r) {
+          slot.className = r.won ? "won" : "lost";
+          slot.textContent = r.won ? r.pts : "✗";
+        } else if (i === current) {
+          slot.className = "current";
+          // Az ellenfélnél: hányadik tippnél tart.
+          slot.textContent = live && live[i] ? `${live[i].attempts + 1}.` : "…";
+        }
+        box.appendChild(slot);
+      });
+    };
+    fill($("vsMe"), versus.results, null, versus.idx);
+    const challenge = versus.kind === "challenge";
+    // Kihívásnál a kihívó dalonkénti eredményét csak a végén mutatjuk.
+    fill($("vsOpp"), challenge && !vsOver() ? [] : versus.opp.results, versus.opp.live, challenge ? -1 : versus.idx);
+    $("vsOppName").textContent = versus.opp.name;
+    $("vsMeScore").textContent = vsScore(versus.results);
+    $("vsOppScore").textContent = challenge ? versus.opp.score : vsScore(versus.opp.results);
+  }
+
+  function vsOppLine() {
+    if (!versus) return "";
+    const name = versus.opp.name;
+    if (versus.kind === "challenge") return `🎯 ${name}: ${versus.opp.score} pont ezen az ${versus.ids.length} dalon`;
+    if (versus.oppGone) return `⚠️ ${name} kilépett – a meccset egyedül fejezed be.`;
+    const done = versus.opp.results[versus.idx], live = versus.opp.live[versus.idx];
+    if (done) return done.won ? `✓ ${name} kitalálta (${done.tries}. tippre, +${done.pts})` : `✗ ${name} nem találta ki`;
+    if (live && live.attempts) return `⚔️ ${name}: ${live.attempts + 1}. tipp…`;
+    return `⚔️ ${name} is hallgatja…`;
+  }
+
+  function vsResultText() {
+    const me = vsScore(versus.results);
+    const opp = versus.kind === "challenge" ? versus.opp.score : vsScore(versus.opp.results);
+    if (!vsOppOver()) return { me, opp, verdict: `Várakozás: ${versus.opp.name} még játszik…`, win: null };
+    const win = me > opp ? true : me < opp ? false : null;
+    return { me, opp, win, verdict: win ? "🏆 Nyertél!" : win === false ? `${versus.opp.name} nyert` : "🤝 Döntetlen" };
+  }
+
+  function renderVsSummary(animate) {
+    const r = vsResultText();
+    el.revealSet.hidden = false;
+    el.revealSet.textContent = "";
+    const b = (s) => { const e = document.createElement("b"); e.textContent = s; return e; };
+    el.revealSet.append("🏁 Te ", b(String(r.me)), ` – ${r.opp} ${versus.opp.name} · `);
+    const v = document.createElement("span");
+    v.className = r.win ? "rec" : "";
+    v.textContent = r.verdict;
+    el.revealSet.append(v);
+    if (r.win && animate) setTimeout(confetti, 700);
+    if (vsOppOver() && !versus.counted) {
+      versus.counted = true;
+      countEvent(`${versus.kind}-${r.win ? "won" : r.win === false ? "lost" : "draw"}`);
+    }
+  }
+
+  async function vsShare() {
+    const r = vsResultText();
+    const rows = versus.results.map((x) => (x && x.won ? ["", "🟩", "🟩", "🟨", "🟨", "🟧", "🟥"][x.tries] || "🟩" : "⬛")).join("");
+    const head = versus.kind === "battle" ? `Songdle HU ⚔️ Párbaj vs ${versus.opp.name}` : `Songdle HU 🎯 Kihívás vs ${versus.opp.name}`;
+    const lines = [head, `${rows}  ${r.me} – ${r.opp}`, r.verdict];
+    // A kihívást tovább is lehet küldeni a saját pontszámmal.
+    if (vsOver()) lines.push(challengeUrl(versus.ids, r.me));
+    else lines.push(homeUrl());
+    return shareText(lines.join("\n"));
+  }
+
+  // ----- Kapcsolat (PeerJS: ingyenes nyilvános közvetítő a kapcsolódáshoz, utána közvetlen) -----
+  function loadPeerLib() {
+    if (window.Peer) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = PEER_LIB;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("PeerJS"));
+      document.head.appendChild(s);
+    });
+  }
+
+  const bt = {
+    dialog: $("battleDialog"), nick: $("nickInput"), start: $("battleStart"), wait: $("battleWait"),
+    code: $("battleCode"), codeShow: $("battleCodeShow"), status: $("battleStatus"),
+  };
+  const battleStatus = (msg, isError) => {
+    bt.status.textContent = msg || "";
+    bt.status.classList.toggle("error", !!isError);
+  };
+  const nick = () => (bt.nick.value.trim() || load("nick", "") || "Ismeretlen").slice(0, 16);
+
+  function openBattle(code) {
+    if (bt.dialog.open) return;
+    bt.nick.value = load("nick", "");
+    bt.start.hidden = false;
+    bt.wait.hidden = true;
+    bt.code.value = typeof code === "string" ? code : "";
+    battleStatus("");
+    bt.dialog.showModal();
+    if (typeof code === "string" && code) battleJoin();
+  }
+
+  function saveNick() {
+    const n = bt.nick.value.trim().slice(0, 16);
+    if (n) save("nick", n);
+  }
+
+  function peerClose() {
+    try { if (peerConn) peerConn.close(); } catch { /* már zárva */ }
+    try { if (peer) peer.destroy(); } catch { /* már zárva */ }
+    peer = null;
+    peerConn = null;
+  }
+
+  const ROOM_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const newRoomCode = () => Array.from({ length: 4 }, () => ROOM_CHARS[Math.floor(Math.random() * ROOM_CHARS.length)]).join("");
+  const battleLink = (code) => homeUrl() + "?parbaj=" + code;
+
+  async function battleHost(attempt = 0) {
+    saveNick();
+    peerClose();
+    battleStatus("Szoba nyitása…");
+    try { await loadPeerLib(); } catch { return battleStatus("Nem sikerült betölteni a párbajt. Van internet?", true); }
+    const code = newRoomCode();
+    peerHost = true;
+    peer = new window.Peer(PEER_PREFIX + code);
+    peer.on("open", () => {
+      bt.start.hidden = true;
+      bt.wait.hidden = false;
+      bt.codeShow.textContent = code;
+      battleStatus("Várakozás a másik játékosra…");
+    });
+    peer.on("connection", (c) => {
+      if (peerConn) { c.on("open", () => { c.send({ type: "full" }); setTimeout(() => c.close(), 300); }); return; }
+      setupConn(c);
+    });
+    peer.on("error", (e) => {
+      if (e.type === "unavailable-id" && attempt < 3) return battleHost(attempt + 1);
+      battleStatus("Hiba a kapcsolatban: " + (e.type || e.message), true);
+    });
+  }
+
+  async function battleJoin() {
+    const code = bt.code.value.trim().toUpperCase();
+    if (code.length !== 4) return battleStatus("Írd be a 4 betűs kódot!", true);
+    saveNick();
+    peerClose();
+    battleStatus("Csatlakozás…");
+    try { await loadPeerLib(); } catch { return battleStatus("Nem sikerült betölteni a párbajt. Van internet?", true); }
+    peerHost = false;
+    peer = new window.Peer();
+    peer.on("open", () => setupConn(peer.connect(PEER_PREFIX + code, { reliable: true })));
+    peer.on("error", (e) => battleStatus(e.type === "peer-unavailable" ? "Nincs ilyen szoba (vagy már bezárt)." : "Hiba a kapcsolatban: " + (e.type || e.message), true));
+  }
+
+  function setupConn(c) {
+    peerConn = c;
+    c.on("open", () => c.send({ type: "hello", name: nick() }));
+    c.on("data", onPeerData);
+    c.on("close", () => {
+      if (peerConn !== c) return;
+      peerConn = null;
+      if (versus && versus.kind === "battle" && !vsOppOver()) {
+        versus.oppGone = true;
+        versus.waiting = false;
+        toast(`${versus.opp.name} kilépett a párbajból.`);
+        renderAll();
+        if (round && round.done) { updateNextButton(); if (vsOver()) renderVsSummary(false); }
+      } else if (bt.dialog.open) battleStatus("A kapcsolat megszakadt.", true);
+      else updateNextButton();
+    });
+  }
+
+  let oppName = "";
+  async function hostStartMatch() {
+    battleStatus("Dalok sorsolása…");
+    // A teljes dallistából sorsolunk (ugyanaz, mint amit a vendég is betölt).
+    const list = buildPool(await loadArtists(artistsFor("all"), () => {}));
+    const ids = pickSet(list, VS_SONGS);
+    if (!peerConn) return;
+    peerConn.send({ type: "start", ids });
+    if (bt.dialog.open) bt.dialog.close("started");
+    startVersus("battle", ids, { name: oppName });
+  }
+
+  function vsRematch() {
+    if (peerHost) return hostStartMatch();
+    peerConn.send({ type: "rematch" });
+    setStatus(`Visszavágó kérve – ${versus.opp.name} indítja…`);
+  }
+
+  function vsSendProgress() {
+    if (!versus || versus.kind !== "battle" || !peerConn) return;
+    const r = versus.results[versus.idx];
+    peerConn.send({ type: "progress", idx: versus.idx, attempts: round.attempts.length, done: !!r, won: r && r.won, pts: r ? r.pts : 0, tries: r ? r.tries : 0 });
+  }
+
+  function onPeerData(m) {
+    if (!m || typeof m !== "object") return;
+    if (m.type === "hello") {
+      oppName = String(m.name || "Ellenfél").slice(0, 16);
+      if (peerHost) hostStartMatch();
+      else battleStatus(`Kapcsolódva: ${oppName}. Indul a meccs…`);
+    } else if (m.type === "full") {
+      battleStatus("Ez a szoba már tele van.", true);
+    } else if (m.type === "start" && Array.isArray(m.ids) && !peerHost) {
+      if (bt.dialog.open) bt.dialog.close("started");
+      startVersus("battle", m.ids.map(Number).slice(0, 10), { name: oppName });
+    } else if (m.type === "rematch" && peerHost) {
+      hostStartMatch();
+    } else if (m.type === "progress" && versus && versus.kind === "battle") {
+      const i = +m.idx;
+      versus.opp.live[i] = { attempts: +m.attempts || 0 };
+      if (m.done) versus.opp.results[i] = { won: !!m.won, pts: +m.pts || 0, tries: +m.tries || 0 };
+      renderVsBar();
+      renderStreak();
+      if (round && round.done && vsOver()) renderVsSummary(true);
+      // Ha erre vártunk, jöhet a következő dal.
+      if (m.done && versus.waiting && i === versus.idx) {
+        versus.waiting = false;
+        vsNext();
+      }
+    } else if (m.type === "bye" && versus) {
+      versus.oppGone = true;
+    }
+  }
+
+  $("battleHostBtn").addEventListener("click", () => battleHost());
+  $("battleJoinBtn").addEventListener("click", battleJoin);
+  bt.code.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); battleJoin(); } });
+  $("battleShareBtn").addEventListener("click", () => shareText(`Songdle HU ⚔️ Párbaj! Gyere, játsszunk: kód ${bt.codeShow.textContent}\n${battleLink(bt.codeShow.textContent)}`));
+  bt.dialog.addEventListener("close", () => {
+    saveNick();
+    // Ha meccs nélkül zárta be, a szobát is bezárjuk.
+    if (bt.dialog.returnValue !== "started" && !(versus && versus.kind === "battle")) peerClose();
+  });
+
+  // ---------- Látogatottság (GoatCounter, ha be van állítva) ----------
+  function countEvent(name) {
+    try {
+      if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: name, event: true });
+    } catch { /* nem elérhető */ }
+  }
+  if (CFG.GOATCOUNTER) {
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = "https://gc.zgo.at/count.js";
+    s.dataset.goatcounter = `https://${CFG.GOATCOUNTER}.goatcounter.com/count`;
+    document.head.appendChild(s);
+  }
 
   // ---------- Statisztika ----------
   function statCells(container, s, streakNow) {
@@ -1734,10 +2318,54 @@
     });
   }
 
+  // Napi naptár: a hónap napjain, hány napi dalt találtál el (és megvolt-e az előadó).
+  let calMonth = 0; // 0 = a mostani hónap, -1 = előző…
+  function renderCalendar() {
+    const box = $("cal");
+    const today = dateKey();
+    const [y, m] = today.split("-").map(Number);
+    const first = new Date(Date.UTC(y, m - 1 + calMonth, 1));
+    const year = first.getUTCFullYear(), month = first.getUTCMonth();
+    const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    $("calTitle").textContent = first.toLocaleDateString("hu-HU", { year: "numeric", month: "long", timeZone: "UTC" });
+    $("calNext").disabled = calMonth >= 0;
+    box.innerHTML = "";
+    for (const d of ["H", "K", "Sze", "Cs", "P", "Szo", "V"]) {
+      const h = document.createElement("span");
+      h.className = "cal-head";
+      h.textContent = d;
+      box.appendChild(h);
+    }
+    // Hétfővel kezdődő hét.
+    for (let i = 0; i < (first.getUTCDay() + 6) % 7; i++) box.appendChild(document.createElement("span"));
+    for (let day = 1; day <= days; day++) {
+      const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      let played = 0, won = 0;
+      for (const d of DIFFS) {
+        const r = load(dailyKey(key, d.id), null);
+        if (r && r.done) { played++; if (r.won) won++; }
+      }
+      const art = load(adKey(key), null);
+      const artWon = !!(art && art.done && !art.gaveUp);
+      const c = document.createElement("span");
+      c.className = "cal-day" + (key === today ? " today" : "") + (key > today ? " future" : "")
+        + (played && !won ? " lost" : "") + (artWon ? " artist" : "");
+      if (won) c.style.setProperty("--lvl", won / DIFFS.length);
+      if (won) c.classList.add("won");
+      c.textContent = day;
+      c.title = played || art ? `${prettyDate(key)}: ${won}/${DIFFS.length} napi dal${artWon ? ", előadó megvolt 🎤" : ""}` : prettyDate(key);
+      box.appendChild(c);
+    }
+  }
+  $("calPrev").addEventListener("click", () => { calMonth--; renderCalendar(); });
+  $("calNext").addEventListener("click", () => { if (calMonth < 0) { calMonth++; renderCalendar(); } });
+
   function renderStats() {
     el.statPoints.textContent = points.toLocaleString("hu-HU");
     statCells(el.statGrid, stats, stats.streak);
     renderDailyTable();
+    calMonth = 0;
+    renderCalendar();
     renderArtistStats();
     const s = mode === "daily" ? dailyStats() : stats;
     $("distTitle").textContent = `Hányadikra találtad el (${mode === "daily" ? "napi · " + diffById(dailyDiff).label : "végtelen"})`;
@@ -2062,10 +2690,14 @@
   const AD_HINT_AFTER = 4;
   const AD_GIVEUP_AFTER = 5;
   const AD_POINTS = (n) => Math.max(20, 150 - (n - 1) * 20);
+  // Címsúgó: egy ismert dal címe, ennyi pont levonással (legalább AD_MIN_POINTS marad).
+  const AD_TITLE_COST = 40, AD_MIN_POINTS = 10;
+  const adPointsFor = (n, st) => Math.max(AD_MIN_POINTS, AD_POINTS(n) - (st.titleHint ? AD_TITLE_COST : 0));
   const tagLabel = (id) => (CFG.CATEGORIES.find((c) => c.id === id) || { label: id }).label;
   const ad = {
     input: $("adInput"), sugg: $("adSuggestions"), list: $("adGuesses"), empty: $("adEmpty"),
     meta: $("adMeta"), win: $("adWin"), hint: $("adHintBtn"), giveUp: $("adGiveUpBtn"), search: $("adSearch"), help: $("adHelp"),
+    titleBtn: $("adTitleBtn"), titleHint: $("adTitleHint"),
   };
   let adStats = load("artistStats", { played: 0, streak: 0, maxStreak: 0, lastWin: null, guesses: 0 });
 
@@ -2231,6 +2863,16 @@
     ad.hint.hidden = st.done;
     ad.hint.disabled = left > 0;
     ad.hint.textContent = left > 0 ? `🎧 Hallgass bele (még ${left} tipp)` : "🎧 Hallgass bele";
+    ad.titleBtn.hidden = st.done || !!st.titleHint;
+    ad.titleBtn.disabled = left > 0;
+    ad.titleBtn.textContent = left > 0 ? "💡 Egy dala" : `💡 Egy dala (−${AD_TITLE_COST} pont)`;
+    ad.titleHint.hidden = !st.titleHint;
+    if (st.titleHint) {
+      ad.titleHint.textContent = "";
+      const b = document.createElement("b");
+      b.textContent = `„${st.titleHint}”`;
+      ad.titleHint.append("💡 Egyik ismert dala: ", b);
+    }
     ad.giveUp.hidden = st.done || st.guesses.length < AD_GIVEUP_AFTER;
     adResetGiveUp();
     adRenderWin(st, ans);
@@ -2281,7 +2923,7 @@
       const e = adCompare(g, ans, g.listeners, ans.listeners).map((c) => emoji[c.cls]);
       lines.push(e.slice(0, 4).join("") + " " + e.slice(4).join(""));
     }
-    const text = `Songdle HU 🎤 Napi előadó · ${prettyDate(date)}\n${st.guesses.length} tipp${st.gaveUp ? " · feladva 🏳️" : ""}\n${lines.join("\n")}\n${location.origin + location.pathname}`;
+    const text = `Songdle HU 🎤 Napi előadó · ${prettyDate(date)}\n${st.guesses.length} tipp${st.titleHint ? " · 💡" : ""}${st.gaveUp ? " · feladva 🏳️" : ""}\n${lines.join("\n")}\n${location.origin + location.pathname}`;
     if (navigator.share) {
       try { await navigator.share({ text }); return; } catch (e) { if (e.name === "AbortError") return; }
     }
@@ -2296,7 +2938,7 @@
     adHideSugg();
     if (a.id === ans.id) {
       st.done = true;
-      st.points = AD_POINTS(st.guesses.length);
+      st.points = adPointsFor(st.guesses.length, st);
       points += st.points;
       save("points", points);
       adStats.played++;
@@ -2419,6 +3061,29 @@
     }
   });
 
+  // Címsúgó: a megfejtés legnépszerűbb (saját) dalának címe, pontlevonással.
+  ad.titleBtn.addEventListener("click", async () => {
+    const date = dateKey(), ans = adAnswer(date), st = adState();
+    if (st.done || st.titleHint) return;
+    ad.titleBtn.classList.add("loading");
+    try {
+      const top = (await withRetry(() => Deezer.artistTop(ans.id, 10)))
+        .filter((t) => t.artist.id === ans.id && !configBlocked.has(t.id) && !excludeRe.test(t.title) && !isLive(t))
+        .sort((x, y) => y.rank - x.rank)[0];
+      if (!top) throw new Error("Nincs dal");
+      st.titleHint = top.title.replace(/\s*[([].*?[)\]]/g, "").trim() || top.title;
+      save(adKey(date), st);
+      countEvent("artist-title-hint");
+      adRender(false);
+      renderRoundPoints();
+    } catch (e) {
+      console.warn(e);
+      toast("A súgót most nem sikerült betölteni.");
+    } finally {
+      ad.titleBtn.classList.remove("loading");
+    }
+  });
+
   function openArtistGame() {
     ad.input.value = "";
     adHideSugg();
@@ -2442,11 +3107,23 @@
   renderAll();
   sizeViz();
   requestAnimationFrame(drawViz);
-  if (!load("seenHelp", false)) {
+  // Kihívás-link (?k=dalok&p=pont&n=név) vagy párbaj-meghívó (?parbaj=KÓD).
+  const params = new URLSearchParams(location.search);
+  const challengeIds = (params.get("k") || "").split("-").map((s) => parseInt(s, 36)).filter((n) => n > 0).slice(0, 10);
+  const battleCode = (params.get("parbaj") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+  if (challengeIds.length || battleCode) history.replaceState(null, "", location.pathname);
+  if (!load("seenHelp", false) && !challengeIds.length && !battleCode) {
     openHelp();
     save("seenHelp", true);
   }
-  enterMode();
+  if (challengeIds.length) {
+    const name = (params.get("n") || "").slice(0, 16) || "Egy barátod";
+    startVersus("challenge", challengeIds, { name, score: Math.max(0, parseInt(params.get("p"), 10) || 0) });
+    countEvent("challenge-opened");
+  } else {
+    enterMode();
+    if (battleCode) openBattle(battleCode);
+  }
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(console.warn);

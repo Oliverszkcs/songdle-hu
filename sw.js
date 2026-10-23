@@ -1,6 +1,6 @@
-// Csak az alkalmazás saját fájljait tároljuk. A Deezer API-t, a hangot és a
-// borítókat nem: azok mindig a hálózatról jönnek.
-const CACHE = "songdle-hu-v28";
+// Az alkalmazás saját fájljait tároljuk. A Deezer API és a borítók a hálózatról jönnek;
+// a legutóbbi hangrészleteket az app maga teszi el (songdle-clips-* tár), azt itt nem töröljük.
+const CACHE = "songdle-hu-v29";
 const SHELL = [
   "./",
   "index.html",
@@ -8,6 +8,7 @@ const SHELL = [
   "js/config.js",
   "js/deezer.js",
   "js/app.js",
+  "data/years.json",
   "manifest.json",
   "icons/icon.svg",
   "icons/icon-192.png",
@@ -30,7 +31,7 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("songdle-hu-") && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
