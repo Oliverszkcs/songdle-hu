@@ -18,7 +18,7 @@
 
   const $ = (id) => document.getElementById(id);
   const el = {
-    categories: $("categories"), decadeRow: $("decadeRow"), categoriesWrap: $("categoriesWrap"), dailyBanner: $("dailyBanner"),
+    categories: $("categories"), categoriesWrap: $("categoriesWrap"), dailyBanner: $("dailyBanner"),
     segmented: $("segmented"), streakLine: $("streakLine"), guesses: $("guesses"), tries: $("tries"),
     status: $("status"), reveal: $("reveal"),
     revealResult: $("revealResult"), revealTitle: $("revealTitle"), revealArtist: $("revealArtist"),
@@ -344,6 +344,7 @@
   // Nehéz mód (végtelen): a részlet a dal egy véletlen pontjáról indul, több pontért.
   let hard = load("hard", false);
   const HARD_MULT = CFG.HARD_MULTIPLIER || 1.5;
+  const HARD_MULT_TEXT = String(HARD_MULT).replace(".", ",");
   const hardOffset = () => {
     const [a, b] = CFG.HARD_START || [5, 15];
     return Math.round(a + Math.random() * (b - a));
@@ -548,13 +549,10 @@
     row.scrollTo({ left: row.scrollLeft + c.left - r.left - (r.width - c.width) / 2, behavior: smooth ? "smooth" : "auto" });
   }
 
-  // Az évtizedek egy csoportban: a „📅 Évtized” chip egy második sort nyit le.
-  let decadesOpen = false;
   function renderCategories() {
     updateDailyBadge();
     el.categories.innerHTML = "";
-    el.decadeRow.innerHTML = "";
-    el.decadeRow.hidden = true;
+    el.categories.classList.toggle("cat-bar", mode === "endless");
     if (mode === "daily") return renderDifficulties();
     if (mode === "versus") {
       const b = document.createElement("button");
@@ -564,52 +562,61 @@
       el.categories.appendChild(b);
       return;
     }
-    const chip = (label, cls, onClick, row = el.categories) => {
-      const b = document.createElement("button");
-      b.className = "chip" + (cls ? " " + cls : "");
-      b.textContent = label;
-      b.addEventListener("click", onClick);
-      row.appendChild(b);
-      return b;
-    };
-    const catChip = (c, row) => {
-      const active = c.id === category;
-      const b = chip(c.label, "", () => changeCategory(c.id), row);
-      b.setAttribute("aria-pressed", String(active));
-      if (active) requestAnimationFrame(() => revealChip(b));
-    };
-    chip("⚔️ Párbaj", "battle-chip", openBattle);
-    const hardChip = chip("🔥 Nehéz", "hard-chip", toggleHard);
-    hardChip.setAttribute("aria-pressed", String(hard));
-    hardChip.title = `A részlet a dal közepéről indul, ×${HARD_MULT} pont`;
-    const sep = document.createElement("span");
-    sep.className = "chip-sep";
-    sep.setAttribute("aria-hidden", "true");
-    el.categories.appendChild(sep);
-
+    // Végtelen módban egyetlen sáv: a választott kategória (koppintásra lap nyílik) és a párbaj.
+    const pick = document.createElement("button");
+    pick.className = "cat-pill";
+    pick.setAttribute("aria-haspopup", "dialog");
+    const c = allCats.find((x) => x.id === category) || CFG.CATEGORIES[0];
     const decade = decadeOf(category);
-    CFG.CATEGORIES.forEach((c, i) => {
-      catChip(c, el.categories);
-      // A „Mind” után jön az évtized-csoport, hogy rögtön látszódjon.
-      if (i === 0 && DECADES.length) {
-        const open = decadesOpen || !!decade;
-        const b = chip(`📅 Évtized ${open ? "▴" : "▾"}`, "decade-chip", () => {
-          decadesOpen = !open;
-          // Évtized közben a csoport bezárása = vissza a „Mind” kategóriához.
-          if (!decadesOpen && decade) return changeCategory("all");
-          renderCategories();
-        });
-        b.setAttribute("aria-pressed", String(!!decade));
-        b.setAttribute("aria-expanded", String(open));
-        b.setAttribute("aria-controls", "decadeRow");
-        if (decade) requestAnimationFrame(() => revealChip(b));
-      }
-    });
-    if (decadesOpen || decade) {
-      el.decadeRow.hidden = false;
-      DECADES.forEach((c) => catChip(c, el.decadeRow));
-    }
+    pick.innerHTML = `<span class="cat-ico" aria-hidden="true"></span><span class="cat-text"><small>${decade ? "Évtized" : "Kategória"}</small><b></b></span>`
+      + (hard ? `<span class="cat-hard">🔥 ×${HARD_MULT_TEXT}</span>` : "")
+      + `<svg class="cat-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    pick.querySelector(".cat-ico").textContent = decade ? "📅" : c.icon || "🎵";
+    pick.querySelector("b").textContent = c.label;
+    pick.setAttribute("aria-label", `Kategória: ${c.label}${hard ? ", nehéz mód" : ""}. Váltás`);
+    pick.addEventListener("click", openCatSheet);
+    el.categories.appendChild(pick);
+
+    const battle = document.createElement("button");
+    battle.className = "chip battle-chip";
+    battle.textContent = "⚔️ Párbaj";
+    battle.addEventListener("click", openBattle);
+    el.categories.appendChild(battle);
   }
+
+  // Kategóriaválasztó lap: műfajok, évtizedek és a nehéz mód kapcsolója egy helyen.
+  const catSheet = $("catSheet"), hardSwitch = $("hardSwitch");
+  function openCatSheet() {
+    const tiles = (box, list, decades) => {
+      box.innerHTML = "";
+      for (const c of list) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "cat-tile";
+        b.setAttribute("aria-pressed", String(c.id === category));
+        if (decades) {
+          b.textContent = c.short || c.label;
+          b.setAttribute("aria-label", c.label);
+        } else {
+          b.innerHTML = `<span aria-hidden="true"></span><span></span>`;
+          b.children[0].textContent = c.icon || "🎵";
+          b.children[1].textContent = c.label;
+        }
+        b.addEventListener("click", () => {
+          catSheet.close();
+          changeCategory(c.id);
+        });
+        box.appendChild(b);
+      }
+    };
+    tiles($("catGenres"), CFG.CATEGORIES, false);
+    tiles($("catDecades"), DECADES, true);
+    hardSwitch.checked = hard;
+    catSheet.showModal();
+  }
+  hardSwitch.addEventListener("change", () => { if (hardSwitch.checked !== hard) toggleHard(); });
+  // A háttérre koppintva is bezárul.
+  catSheet.addEventListener("click", (e) => { if (e.target === catSheet) catSheet.close(); });
 
   function toggleHard() {
     hard = !hard;
@@ -624,7 +631,7 @@
       renderAll();
     }
     toast(hard
-      ? `🔥 Nehéz mód: a részlet a dal közepéről indul, ×${HARD_MULT} pont${fresh ? "" : " (a következő daltól)"}.`
+      ? `🔥 Nehéz mód: a részlet a dal közepéről indul, ×${HARD_MULT_TEXT} pont${fresh ? "" : " (a következő daltól)"}.`
       : `Nehéz mód kikapcsolva${fresh ? "" : " (a következő daltól)"}.`);
   }
 
@@ -674,7 +681,6 @@
     game = { results: [] };
     save("game", game);
     category = id;
-    if (!decadeOf(id)) decadesOpen = false;
     save("category", category);
     save("round", null);
     renderCategories();
@@ -1221,8 +1227,14 @@
     const total = scaleLength();
     el.timeMax.textContent = fmt(total);
     el.timeNow.textContent = fmt(0);
-    el.clipLen.textContent = !round ? " " : round.done ? "Teljes előnézet"
-      : `${currentLength()} mp` + (round.offset ? ` · 🔥 ${fmt(round.offset)}-tól` : "");
+    el.clipLen.textContent = !round ? " " : round.done ? "Teljes előnézet" : `${currentLength()} mp`;
+    if (round && !round.done && round.offset) {
+      // Nehéz mód: külön színnel, mert a színátmenetes szövegben az emoji is elszíneződne.
+      const s = document.createElement("span");
+      s.className = "clip-hard";
+      s.textContent = `🔥 ${fmt(round.offset)}-tól`;
+      el.clipLen.append(" · ", s);
+    }
     el.ringUnlocked.style.strokeDashoffset = round ? 100 - (currentLength() / total) * 100 : 100;
     el.ringProgress.style.strokeDashoffset = 100;
     if (round && !round.done) {

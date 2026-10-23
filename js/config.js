@@ -14,26 +14,26 @@
 // előadó ennyi legnépszerűbb dala kerül be (csak a slágerek).
 window.SONGDLE_CONFIG = {
   CATEGORIES: [
-    { id: "all", label: "Mind" },
-    { id: "pop", label: "Pop" },
-    { id: "alter", label: "Alter" },
-    { id: "rap", label: "Rap" },
-    { id: "rock", label: "Rock" },
-    { id: "trash", label: "Trash" },
-    { id: "mulatos", label: "Mulatós" },
-    { id: "retro", label: "Retró" },
-    { id: "disco", label: "Diszkó" },
+    { id: "all", label: "Mind", icon: "🎵" },
+    { id: "pop", label: "Pop", icon: "🎤" },
+    { id: "alter", label: "Alter", icon: "🎸" },
+    { id: "rap", label: "Rap", icon: "🎙️" },
+    { id: "rock", label: "Rock", icon: "🤘" },
+    { id: "trash", label: "Trash", icon: "🤪" },
+    { id: "mulatos", label: "Mulatós", icon: "🪗" },
+    { id: "retro", label: "Retró", icon: "📻" },
+    { id: "disco", label: "Diszkó", icon: "🪩" },
   ],
 
   // Évtized-kategóriák (a végtelen mód chipjei között). A dalok évét a
   // data/years.json adja (tools/build-years.mjs készíti); év nélküli dal kimarad.
   DECADES: [
-    { id: "d1960", label: "60-70-es évek", from: 1900, to: 1979 },
-    { id: "d1980", label: "80-as évek", from: 1980, to: 1989 },
-    { id: "d1990", label: "90-es évek", from: 1990, to: 1999 },
-    { id: "d2000", label: "2000-es évek", from: 2000, to: 2009 },
-    { id: "d2010", label: "2010-es évek", from: 2010, to: 2019 },
-    { id: "d2020", label: "2020-as évek", from: 2020, to: 2099 },
+    { id: "d1960", label: "60-70-es évek", short: "60–70-es", from: 1900, to: 1979 },
+    { id: "d1980", label: "80-as évek", short: "80-as", from: 1980, to: 1989 },
+    { id: "d1990", label: "90-es évek", short: "90-es", from: 1990, to: 1999 },
+    { id: "d2000", label: "2000-es évek", short: "2000-es", from: 2000, to: 2009 },
+    { id: "d2010", label: "2010-es évek", short: "2010-es", from: 2010, to: 2019 },
+    { id: "d2020", label: "2020-as évek", short: "2020-as", from: 2020, to: 2099 },
   ],
 
   ARTISTS: [

@@ -551,6 +551,7 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   -webkit-background-clip: text; background-clip: text;
   color: transparent;
 }
+.clip-len .clip-hard { color: #ffb37a; -webkit-text-fill-color: #ffb37a; }
 .clip-len.bump { animation: bump-text .6s var(--ease-spring); }
 /* Tippelés közben a másodperc-jelölések és az idők nem kellenek (a hullámforma marad). */
 .game:has(#reveal[hidden]) .wave-marks,
@@ -1361,16 +1362,95 @@ button.ad-tile:active { transform: scale(.95); }
 
 /* ---------- Párbaj, kihívás, nehéz mód, évtizedek ---------- */
 .segmented[data-mode="versus"] .seg-indicator { opacity: 0; }
-.sub-cats { padding-top: 0; animation: fade-down .25s var(--ease-out); }
-.sub-cats .chip { min-height: 32px; font-size: .88rem; }
-.decade-chip[aria-expanded="true"]:not([aria-pressed="true"]) { color: var(--text); border-color: var(--border-strong); }
-.chip-sep { flex: none; width: 1px; align-self: stretch; margin: 6px 2px; background: var(--border-strong); }
 .chip.battle-chip { color: var(--text); border-color: rgba(255, 197, 71, .35); background: rgba(255, 197, 71, .1); }
-.chip.hard-chip[aria-pressed="true"] {
-  background: linear-gradient(135deg, #ff8a3d, var(--wrong));
-  color: #1a0505;
-  box-shadow: 0 6px 20px rgba(255, 84, 112, .35);
+
+/* Kategóriasáv (végtelen mód): választó gomb + párbaj, görgetés nélkül */
+.categories.cat-bar {
+  overflow: visible; flex-wrap: nowrap; justify-content: stretch; align-items: stretch;
+  width: 100%; max-width: 640px; margin: 0 auto;
+  -webkit-mask-image: none; mask-image: none;
 }
+.cat-bar .battle-chip { min-height: 46px; }
+.cat-pill {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  min-height: 46px; padding: 0 14px 0 6px;
+  border-radius: 999px; border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--text);
+  font: inherit; text-align: left; cursor: pointer;
+  transition: transform .25s var(--ease-spring), border-color .25s, background .25s;
+}
+.cat-pill:hover { border-color: var(--accent); }
+.cat-pill:active { transform: scale(.97); }
+.cat-ico {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 1.05rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 14px rgba(30, 215, 96, .3);
+}
+.cat-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.cat-text small { font-size: .6rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.cat-text b { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-hard {
+  flex: none; padding: 3px 8px; border-radius: 999px;
+  font-size: .72rem; font-weight: 800; white-space: nowrap;
+  background: rgba(255, 138, 61, .16); color: #ffb37a;
+}
+.cat-chev { flex: none; margin-left: auto; color: var(--muted); }
+
+/* Kategóriaválasztó lap: telefonon alulról becsúszó lap */
+.sheet h3 { margin-top: 14px; }
+.sheet-grip { display: none; }
+.cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cat-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 64px; padding: 6px;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  font: inherit; font-weight: 700; cursor: pointer;
+  transition: transform .2s var(--ease-spring), background .2s, border-color .2s;
+}
+.cat-tile span:first-child { font-size: 1.35rem; line-height: 1.2; }
+.cat-tile:hover { border-color: var(--border-strong); }
+.cat-tile:active { transform: scale(.95); }
+.cat-tile[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent; color: var(--accent-ink);
+  box-shadow: 0 6px 20px rgba(30, 215, 96, .3);
+}
+.cat-grid.decades .cat-tile { min-height: 46px; }
+.switch-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 16px; padding: 12px 14px;
+  border-radius: 16px; border: 1px solid var(--border); background: var(--surface);
+  cursor: pointer;
+}
+.switch-row small { display: block; margin-top: 2px; color: var(--muted); font-size: .8rem; font-weight: 600; }
+input[role="switch"] {
+  -webkit-appearance: none; appearance: none;
+  flex: none; position: relative; width: 48px; height: 28px; margin: 0;
+  border-radius: 999px; background: var(--border-strong); cursor: pointer;
+  transition: background .25s;
+}
+input[role="switch"]::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 22px; height: 22px; border-radius: 50%; background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+  transition: transform .3s var(--ease-spring);
+}
+input[role="switch"]:checked { background: linear-gradient(135deg, #ff8a3d, var(--wrong)); }
+input[role="switch"]:checked::after { transform: translateX(20px); }
+input[role="switch"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 599px) {
+  .dialog.sheet {
+    width: 100%; max-width: 100%; margin: auto 0 0;
+    border-radius: 26px 26px 0 0; border-bottom: 0;
+    padding: 12px 18px calc(18px + env(safe-area-inset-bottom));
+  }
+  .dialog.sheet[open] { animation: sheet-in .4s var(--ease-out); }
+  .sheet-grip { display: block; width: 40px; height: 4px; margin: 0 auto 12px; border-radius: 2px; background: var(--border-strong); }
+}
+@keyframes sheet-in { from { transform: translateY(100%); } }
 
 .vs-bar { display: grid; gap: 6px; }
 .vs-row { display: flex; align-items: center; gap: 10px; }
