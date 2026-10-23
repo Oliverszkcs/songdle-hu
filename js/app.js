@@ -1913,7 +1913,7 @@
   const adState = () => load(adKey(dateKey()), { guesses: [], done: false, points: 0 });
   const adDone = () => adState().done;
 
-  // Deezer-adat (kép, rajongók) előadónként, egy napig tárolva.
+  // Deezer-adat (kép) előadónként, egy napig tárolva.
   const adInfoCache = new Map();
   function adFetch(a) {
     if (adInfoCache.has(a.id)) return adInfoCache.get(a.id);
@@ -1922,10 +1922,10 @@
     const p = cached && Date.now() - cached.ts < 24 * 3600e3
       ? Promise.resolve(cached)
       : withRetry(() => Deezer.artist(a.id)).then((d) => {
-        const v = { ts: Date.now(), fans: d.nb_fan || 0, pic: d.picture_medium || "" };
+        const v = { ts: Date.now(), pic: d.picture_medium || "" };
         save(key, v);
         return v;
-      }).catch(() => ({ fans: 0, pic: "" }));
+      }).catch(() => ({ pic: "" }));
     adInfoCache.set(a.id, p);
     return p;
   }
@@ -1942,19 +1942,21 @@
     const dy = Math.abs(g.year - ans.year);
     const year = dy === 0 ? "hit" : dy <= 5 ? "near" : "miss";
     const genre = same(g.genres, ans.genres) ? "hit" : g.genres.some((x) => ans.genres.includes(x)) ? "near" : "miss";
-    const ratio = Math.max(gFans, aFans) / Math.max(1, Math.min(gFans, aFans));
-    const fans = g.id === ans.id || ratio <= 1.15 ? "hit" : ratio <= 2 ? "near" : "miss";
+    // Spotify havi hallgatók; ha valamelyiknél hiányzik, nincs összevetés.
+    const known = gFans > 0 && aFans > 0;
+    const ratio = known ? Math.max(gFans, aFans) / Math.min(gFans, aFans) : Infinity;
+    const fans = g.id === ans.id ? "hit" : !known ? "miss" : ratio <= 1.15 ? "hit" : ratio <= 2 ? "near" : "miss";
     return [
       [type, AD_TYPE[g.type]],
       [gender, AD_GENDER[g.gender]],
       [year, g.year + (year === "hit" ? "" : arrow(g.year, ans.year))],
       [genre, g.genres.map(tagLabel).join(", ")],
-      [fans, fmtFans(gFans) + (fans === "hit" ? "" : arrow(gFans, aFans))],
+      [fans, !gFans ? "–" : fmtFans(gFans) + (fans === "hit" || !known ? "" : arrow(gFans, aFans))],
     ];
   }
 
   async function adRenderRow(g, ans, animate) {
-    const [gi, ai] = await Promise.all([adFetch(g), adFetch(ans)]);
+    const gi = await adFetch(g);
     const li = document.createElement("li");
     li.className = "ad-row" + (g.id === ans.id ? " win" : "");
     const head = document.createElement("div");
@@ -1967,7 +1969,7 @@
     head.append(img, name);
     const tiles = document.createElement("div");
     tiles.className = "ad-tiles";
-    adCompare(g, ans, gi.fans, ai.fans).forEach(([cls, text], i) => {
+    adCompare(g, ans, g.listeners, ans.listeners).forEach(([cls, text], i) => {
       const t = document.createElement("span");
       t.className = "ad-tile " + cls;
       t.textContent = text;
@@ -2031,13 +2033,11 @@
   async function adShare() {
     const date = dateKey(), ans = adAnswer(date), st = adState();
     const emoji = { hit: "🟩", near: "🟨", miss: "⬛" };
-    const aInfo = await adFetch(ans);
     const lines = [];
     for (const n of st.guesses) {
       const g = adArtists.find((a) => a.name === n);
       if (!g) continue;
-      const gi = await adFetch(g);
-      lines.push(adCompare(g, ans, gi.fans, aInfo.fans).map(([c]) => emoji[c]).join(""));
+      lines.push(adCompare(g, ans, g.listeners, ans.listeners).map(([c]) => emoji[c]).join(""));
     }
     const text = `Songdle HU 🎤 Napi előadó · ${prettyDate(date)}\n${st.guesses.length} tipp${st.gaveUp ? " · feladva 🏳️" : ""}\n${lines.join("\n")}\n${location.origin + location.pathname}`;
     if (navigator.share) {
