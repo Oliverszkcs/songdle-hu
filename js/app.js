@@ -33,6 +33,7 @@
     statsDialog: $("statsDialog"), statGrid: $("statGrid"), statGridDaily: $("statGridDaily"),
     statPoints: $("statPoints"), dist: $("dist"), helpDialog: $("helpDialog"), confirmDialog: $("confirmDialog"),
     toast: $("toast"), confetti: $("confetti"), pointsPill: $("pointsPill"), pointsNum: $("pointsNum"),
+    roundPts: $("roundPts"), roundNum: $("roundNum"),
     modeEndless: $("modeEndless"), modeDaily: $("modeDaily"),
     volumeBtn: $("volumeBtn"), volumePop: $("volumePop"), volumeRange: $("volumeRange"),
     volumeVal: $("volumeVal"), muteBtn: $("muteBtn"),
@@ -737,6 +738,7 @@
   function renderAll(animate) {
     renderGuesses(animate);
     renderTries();
+    renderRoundPoints();
     renderWaveState(0, true);
     renderClipInfo();
     renderStreak();
@@ -852,6 +854,24 @@
         ? `${flame} Sorozat: <b>${stats.streak}</b> · legjobb: ${stats.maxStreak}`
         : stats.played ? `Legjobb sorozat: ${stats.maxStreak}` : "";
     }
+  }
+
+  // A kör pontja: játék közben a még megszerezhető pont, a végén a megszerzett.
+  function renderRoundPoints() {
+    let n = null, state = "";
+    if (round && round.done) {
+      n = round.points ? round.points.total : 0;
+      state = n ? "won" : "lost";
+    } else if (round) {
+      const daily = round.mode === "daily";
+      const s = daily ? dailyStats(round.diff) : stats;
+      const streakAfter = daily ? (s.lastWin === shiftDate(round.date, -1) ? s.streak + 1 : 1) : s.streak + 1;
+      n = scoreFor(true, round.attempts.length + 1, streakAfter, daily ? diffById(round.diff).multiplier : 1).total;
+    }
+    const prev = el.roundNum.textContent;
+    el.roundNum.textContent = n === null ? "–" : (state === "won" ? "+" : "") + n;
+    el.roundPts.className = "round-pts " + state;
+    if (prev !== el.roundNum.textContent && n !== null) retrigger(el.roundPts, "tick");
   }
 
   function renderPoints() {

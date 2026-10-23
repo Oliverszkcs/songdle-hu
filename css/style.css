@@ -281,6 +281,29 @@ body.playing .logo-eq i { animation-play-state: running; }
   letter-spacing: .14em; text-transform: uppercase;
   color: rgba(255, 220, 150, .6);
 }
+/* Kör pontja a pill bal oldalán, elválasztóval */
+.round-pts {
+  display: flex; flex-direction: column; align-items: center;
+  line-height: 1; gap: 3px;
+  min-width: 50px;
+  padding: 0 10px 0 8px;
+  margin-right: 1px;
+  border-right: 1px solid rgba(255, 197, 71, .22);
+}
+.round-pts b {
+  font-size: 1.05rem; font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.round-pts small {
+  font-size: .56rem; font-weight: 800;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255, 255, 255, .45);
+}
+.round-pts.won b { color: #7dffb0; text-shadow: 0 0 14px rgba(80, 255, 150, .4); }
+.round-pts.lost b { color: rgba(255, 255, 255, .35); }
+.round-pts.tick b { animation: round-tick .45s var(--ease-spring); }
+@keyframes round-tick { 40% { transform: scale(1.25); } }
 .points-pill.bump { animation: bump .7s var(--ease-spring); }
 .points-pill.bump .coin { animation: coin-flip .9s var(--ease-out); }
 @keyframes bump { 35% { transform: scale(1.1); box-shadow: 0 0 30px rgba(255, 197, 71, .55); } }
@@ -300,7 +323,7 @@ body.playing .logo-eq i { animation-play-state: running; }
   100% { transform: translate(var(--sx), var(--sy)) scale(0); opacity: 0; }
 }
 @media (max-width: 360px) {
-  .points-text small { display: none; }
+  .segmented button svg { display: none; }
   .segmented button { font-size: .88rem; gap: 5px; }
 }
 
@@ -1037,6 +1060,12 @@ kbd {
   .topbar-side, .topbar-side.right { gap: 6px; width: 86px; }
   .icon-btn { width: 40px; height: 40px; }
   .logo { font-size: 1.25rem; gap: 6px; }
+  .points-text small, .round-pts small { letter-spacing: .06em; }
+  .round-pts { min-width: 44px; padding: 0 7px 0 4px; }
+  .points-pill { padding: 0 10px 0 4px; gap: 6px; }
+  .points-pill .coin { width: 30px; height: 30px; }
+  .points-pill .coin svg { width: 16px; height: 16px; }
+  .points-text small, .round-pts small { font-size: .5rem; }
 }
 @media (min-width: 600px) {
   .categories { justify-content: center; flex-wrap: wrap; -webkit-mask-image: none; mask-image: none; }
