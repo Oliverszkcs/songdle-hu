@@ -671,6 +671,18 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 .reveal-title { font-size: 1.6rem; font-weight: 900; line-height: 1.15; letter-spacing: -.01em; }
 .reveal-artist { font-size: 1.05rem; font-weight: 600; }
 .reveal-album { color: var(--muted); font-size: .85rem; }
+.reveal-year {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 800; font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid var(--border);
+  vertical-align: 1px;
+}
 .reveal-meta { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
 .reveal-emoji { letter-spacing: 2px; font-size: 1rem; }
 .reveal-points {

@@ -553,6 +553,7 @@
           points: saved && saved.points ? saved.points : null,
           preview: full.preview,
           md5: (full.album && full.album.md5_image) || t.md5,
+          year: ((full.release_date || (full.album && full.album.release_date) || "").match(/^\d{4}/) || [""])[0],
         };
         if (!t.feat.length && full.contributors) {
           t.feat = [...new Set(full.contributors.map((c) => c.name))].filter((n) => n !== t.artist);
@@ -723,6 +724,13 @@
     el.revealTitle.textContent = t.title;
     el.revealArtist.textContent = artistLine(t);
     el.revealAlbum.textContent = t.album;
+    // A megjelenés éve csak eltalált dalnál látszik.
+    if (round.won && round.year && round.year !== "0000") {
+      const y = document.createElement("span");
+      y.className = "reveal-year";
+      y.textContent = round.year;
+      el.revealAlbum.append(" ", y);
+    }
     el.revealEmoji.textContent = emojiRow(round);
     const p = round.points;
     el.revealPoints.textContent = p && p.total
