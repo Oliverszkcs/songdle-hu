@@ -29,7 +29,7 @@ window.SONGDLE_CONFIG = {
     { name: "ByeAlex", id: 4102741, tags: ["pop", "alter"] },
     { name: "ByeAlex és a Slepp", id: 8787040, tags: ["pop", "alter"] },
     { name: "Rúzsa Magdi", id: 292212, tags: ["pop"] },
-    { name: "Manuel", id: 79455642, tags: ["pop"] },
+    { name: "Manuel", id: 79455642, tags: ["pop", "rap"] },
 
     // Alter
     { name: "Quimby", id: 2177, tags: ["alter", "rock"] },
@@ -45,6 +45,7 @@ window.SONGDLE_CONFIG = {
     { name: "Platon Karataev", id: 11295390, tags: ["alter"] },
     { name: "Hiperkarma", id: 2178, tags: ["alter", "rock"] },
     { name: "Irie Maffia", id: 469406, tags: ["alter"] },
+    { name: "Dzsúdló", id: 62356152, tags: ["alter", "pop"] },
     // Jelenleg nincs letölthető dala a Deezeren – ha megjelenik, magától bekerül.
     { name: "Children of Distortion", tags: ["alter"] },
 
@@ -53,7 +54,6 @@ window.SONGDLE_CONFIG = {
     { name: "Punnany Massif", id: 4602807, tags: ["rap", "alter"] },
     { name: "Pogány Induló", id: 162188472, tags: ["rap"] },
     { name: "Krúbi", id: 13879063, tags: ["rap"] },
-    { name: "Dzsúdló", id: 62356152, tags: ["rap"] },
     { name: "Ganxsta Zolee és a Kartel", id: 8129, tags: ["rap"] },
     { name: "Dopeman", id: 10769, tags: ["rap"] },
     { name: "Bëlga", id: 101, tags: ["rap"] },
