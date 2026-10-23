@@ -549,12 +549,10 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   color: transparent;
 }
 .clip-len.bump { animation: bump-text .6s var(--ease-spring); }
-/* Tippelés közben elég a gyűrű és a hossz: a hullámforma és az idők csak a megfejtésnél látszanak. */
-.game:has(#reveal[hidden]) .wave-wrap,
+/* Tippelés közben a másodperc-jelölések és az idők nem kellenek (a hullámforma marad). */
+.game:has(#reveal[hidden]) .wave-marks,
 .game:has(#reveal[hidden]) .clip-info .time { visibility: hidden; }
-.game:has(#reveal[hidden]) .wave-wrap { display: none; }
-.game:has(#reveal[hidden]) { --disc: clamp(104px, calc(72dvh - 300px), min(64vw, 270px)); }
-.game:has(#reveal[hidden]) .clip-info { justify-content: center; margin-top: 0; }
+.game:has(#reveal[hidden]) .wave-marks { display: none; }
 @keyframes bump-text { 40% { transform: scale(1.35); } }
 
 .wave-wrap { display: grid; gap: 4px; }

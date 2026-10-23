@@ -1299,7 +1299,10 @@
     if (c) accentColor = c;
   }, 400);
 
+  // A vászon méretét a színpad méretváltozásához igazítjuk (billentyűzet, címsor, megfejtés):
+  // különben a régi kép felnagyítva, elmosódva látszik.
   window.addEventListener("resize", sizeViz);
+  if (window.ResizeObserver) new ResizeObserver(sizeViz).observe(el.viz);
 
   // ---------- Hangerő ----------
   let volume = load("volume", { level: 80, muted: false });
@@ -2006,8 +2009,11 @@
     const arrow = (gv, av) => (av > gv ? " ▲" : av < gv ? " ▼" : "");
     const type = g.type === ans.type ? "hit" : g.type !== "solo" && ans.type !== "solo" ? "near" : "miss";
     const gender = g.gender === ans.gender ? "hit" : g.gender === "mixed" || ans.gender === "mixed" ? "near" : "miss";
+    // Születési évet csak születési évvel, alakulási évet csak alakulásival vetünk össze:
+    // szóló és csapat között az év sosem zöld vagy sárga, csak a nyíl segít.
+    const sameKind = (g.type === "solo") === (ans.type === "solo");
     const dy = Math.abs(g.year - ans.year);
-    const year = dy === 0 ? "hit" : dy <= 5 ? "near" : "miss";
+    const year = !sameKind ? "miss" : dy === 0 ? "hit" : dy <= 5 ? "near" : "miss";
     const genre = same(g.genres, ans.genres) ? "hit" : g.genres.some((x) => ans.genres.includes(x)) ? "near" : "miss";
     // Spotify havi hallgatók; ha valamelyiknél hiányzik, nincs összevetés.
     const known = gFans > 0 && aFans > 0;
@@ -2054,7 +2060,7 @@
       },
       {
         label: born ? "Született" : "Alakult", cls: year, text: g.year + (year === "hit" ? "" : arrow(g.year, ans.year)),
-        why: `${g.name} ${g.year}-ben ${yearWord}. ` + (year === "hit" ? "Pontosan egyezik a mai előadóval."
+        why: `${g.name} ${g.year}-ben ${yearWord}. ` + (!sameKind ? `A mai előadó ${born ? "csapat, ezért ott az alakulás éve számít" : "szólóelőadó, ezért ott a születési év számít"} – ez nem vethető össze, ezért nem lehet zöld vagy sárga. A nyíl azért mutatja, hogy az ő éve ${later ? "későbbi (▲)" : ans.year < g.year ? "korábbi (▼)" : "ugyanez"}.` : year === "hit" ? "Pontosan egyezik a mai előadóval."
           : `A mai előadó ${later ? "később (▲)" : "korábban (▼)"} született vagy alakult` + (year === "near" ? ", legfeljebb 5 év a különbség." : ", több mint 5 év a különbség.")),
       },
       {
