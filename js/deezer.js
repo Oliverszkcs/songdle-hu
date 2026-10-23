@@ -2,8 +2,19 @@
 (function () {
   const API = "https://api.deezer.com";
   let seq = 0;
+  // A Deezer 5 másodpercenként kb. 50 kérést enged: a kéréseket egyenletesen elosztjuk.
+  const MIN_GAP_MS = 130;
+  let nextSlot = 0;
 
-  function jsonp(path, params = {}, timeoutMs = 12000) {
+  async function jsonp(path, params = {}, timeoutMs = 12000) {
+    const now = Date.now();
+    const wait = Math.max(0, nextSlot - now);
+    nextSlot = Math.max(now, nextSlot) + MIN_GAP_MS;
+    if (wait) await new Promise((r) => setTimeout(r, wait));
+    return request(path, params, timeoutMs);
+  }
+
+  function request(path, params, timeoutMs) {
     return new Promise((resolve, reject) => {
       const cb = "__dz_cb_" + Date.now().toString(36) + "_" + seq++;
       const qs = new URLSearchParams({ ...params, output: "jsonp", callback: cb });
