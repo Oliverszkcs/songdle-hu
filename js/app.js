@@ -1065,6 +1065,11 @@
     }
   }
 
+  // A Dallista előnézet-lejátszója (a hangerő-szabályzó is kezeli).
+  const libAudio = new Audio();
+  libAudio.crossOrigin = "anonymous";
+  libAudio.preload = "none";
+
   let rafId = 0;
   let playToken = 0; // minden megállítás érvényteleníti a még induló lejátszást
 
@@ -1209,8 +1214,10 @@
       gainNode.gain.setTargetAtTime(silent ? 0 : level, actx.currentTime, 0.03);
       el.audio.volume = 1;
       el.audio.muted = false;
+      libAudio.volume = 1;
     } else {
       el.audio.volume = level;
+      libAudio.volume = silent ? 0 : level;
       el.audio.muted = silent;
     }
     el.volumeRange.value = volume.level;
@@ -1630,10 +1637,63 @@
     sub.appendChild(highlighted(t.artist !== t.src ? `${artistLine(t)} · ${t.album}`
       : t.feat.length ? `feat. ${t.feat.join(", ")} · ${t.album}` : t.album, q));
     text.append(title, sub);
-    li.append(img, text);
+    const play = document.createElement("span");
+    play.className = "lib-play";
+    play.setAttribute("aria-hidden", "true");
+    li.append(img, text, play);
+    li.tabIndex = 0;
+    li.setAttribute("role", "button");
+    li.setAttribute("aria-label", `${t.title} – előnézet lejátszása`);
+    li.addEventListener("click", () => libPlay(t, li));
+    li.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); libPlay(t, li); } });
     if (isReported(t.id)) li.classList.add("is-blocked");
+    if (t.id === libId) { li.classList.add("playing"); libLi = li; }
     return li;
   }
+
+  // Dallista: koppintásra lejátssza a dal előnézetét (külön lejátszón, a játékot nem zavarja).
+  let libSrcNode = null, libLi = null, libId = null, libToken = 0;
+
+  function libStop() {
+    libToken++;
+    libAudio.pause();
+    if (libLi) libLi.classList.remove("playing", "loading");
+    libLi = null;
+    libId = null;
+  }
+
+  async function libPlay(t, li) {
+    if (libLi === li) return libStop();
+    libStop();
+    stopAudio();
+    ensureAudioGraph();
+    if (actx && !libSrcNode) {
+      libSrcNode = actx.createMediaElementSource(libAudio);
+      libSrcNode.connect(gainNode);
+    }
+    if (actx && actx.state === "suspended") actx.resume();
+    applyVolume();
+    const token = libToken;
+    libLi = li;
+    libId = t.id;
+    li.classList.add("playing", "loading");
+    try {
+      // Friss előnézet-URL, mert a linkek lejárnak.
+      const full = await Deezer.track(t.id);
+      if (token !== libToken) return;
+      if (!full.preview) throw new Error("Nincs előnézet");
+      libAudio.src = full.preview;
+      await libAudio.play();
+      if (token !== libToken) return libAudio.pause();
+      li.classList.remove("loading");
+    } catch (e) {
+      if (token !== libToken) return;
+      console.warn(e);
+      libStop();
+      toast("Ezt a dalt most nem sikerült lejátszani.");
+    }
+  }
+  libAudio.addEventListener("ended", libStop);
 
   // „Jelentett” nézet: a jelentett dalok listája visszaállítással és másolással.
   let libView = "all";
@@ -1775,6 +1835,7 @@
     libList.scrollTop = 0;
     libDialog.showModal();
   });
+  libDialog.addEventListener("close", libStop);
 
   $("statsBtn").addEventListener("click", () => {
     renderStats();
