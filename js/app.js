@@ -1052,9 +1052,10 @@
   }
 
   let rafId = 0;
-  let stopAt = 0;
+  let playToken = 0; // minden megállítás érvényteleníti a még induló lejátszást
 
   function stopAudio() {
+    playToken++;
     cancelAnimationFrame(rafId);
     el.audio.pause();
     document.body.classList.remove("playing");
@@ -1071,28 +1072,32 @@
     ensureAudioGraph();
     if (actx && actx.state === "suspended") actx.resume();
     el.playBtn.classList.remove("pulse");
-    stopAt = currentLength();
-    const total = scaleLength();
+    const token = ++playToken;
     el.playBtn.classList.add("loading");
     try {
       el.audio.currentTime = 0;
       await el.audio.play();
     } catch (e) {
+      if (token !== playToken) return; // közben megállították (pl. kihagyás)
       console.warn(e);
       el.playBtn.classList.remove("loading");
       setStatus("Nem sikerült lejátszani. Próbáld újra!", true);
       return;
     }
+    // Ha indulás közben kihagyott vagy tippelt, ez a lejátszás már elavult.
+    if (token !== playToken) { el.audio.pause(); return; }
     el.playBtn.classList.remove("loading");
     el.playBtn.classList.add("playing");
     document.body.classList.add("playing");
     el.playBtn.setAttribute("aria-label", "Megállítás");
+    const total = scaleLength();
     const tick = () => {
+      if (token !== playToken) return;
       const t = el.audio.currentTime;
       el.ringProgress.style.strokeDashoffset = 100 - Math.min(t / total, 1) * 100;
       el.timeNow.textContent = fmt(t);
       renderWaveState(t, false);
-      if (t >= stopAt || el.audio.ended) return stopAudio();
+      if (t >= currentLength() || el.audio.ended) return stopAudio();
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
@@ -1463,9 +1468,13 @@
   // ---------- Gombok és billentyűk ----------
   el.playBtn.addEventListener("click", playClip);
   el.disc.addEventListener("click", () => { if (!el.playBtn.disabled) playClip(); });
+  // Mobilon a fókusz elvesztése bezárja a billentyűzetet, és az elugró elrendezés
+  // miatt a koppintás mellé mehet. A mousedown tiltásával ez nem történik meg.
+  for (const b of [el.submitBtn, el.skipBtn]) b.addEventListener("mousedown", (e) => e.preventDefault());
   el.submitBtn.addEventListener("click", submit);
   el.skipBtn.addEventListener("click", () => {
     if (round && !round.done) registerAttempt({ type: "skip" });
+    el.input.blur();
   });
   el.nextBtn.addEventListener("click", () => {
     if (mode !== "daily") return startRound();
