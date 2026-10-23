@@ -5,6 +5,7 @@
 
 :root {
   --silver: #e4e7ec;
+  --silver-dark: #4f555e;
   --bg: #0b0b10;
   --glass: rgba(24, 24, 32, .62);
   --glass-strong: rgba(30, 30, 40, .86);
@@ -478,9 +479,9 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   width: 64px; height: 64px;
   border-radius: 50%;
   border: none;
-  /* Zöld gomb, ezüst nyíl */
+  /* Zöld gomb, sötétezüst nyíl */
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: var(--silver);
+  color: var(--silver-dark);
   display: grid; place-items: center;
   cursor: pointer;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 6px rgba(30, 215, 96, .14);
@@ -488,7 +489,7 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 }
 .play-btn:hover:not(:disabled) { transform: scale(1.08); }
 .play-btn:active:not(:disabled) { transform: scale(.92); }
-.play-btn svg { width: 30px; height: 30px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
+.play-btn svg { width: 30px; height: 30px; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .35)); }
 .play-btn .i-play { margin-left: 3px; }
 .play-btn .i-stop, .play-btn.playing .i-play { display: none; }
 .play-btn.playing .i-stop { display: block; }
@@ -514,9 +515,10 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 @keyframes ring-out { from { transform: scale(1); opacity: .7; } to { transform: scale(1.8); opacity: 0; } }
 .disc.revealed ~ .play-btn {
   width: 52px; height: 52px;
+  color: var(--silver);
   transform: translate(calc(var(--disc) * .36), calc(var(--disc) * .36));
 }
-.disc.revealed ~ .play-btn svg { width: 24px; height: 24px; }
+.disc.revealed ~ .play-btn svg { width: 24px; height: 24px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
 
 .float-points {
   position: absolute; left: 50%; top: 42%;

@@ -119,6 +119,9 @@ window.SONGDLE_CONFIG = {
 
   // Hány dalt kérjünk le előadónként (a Deezer top listája legfeljebb 100).
   TRACKS_PER_ARTIST: 100,
+  // Ennyi legnépszerűbb dal marad előadónként (a duplikátumok kiszűrése után),
+  // hogy az előadó nevét beírva az összes dala elférjen a javaslatok között.
+  MAX_SONGS_PER_ARTIST: 35,
 
   // Ilyen szavakat tartalmazó címeket kihagyunk a készletből.
   EXCLUDE_TITLE_WORDS: ["remix", "karaoke", "instrumental", "acapella", "a cappella", "sped up", "slowed", "extended mix"],

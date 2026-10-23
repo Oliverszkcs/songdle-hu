@@ -184,7 +184,15 @@
       const better = !prev || (isLive(prev) && !isLive(t)) || (isLive(prev) === isLive(t) && t.rank > prev.rank);
       if (better) byKey.set(t.key, t);
     }
-    const pool = [...byKey.values()];
+    // Előadónként csak a legnépszerűbb MAX_SONGS_PER_ARTIST dal marad.
+    const max = CFG.MAX_SONGS_PER_ARTIST || Infinity;
+    const bySrc = new Map();
+    for (const t of byKey.values()) {
+      const k = t.src || t.artist;
+      if (!bySrc.has(k)) bySrc.set(k, []);
+      bySrc.get(k).push(t);
+    }
+    const pool = [...bySrc.values()].flatMap((list) => list.sort((a, b) => b.rank - a.rank).slice(0, max));
     for (const t of pool) {
       t.feat = t.feat || [];
       t.nTitle = norm(t.title);
@@ -1389,7 +1397,8 @@
       hits.push({ t, score });
     }
     hits.sort((a, b) => a.score - b.score || b.t.rank - a.t.rank);
-    return hits.slice(0, 12).map((h) => h.t);
+    // Az előadó nevét beírva az összes dala látszódjon (a lista görgethető).
+    return hits.slice(0, 60).map((h) => h.t);
   }
 
   // A beírt szöveget kiemeli a találatban (ékezetektől függetlenül).
