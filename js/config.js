@@ -10,7 +10,8 @@
 // ID-t így találsz: deezer.com → előadó oldala → az URL végén lévő szám
 // (deezer.com/artist/<id>). Egy előadónak több címkéje is lehet.
 // Az `only` opcionális: ha megadod, az előadótól csak ezek a dalok kerülnek be
-// (cím alapján, zárójeles kiegészítések nélkül).
+// (cím alapján, zárójeles kiegészítések nélkül). A `top` opcionális: csak az
+// előadó ennyi legnépszerűbb dala kerül be (csak a slágerek).
 window.SONGDLE_CONFIG = {
   CATEGORIES: [
     { id: "all", label: "Mind" },
@@ -56,7 +57,7 @@ window.SONGDLE_CONFIG = {
     { name: "Majka", id: 281118, tags: ["rap", "pop"] },
     { name: "Punnany Massif", id: 4602807, tags: ["rap", "alter"] },
     { name: "Pogány Induló", id: 162188472, tags: ["rap"] },
-    { name: "Krúbi", id: 13879063, tags: ["rap"] },
+    { name: "Krúbi", id: 13879063, tags: ["rap", "trash"], top: 15 },
     { name: "Ganxsta Zolee és a Kartel", id: 8129, tags: ["rap"] },
     { name: "Dopeman", id: 10769, tags: ["rap"] },
     { name: "Bëlga", id: 101, tags: ["rap"] },
@@ -74,6 +75,7 @@ window.SONGDLE_CONFIG = {
     // A régi Beerseewalk névről csak a Picsa; a többi dal a BSW-től jön.
     { name: "Beerseewalk", id: 5400018, tags: ["trash", "rap"], only: ["Picsa"] },
     { name: "Fluor", id: 1569284, tags: ["trash", "rap"] },
+    { name: "Mirror Glimpse", id: 127032772, tags: ["trash", "rap"], top: 8 },
 
     // Mulatós
     { name: "Kis Grófo", id: 5511228, tags: ["mulatos"] },
