@@ -157,7 +157,14 @@
             list = list.filter((t) => want.has(baseTitle(t.title)));
           }
           if (a.top) list = [...list].sort((x, y) => y.rank - x.rank).slice(0, a.top);
-          results.push(...list.map((t) => ({ ...t, src: a.name })));
+          // Ha a Deezer csak kis-nagybetűben vagy ékezetben tér el (pl. „General”, „BÓDI GUSZTI”),
+          // a configban megadott írásmódot mutatjuk.
+          results.push(...list.map((t) => {
+            const artist = norm(t.artist) === norm(a.name) ? a.name : t.artist;
+            // A Deezer néha a fő előadót közreműködőként is felsorolja („Generál feat. General”).
+            const feat = (t.feat || []).filter((f) => norm(f) !== norm(artist));
+            return { ...t, artist, feat, src: a.name };
+          }));
         } catch (e) { console.warn("Nem sikerült:", a.name, e); }
         onProgress(++done, artists.length);
       }
@@ -232,11 +239,12 @@
 
   // A napi dal mindenkinek ugyanaz: a nehézség népszerűségi sávjából az a dal
   // nyer, amelyiknek a (dátum, nehézség, dal) hash-e a legnagyobb. Így ha két
-  // játékos dallistája kicsit eltér, a nyertes akkor is ugyanaz marad.
+  // játékos dallistája kicsit eltér, a nyertes akkor is ugyanaz marad. A saját jelentés
+  // itt nem számít (csak a végtelen módban), hogy a napi dal tényleg mindenkinek ugyanaz legyen.
   function pickDailyTrack(date, diff) {
     let best = null, bestScore = -1;
     for (const t of pool) {
-      if (isLive(t) || isReported(t.id) || t.pct < diff.from || (t.pct >= diff.to && diff.to < 1)) continue;
+      if (isLive(t) || t.pct < diff.from || (t.pct >= diff.to && diff.to < 1)) continue;
       const score = hashString(`songdle-hu:${date}:${diff.id}:${t.id}`);
       if (score > bestScore) { best = t; bestScore = score; }
     }
@@ -449,6 +457,8 @@
       b.innerHTML = `<span class="diff-dot" aria-hidden="true">${d.icon}</span><span></span><span class="diff-mult">×${d.multiplier}</span>`
         + (state ? `<span class="diff-state" aria-label="${state === "won" ? "megfejtve" : "nem sikerült"}">${state === "won" ? "✓" : "✗"}</span>` : "");
       b.children[1].textContent = d.label;
+      // Telefonon a nem kiválasztott szintnél csak a pötty látszik, ezért a név a felolvasónak is kell.
+      b.setAttribute("aria-label", `${d.label} ×${d.multiplier}${state === "won" ? ", megfejtve" : state === "lost" ? ", nem sikerült" : ""}`);
       b.addEventListener("click", () => changeDifficulty(d.id));
       el.categories.appendChild(b);
       if (active) requestAnimationFrame(() => revealChip(b));
@@ -1482,7 +1492,9 @@
     const vv = window.visualViewport;
     const top = vv ? vv.offsetTop : 0;
     const space = el.input.getBoundingClientRect().top - top - 16;
-    el.suggestions.style.maxHeight = Math.max(120, Math.min(420, space)) + "px";
+    // Legfeljebb a képernyő ~40%-a, hogy a lemez közepe (lejátszás gomb) látszódjon.
+    const cap = Math.min(340, window.innerHeight * 0.4);
+    el.suggestions.style.maxHeight = Math.max(120, Math.min(cap, space)) + "px";
   }
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", fitSuggestions);
@@ -1651,6 +1663,24 @@
     }
   }
 
+  // Napi előadó: a győzelmeket a napi mentésekből számoljuk (a régi statisztika nem tárolta).
+  function renderArtistStats() {
+    let wins = 0;
+    try {
+      for (const k of Object.keys(localStorage)) {
+        if (!k.startsWith(LS + "artistdle.")) continue;
+        const st = JSON.parse(localStorage.getItem(k));
+        if (st && st.done && !st.gaveUp) wins++;
+      }
+    } catch { /* nem elérhető */ }
+    const today = dateKey();
+    const live = adStats.lastWin === today || adStats.lastWin === shiftDate(today, -1);
+    statCells($("statGridArtist"), { ...adStats, wins }, live ? adStats.streak : 0);
+    $("statArtistNote").textContent = adStats.played
+      ? `Átlagosan ${(adStats.guesses / adStats.played).toLocaleString("hu-HU", { maximumFractionDigits: 1 })} tipp kell`
+      : "Még nem játszottál.";
+  }
+
   function renderDailyTable() {
     const box = el.statGridDaily;
     box.className = "diff-table";
@@ -1678,6 +1708,7 @@
     el.statPoints.textContent = points.toLocaleString("hu-HU");
     statCells(el.statGrid, stats, stats.streak);
     renderDailyTable();
+    renderArtistStats();
     const s = mode === "daily" ? dailyStats() : stats;
     $("distTitle").textContent = `Hányadikra találtad el (${mode === "daily" ? "napi · " + diffById(dailyDiff).label : "végtelen"})`;
     const max = Math.max(1, ...s.dist);
@@ -1730,12 +1761,27 @@
     reportDialog.scrollTop = 0;
   });
 
+  // A jelentést a háttérben elküldjük (worker/report.js), az a fejlesztő nevében nyit
+  // GitHub-hibajegyet. A játékos ebből semmit nem lát; ha nincs beállítva, csak helyben marad.
+  function sendReport(t, reason) {
+    if (!CFG.REPORT_ENDPOINT) return;
+    const modeText = round.mode === "daily" ? "napi dal"
+      : `végtelen · ${(CFG.CATEGORIES.find((c) => c.id === category) || { label: category }).label}`;
+    fetch(CFG.REPORT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: t.id, title: t.title, artist: artistLine(t), album: t.album, reason, mode: modeText }),
+      keepalive: true,
+    }).catch((e) => console.warn("Jelentés küldése sikertelen:", e));
+  }
+
   reportDialog.addEventListener("close", () => {
     const reason = reportDialog.returnValue;
     if (!reason || !round) return;
     setReported(round.track, reason);
+    sendReport(round.track, reason);
     renderReportBtn();
-    toast("Köszi! Ez a dal többé nem jön ki. ⚑");
+    toast("Köszi a jelentést! ⚑");
   });
 
   // ---------- Dallista ----------
@@ -2177,6 +2223,13 @@
     share.textContent = "Megosztás";
     share.addEventListener("click", adShare);
     ad.win.append(title, nameEl, pts, next, share);
+    // Feladás után megmutatjuk a megfejtés mind a 8 adatát.
+    if (st.gaveUp) {
+      const box = document.createElement("ol");
+      box.className = "ad-guesses ad-answer";
+      ad.win.insertBefore(box, pts);
+      adRenderRow(ans, ans, false).then((li) => box.appendChild(li));
+    }
   }
 
   async function adShare() {
@@ -2186,7 +2239,9 @@
     for (const n of st.guesses) {
       const g = adArtists.find((a) => a.name === n);
       if (!g) continue;
-      lines.push(adCompare(g, ans, g.listeners, ans.listeners).map((c) => emoji[c.cls]).join(""));
+      // Két négyes csoport, mint a két csempesor.
+      const e = adCompare(g, ans, g.listeners, ans.listeners).map((c) => emoji[c.cls]);
+      lines.push(e.slice(0, 4).join("") + " " + e.slice(4).join(""));
     }
     const text = `Songdle HU 🎤 Napi előadó · ${prettyDate(date)}\n${st.guesses.length} tipp${st.gaveUp ? " · feladva 🏳️" : ""}\n${lines.join("\n")}\n${location.origin + location.pathname}`;
     if (navigator.share) {

@@ -770,7 +770,9 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   left: 0; right: 0; bottom: calc(100% + 8px);
   margin: 0; padding: 6px;
   list-style: none;
-  max-height: min(52vh, 420px);
+  /* alacsonyabb lista, hogy a lemez közepe (lejátszás gomb) látszódjon */
+  max-height: min(40vh, 340px);
+  max-height: min(40dvh, 340px);
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -940,6 +942,7 @@ kbd {
 @media (hover: none) { .hint-keys { display: none; } }
 
 .stat-points { margin: 0 0 4px; font-size: 1.6rem; font-weight: 900; color: var(--near) !important; }
+.stat-note { margin: 6px 0 0; text-align: center; color: var(--muted); font-size: .85rem; }
 .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
 .stat-grid > div { padding: 10px 4px; border-radius: 14px; background: var(--surface); animation: rise .5s var(--ease-out) backwards; }
 .stat-grid > div:nth-child(2) { animation-delay: .05s; }
@@ -982,6 +985,13 @@ kbd {
 .diff-chip.won .diff-state { background: var(--accent); color: var(--accent-ink); }
 .diff-chip.lost .diff-state { background: var(--wrong); color: #fff; }
 .chip[aria-pressed="true"].won .diff-state { background: var(--accent-ink); color: var(--accent); }
+/* Telefonon mind a négy szint elfér: a szorzó a fenti sávban látszik, a többi szintnél csak a pötty. */
+@media (max-width: 520px) {
+  .diff-chip .diff-mult { display: none; }
+  .diff-chip:not([aria-pressed="true"]) > span:nth-child(2) { display: none; }
+  .diff-chip:not([aria-pressed="true"]) { padding: 0 11px; }
+  .categories:has(.diff-chip) { justify-content: safe center; }
+}
 
 .diff-table { display: grid; gap: 4px; }
 .diff-row {
@@ -1243,6 +1253,8 @@ button.ad-tile:active { transform: scale(.95); }
   animation: rise .5s var(--ease-out);
 }
 .ad-win p { margin: 0 0 4px; }
+.ad-answer { margin: 10px 0 12px; text-align: left; }
+.ad-answer .ad-name { display: none; }
 .ad-win.lost { background: linear-gradient(135deg, rgba(255, 84, 112, .14), rgba(255, 84, 112, .04)); border-color: rgba(255, 84, 112, .3); }
 .ad-win.lost .ad-win-title { color: var(--wrong) !important; }
 .ad-win.lost .ad-win-points { color: var(--muted) !important; }

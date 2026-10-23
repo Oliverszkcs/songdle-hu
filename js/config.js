@@ -147,10 +147,35 @@ window.SONGDLE_CONFIG = {
     { id: "extreme", label: "Extrém", icon: "🔴", from: 0, to: 0.25, multiplier: 4 },
   ],
 
+  // A jelentéseket ide küldjük (Cloudflare Worker, worker/README.md); az GitHub-hibajegyet nyit.
+  // Üresen hagyva a jelentés csak a játékos eszközén marad.
+  REPORT_ENDPOINT: "",
+
   // Kitiltott dalok: ezek senkinél nem jönnek ki. A játékban jelentett dalokat
   // a Dallista → „Jelentett” → „Lista másolása” gombbal lehet ide bemásolni.
   BLOCKED_TRACKS: [
     // { id: 123456, note: "Cím – Előadó: duplikált" },
+    // A Deezer néhány előadónál egy azonos nevű külföldi előadó dalait is ugyanarra az oldalra teszi:
+    { id: 3856813311, note: "Pass the Plate – nem a magyar Desh (Deezer összevont oldal, kiadó: Chillhop Music)" },
+    { id: 2931361521, note: "Wherever You Are – nem a magyar Desh (Deezer összevont oldal, kiadó: Chillhop Music)" },
+    { id: 3207292351, note: "Simmer – nem a magyar Desh (Deezer összevont oldal, kiadó: Chillhop Music)" },
+    { id: 3332864101, note: "Pintxos – nem a magyar Desh (Deezer összevont oldal, kiadó: Lofi Jazz Records)" },
+    { id: 4298088992, note: "Freaky Friday – nem a magyar Desh (Deezer összevont oldal, kiadó: Lofi Jazz Records)" },
+    { id: 2054540477, note: "Sunbeams – nem a magyar Desh (Deezer összevont oldal, kiadó: Hip Dozer)" },
+    { id: 3001351431, note: "Flashbacks – nem a magyar Desh (Deezer összevont oldal, kiadó: Hip Dozer)" },
+    { id: 2064360047, note: "Do You – nem a magyar Desh (Deezer összevont oldal, kiadó: Steezyasfuck)" },
+    { id: 966432622, note: "Rapids – nem a magyar Desh (Deezer összevont oldal, kiadó: Sonder House)" },
+    { id: 2690433412, note: "On The Low – nem a magyar Desh (Deezer összevont oldal, kiadó: PLYGRND)" },
+    { id: 1424608612, note: "Painted the Night – nem a magyar Desh (Deezer összevont oldal, kiadó: Retro Jungle)" },
+    { id: 1567438842, note: "Jag Väljer Dig – nem a magyar Generál (Deezer összevont oldal, kiadó: GENERAL RECORDS)" },
+    { id: 3722944292, note: "Lé pi bon – nem a magyar Generál (Deezer összevont oldal, kiadó: Dofé)" },
+    { id: 2371367675, note: "Kel zom ou lé ? – nem a magyar Generál (Deezer összevont oldal, kiadó: Fredow intel)" },
+    { id: 4116459481, note: "Take Me Up – nem a magyar Unique (Deezer összevont oldal, kiadó: Classified Records)" },
+    { id: 3500248001, note: "Turn It Up – nem a magyar Unique (Deezer összevont oldal, kiadó: Classified Records)" },
+    { id: 4329668292, note: "Sun In My Eyes – nem a magyar Unique (Deezer összevont oldal, kiadó: Spoontech Records)" },
+    { id: 67564105, note: "What I Got Is What You Need – nem a magyar Unique (Deezer összevont oldal, kiadó: Unidisc)" },
+    { id: 983829632, note: "Eso No Es un Beso – nem a magyar Fluor (Deezer összevont oldal, kiadó: Fluor)" },
+    { id: 827642422, note: "Tan Digital – nem a magyar Fluor (Deezer összevont oldal, kiadó: Fluor)" },
   ],
 
   // Ennyi legutóbbi dalt nem sorsolunk újra.
