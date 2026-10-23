@@ -8,27 +8,32 @@
   const FULL_PREVIEW = 30;
   const POINTS = [100, 80, 60, 40, 25, 10];
   const STREAK_BONUS = 5, STREAK_BONUS_MAX = 50, DAILY_MULTIPLIER = 2;
+  const WAVE_BARS = 64;
+  const DEFAULT_TINT = ["#1ed760", "#2bb3ff", "#8b5cf6"];
   const LS = "songdle.";
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
   const $ = (id) => document.getElementById(id);
   const el = {
     categories: $("categories"), categoriesWrap: $("categoriesWrap"), dailyBanner: $("dailyBanner"),
-    streakLine: $("streakLine"), guesses: $("guesses"), scroll: $("scroll"),
-    status: $("status"), reveal: $("reveal"), revealCover: $("revealCover"),
+    segmented: $("segmented"), streakLine: $("streakLine"), guesses: $("guesses"), tries: $("tries"),
+    status: $("status"), reveal: $("reveal"),
     revealResult: $("revealResult"), revealTitle: $("revealTitle"), revealArtist: $("revealArtist"),
     revealAlbum: $("revealAlbum"), revealEmoji: $("revealEmoji"), revealPoints: $("revealPoints"),
-    timeline: $("timeline"),
-    timelineUnlocked: $("timelineUnlocked"), timelineFill: $("timelineFill"), timeNow: $("timeNow"),
-    timeMax: $("timeMax"), clipLen: $("clipLen"), playBtn: $("playBtn"), controls: $("controls"),
+    stage: $("stage"), viz: $("viz"), disc: $("disc"), discCover: $("discCover"),
+    ringUnlocked: $("ringUnlocked"), ringProgress: $("ringProgress"), floatPoints: $("floatPoints"),
+    wave: $("wave"), waveMarks: $("waveMarks"), timeNow: $("timeNow"), timeMax: $("timeMax"),
+    clipLen: $("clipLen"), playBtn: $("playBtn"), controls: $("controls"),
     input: $("guessInput"), clearBtn: $("clearBtn"), suggestions: $("suggestions"),
     skipBtn: $("skipBtn"), submitBtn: $("submitBtn"), doneButtons: $("doneButtons"),
     shareBtn: $("shareBtn"), nextBtn: $("nextBtn"), audio: $("audio"),
+    loadBar: $("loadBar"), loadFill: $("loadFill"),
     statsDialog: $("statsDialog"), statGrid: $("statGrid"), statGridDaily: $("statGridDaily"),
     statPoints: $("statPoints"), dist: $("dist"), helpDialog: $("helpDialog"), confirmDialog: $("confirmDialog"),
-    toast: $("toast"), confetti: $("confetti"), pointsPill: $("pointsPill"),
+    toast: $("toast"), confetti: $("confetti"), pointsPill: $("pointsPill"), pointsNum: $("pointsNum"),
     modeEndless: $("modeEndless"), modeDaily: $("modeDaily"),
     volumeBtn: $("volumeBtn"), volumePop: $("volumePop"), volumeRange: $("volumeRange"),
-    volumeVal: $("volumeVal"), muteBtn: $("muteBtn"), volumeNote: $("volumeNote"),
+    volumeVal: $("volumeVal"), muteBtn: $("muteBtn"),
   };
 
   // ---------- Tárolás ----------
@@ -52,6 +57,8 @@
   const fmt = (s) => `0:${String(Math.floor(s)).padStart(2, "0")}`;
   const coverUrl = (md5, size) =>
     md5 ? `https://cdn-images.dzcdn.net/images/cover/${md5}/${size}x${size}-000000-80-0-0.jpg` : "";
+  const artistLine = (t) => (t.feat && t.feat.length ? `${t.artist} feat. ${t.feat.join(", ")}` : t.artist);
+  const trackLabel = (t) => `${t.title} – ${artistLine(t)}`;
 
   // ---------- Dátum (napi dal: budapesti idő szerint) ----------
   const TZ = "Europe/Budapest";
@@ -92,6 +99,7 @@
   function slimTrack(t) {
     return {
       id: t.id, title: t.title, artist: t.artist.name, album: t.album ? t.album.title : "",
+      feat: [...new Set((t.contributors || []).map((c) => c.name))].filter((n) => n !== t.artist.name),
       md5: t.md5_image || (t.album && t.album.md5_image) || "", rank: t.rank || 0,
     };
   }
@@ -106,7 +114,7 @@
   }
 
   async function loadArtist(artist) {
-    const cacheKey = "artist." + (artist.id || norm(artist.name));
+    const cacheKey = "artist2." + (artist.id || norm(artist.name));
     const cached = load(cacheKey, null);
     if (cached && Date.now() - cached.ts < CFG.POOL_CACHE_HOURS * 3600e3) return cached.tracks;
 
@@ -123,7 +131,7 @@
     return tracks;
   }
 
-  // Egyszerre néhány kérés, hogy ne fussunk bele a Deezer limitjébe (50 kérés / 5 mp).
+  // Egyszerre néhány kérés; a tempót a deezer.js szabályozza.
   async function loadArtists(artists, onProgress) {
     const results = [];
     let next = 0, done = 0;
@@ -151,8 +159,11 @@
     }
     const pool = [...byKey.values()];
     for (const t of pool) {
+      t.feat = t.feat || [];
       t.nTitle = norm(t.title);
       t.nArtist = norm(t.artist);
+      t.nArtists = [t.artist, ...t.feat].map(norm);
+      t.hay = t.nTitle + " " + t.nArtists.join(" ");
     }
     pool.sort((a, b) => a.title.localeCompare(b.title, "hu"));
     return pool;
@@ -181,7 +192,7 @@
   let category = load("category", "all");
   if (!CFG.CATEGORIES.some((c) => c.id === category)) category = "all";
   let pool = [];
-  // round: { mode, date?, track, attempts: [{type, label}], done, won, points, preview, md5, link }
+  // round: { mode, date?, track, attempts: [{type, label, key?}], done, won, points, preview, md5 }
   let round = null;
   let selected = null;
   let loadToken = 0;
@@ -190,6 +201,7 @@
   let stats = Object.assign(defaultStats(), load("stats", {}));
   let dailyStats = Object.assign(defaultStats(), { lastWin: null }, load("dailyStats", {}));
   let points = load("points", 0);
+  let shownPoints = points;
 
   function dailyStreakNow() {
     const today = dateKey();
@@ -197,14 +209,23 @@
   }
 
   function setStatus(msg, isError) {
+    if (el.status.textContent === (msg || "")) return;
     el.status.textContent = msg || "";
     el.status.classList.toggle("error", !!isError);
+    retrigger(el.status, "flash");
+  }
+
+  function retrigger(node, cls) {
+    node.classList.remove(cls);
+    void node.offsetWidth;
+    node.classList.add(cls);
   }
 
   let toastTimer = 0;
   function toast(msg) {
     el.toast.textContent = msg;
     el.toast.hidden = false;
+    retrigger(el.toast, "show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { el.toast.hidden = true; }, 2200);
   }
@@ -219,8 +240,60 @@
     });
   }
 
+  function setLoading(on, fraction) {
+    el.stage.classList.toggle("loading", on);
+    el.loadBar.hidden = !on;
+    if (on) el.loadFill.style.width = Math.round((fraction || 0) * 100) + "%";
+  }
+
+  // ---------- Háttérszín a borítóból ----------
+  function setTint(colors) {
+    const root = document.documentElement.style;
+    root.setProperty("--t1", colors[0]);
+    root.setProperty("--t2", colors[1]);
+    root.setProperty("--t3", colors[2]);
+  }
+
+  // A borító legélénkebb színeit keresi meg (a CDN engedi a CORS-t).
+  function coverColors(img) {
+    try {
+      const c = document.createElement("canvas");
+      c.width = c.height = 24;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, 24, 24);
+      const d = ctx.getImageData(0, 0, 24, 24).data;
+      const px = [];
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const sat = max ? (max - min) / max : 0;
+        px.push({ r, g, b, score: sat * 0.7 + (max / 255) * 0.3, hue: hueOf(r, g, b) });
+      }
+      px.sort((a, b) => b.score - a.score);
+      const picks = [];
+      for (const p of px) {
+        if (picks.every((q) => Math.min(Math.abs(q.hue - p.hue), 360 - Math.abs(q.hue - p.hue)) > 40)) picks.push(p);
+        if (picks.length === 3) break;
+      }
+      while (picks.length < 3) picks.push(px[picks.length * 7] || px[0]);
+      return picks.map((p) => `rgb(${boost(p.r, p.g, p.b).join(",")})`);
+    } catch { return DEFAULT_TINT; }
+  }
+  function hueOf(r, g, b) {
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), dd = max - min;
+    if (!dd) return 0;
+    const h = max === r ? ((g - b) / dd) % 6 : max === g ? (b - r) / dd + 2 : (r - g) / dd + 4;
+    return (h * 60 + 360) % 360;
+  }
+  function boost(r, g, b) {
+    // élénkebb, világosabb változat a háttérhez
+    const max = Math.max(r, g, b, 1), k = 230 / max;
+    return [r, g, b].map((v) => Math.min(255, Math.round(v * k)));
+  }
+
   // ---------- Mód és kategória ----------
   function renderMode() {
+    el.segmented.dataset.mode = mode;
     el.modeEndless.setAttribute("aria-selected", String(mode === "endless"));
     el.modeDaily.setAttribute("aria-selected", String(mode === "daily"));
     el.categoriesWrap.hidden = mode !== "endless";
@@ -239,7 +312,7 @@
       b.setAttribute("aria-pressed", String(active));
       b.addEventListener("click", () => changeCategory(c.id));
       el.categories.appendChild(b);
-      if (active) requestAnimationFrame(() => b.scrollIntoView({ inline: "center", block: "nearest" }));
+      if (active) requestAnimationFrame(() => b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" }));
     }
   }
 
@@ -262,6 +335,7 @@
     mode = m;
     save("mode", mode);
     renderMode();
+    renderCategories();
     enterMode();
   }
 
@@ -270,21 +344,23 @@
     stopAudio();
     round = null;
     stopCountdown();
+    resetStage();
     setControls(false);
     showDone(false);
-    renderGuesses(true);
-    renderTimeline();
-    renderStreak();
+    renderAll();
 
     const poolCategory = mode === "daily" ? "all" : category;
+    setLoading(true, 0);
     setStatus("Dalok betöltése…");
     const tracks = await loadArtists(artistsFor(poolCategory), (d, n) => {
-      if (token === loadToken) setStatus(`Dalok betöltése… ${d}/${n}`);
+      if (token !== loadToken) return;
+      setLoading(true, d / n);
+      el.status.textContent = `Dalok betöltése… ${d}/${n}`;
     });
     if (token !== loadToken) return;
     pool = buildPool(tracks);
     if (!pool.length) {
-      renderGuesses();
+      setLoading(false);
       setStatus("Nem sikerült dalokat betölteni. Ellenőrizd az internetkapcsolatot, és frissítsd az oldalt.", true);
       return;
     }
@@ -294,7 +370,7 @@
       const track = await pickDailyTrack(date);
       if (token !== loadToken) return;
       if (!track) {
-        renderGuesses();
+        setLoading(false);
         return setStatus("Nem sikerült betölteni a mai dalt. Próbáld újra később.", true);
       }
       const resolved = pool.find((p) => p.id === track.id) || buildPool([track])[0];
@@ -330,13 +406,16 @@
     hideSuggestions();
     showDone(false);
     setControls(false);
+    resetStage();
+    renderAll();
+    setLoading(true, 1);
 
     for (let tries = 0; tries < 5 && !round; tries++) {
       const t = track || pickTrack();
       if (!fixed) track = null;
       setStatus("Dal betöltése…");
       try {
-        // Friss előnézet-URL, mert a Deezer linkjei lejárnak.
+        // Friss előnézet-URL, mert a linkek lejárnak.
         const full = await Deezer.track(t.id);
         if (token !== loadToken) return;
         if (!full.preview) throw new Error("Nincs előnézet");
@@ -347,6 +426,11 @@
           preview: full.preview,
           md5: (full.album && full.album.md5_image) || t.md5,
         };
+        if (!t.feat.length && full.contributors) {
+          t.feat = [...new Set(full.contributors.map((c) => c.name))].filter((n) => n !== t.artist);
+          t.nArtists = [t.artist, ...t.feat].map(norm);
+          t.hay = t.nTitle + " " + t.nArtists.join(" ");
+        }
       } catch (e) {
         console.warn("Dal betöltése sikertelen:", t.title, e);
         saved = null;
@@ -354,10 +438,8 @@
       }
     }
     if (token !== loadToken) return;
-    if (!round) {
-      renderGuesses();
-      return setStatus("Nem sikerült dalt betölteni. Próbáld újra később.", true);
-    }
+    setLoading(false);
+    if (!round) return setStatus("Nem sikerült dalt betölteni. Próbáld újra később.", true);
 
     if (round.mode === "endless") {
       const recent = load("recent", []).filter((id) => id !== round.track.id);
@@ -368,9 +450,8 @@
 
     el.audio.src = round.preview;
     el.audio.load();
-    renderGuesses();
-    renderTimeline();
-    renderStreak();
+    buildWave(true);
+    renderAll();
 
     if (round.done) {
       // Már lejátszott napi dal: csak a megoldást mutatjuk.
@@ -378,7 +459,7 @@
       return;
     }
     setControls(true);
-    setStatus(round.attempts.length ? "Folytasd, ahol abbahagytad!" : "Nyomd meg a ▶ gombot!");
+    setStatus(round.attempts.length ? "Folytasd, ahol abbahagytad!" : "Nyomd meg a lemezt, és figyelj!");
     el.playBtn.classList.add("pulse");
   }
 
@@ -400,6 +481,7 @@
     if (round.done) return FULL_PREVIEW;
     return LENGTHS[Math.min(round.attempts.length, MAX_TRIES - 1)];
   }
+  const scaleLength = () => (round && round.done ? FULL_PREVIEW : MAX_LEN);
 
   function registerAttempt(attempt) {
     round.attempts.push(attempt);
@@ -407,14 +489,14 @@
     if (round.attempts.length >= MAX_TRIES) return finishRound(false);
     persistRound();
     stopAudio();
-    renderGuesses(false, true);
-    renderTimeline();
+    renderAll(true);
+    retrigger(el.clipLen, "bump");
     el.playBtn.classList.add("pulse");
     const len = currentLength();
     if (attempt.type === "skip") setStatus(`Most már ${len} mp-et hallhatsz.`);
     else {
       vibrate(60);
-      shake(el.input);
+      retrigger(el.input, "shake");
       setStatus(attempt.type === "near"
         ? `Jó előadó, de nem ez a dal! Most már ${len} mp.`
         : `Nem ez az. Most már ${len} mp-et hallhatsz.`);
@@ -458,12 +540,16 @@
     if (silent) return;
 
     stopAudio();
-    renderGuesses(false, true);
-    renderTimeline();
-    renderStreak();
-    renderPoints(round.points.total > 0);
-    if (won) { confetti(); vibrate([30, 40, 30]); }
-    else vibrate(150);
+    buildWave(false);
+    renderAll(true);
+    if (won) {
+      confetti();
+      vibrate([30, 40, 30]);
+      floatPoints(round.points.total);
+      setTimeout(() => animatePoints(), 500);
+    } else {
+      vibrate(150);
+    }
     showReveal(true);
   }
 
@@ -480,27 +566,44 @@
     showDone(true);
     el.playBtn.disabled = false;
     el.playBtn.classList.remove("pulse");
-    el.revealCover.src = coverUrl(round.md5, 500);
-    el.revealCover.alt = `${t.album} borítója`;
+
+    el.discCover.classList.remove("loaded");
+    el.discCover.onload = () => {
+      el.discCover.classList.add("loaded");
+      setTint(coverColors(el.discCover));
+    };
+    el.discCover.src = coverUrl(round.md5, 500);
+    el.discCover.alt = `${t.album} borítója`;
+    el.disc.classList.add("revealed");
+
     el.revealResult.textContent = round.won
-      ? (round.attempts.length === 1 ? "Elsőre eltaláltad! 🤯" : `Eltaláltad ${round.attempts.length}. próbálkozásra!`)
-      : "Most nem jött össze. A dal:";
+      ? (round.attempts.length === 1 ? "Elsőre! 🤯" : `Eltaláltad · ${round.attempts.length}. tipp`)
+      : "Most nem jött össze";
     el.revealResult.classList.toggle("lost", !round.won);
     el.revealTitle.textContent = t.title;
-    el.revealArtist.textContent = t.artist;
+    el.revealArtist.textContent = artistLine(t);
     el.revealAlbum.textContent = t.album;
     el.revealEmoji.textContent = emojiRow(round);
     const p = round.points;
     el.revealPoints.textContent = p && p.total
-      ? `+${p.total} pont` + (p.bonus ? ` (${p.base} + ${p.bonus} sorozat-bónusz)` : "")
+      ? `+${p.total} pont` + (p.bonus ? ` (🔥 +${p.bonus})` : "")
       : "";
     el.reveal.hidden = false;
-    requestAnimationFrame(() => el.reveal.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+    retrigger(el.reveal, "in");
+    $("scroll").scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
 
     if (round.mode === "daily") startCountdown();
-    else setStatus("A ▶ gombbal meghallgathatod a teljes előnézetet.");
+    else setStatus("Koppints a lemezre a teljes előnézethez.");
     if (autoplay) playClip();
     el.nextBtn.focus({ preventScroll: true });
+  }
+
+  function resetStage() {
+    el.disc.classList.remove("revealed");
+    el.discCover.classList.remove("loaded");
+    el.discCover.removeAttribute("src");
+    el.reveal.hidden = true;
+    setTint(DEFAULT_TINT);
   }
 
   function showDone(on) {
@@ -514,9 +617,10 @@
     stopCountdown();
     const tick = () => {
       const ms = msToNextDay();
-      if (ms <= 0 || dateKey() !== round.date) { stopCountdown(); if (mode === "daily") enterMode(); return; }
+      if (ms <= 0 || !round || dateKey() !== round.date) { stopCountdown(); if (mode === "daily") enterMode(); return; }
       const h = Math.floor(ms / 3600e3), m = Math.floor(ms / 60e3) % 60, s = Math.floor(ms / 1e3) % 60;
-      setStatus(`Új napi dal: ${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`);
+      el.status.textContent = `Új napi dal: ${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      el.status.classList.remove("error");
     };
     tick();
     countdownTimer = setInterval(tick, 1000);
@@ -524,82 +628,148 @@
   function stopCountdown() { clearInterval(countdownTimer); }
 
   // ---------- Megjelenítés ----------
-  function renderGuesses(skeleton, animateLast) {
+  function renderAll(animate) {
+    renderGuesses(animate);
+    renderTries();
+    renderWaveState(0, true);
+    renderClipInfo();
+    renderStreak();
+  }
+
+  function renderGuesses(animateLast) {
     el.guesses.innerHTML = "";
     const attempts = round ? round.attempts : [];
-    for (let i = 0; i < MAX_TRIES; i++) {
+    attempts.forEach((a, i) => {
       const li = document.createElement("li");
-      const a = attempts[i];
+      li.className = a.type;
       const mark = document.createElement("span");
       mark.className = "mark";
+      mark.textContent = { right: "✓", wrong: "✗", near: "~", skip: "»" }[a.type];
       const label = document.createElement("span");
       label.className = "label";
+      label.textContent = a.type === "skip" ? `Kihagyva · ${LENGTHS[i]} mp` : a.label;
       li.append(mark, label);
-      if (skeleton) li.className = "skeleton";
-      else if (a) {
-        li.className = a.type;
-        mark.textContent = { right: "✓", wrong: "✗", near: "~", skip: "»" }[a.type];
-        label.textContent = a.type === "skip" ? "Kihagyva" : a.label;
-        if (a.type === "near") {
-          const tag = document.createElement("span");
-          tag.className = "tag";
-          tag.textContent = "jó előadó";
-          li.appendChild(tag);
-        }
-        if (animateLast && i === attempts.length - 1) li.classList.add("new");
-      } else if (round && !round.done && i === attempts.length) {
-        li.className = "current";
-        label.textContent = `${i + 1}. tipp`;
-        label.style.color = "var(--muted)";
+      if (a.type === "near") {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = "jó előadó";
+        li.appendChild(tag);
       }
+      if (animateLast && i === attempts.length - 1) li.classList.add("new");
       el.guesses.appendChild(li);
+    });
+  }
+
+  function renderTries() {
+    el.tries.innerHTML = "";
+    const attempts = round ? round.attempts : [];
+    for (let i = 0; i < MAX_TRIES; i++) {
+      const pill = document.createElement("i");
+      if (attempts[i]) pill.className = attempts[i].type;
+      else if (round && !round.done && i === attempts.length) pill.className = "current";
+      el.tries.appendChild(pill);
     }
   }
 
-  function renderTimeline() {
-    const full = round && round.done;
-    const total = full ? FULL_PREVIEW : MAX_LEN;
-    el.timeline.querySelectorAll(".tick").forEach((n) => n.remove());
-    if (!full) {
-      for (const l of LENGTHS.slice(0, -1)) {
-        const tick = document.createElement("div");
-        tick.className = "tick";
-        tick.style.left = (l / total) * 100 + "%";
-        el.timeline.appendChild(tick);
-      }
-    }
-    el.timelineUnlocked.style.width = (round ? (currentLength() / total) * 100 : 0) + "%";
-    el.timelineFill.style.width = "0";
-    el.timeNow.textContent = fmt(0);
+  function renderClipInfo() {
+    const total = scaleLength();
     el.timeMax.textContent = fmt(total);
-    el.clipLen.textContent = !round ? "" : full ? "teljes előnézet" : `${currentLength()} mp`;
+    el.timeNow.textContent = fmt(0);
+    el.clipLen.textContent = !round ? " " : round.done ? "Teljes előnézet" : `${currentLength()} mp`;
+    el.ringUnlocked.style.strokeDashoffset = round ? 100 - (currentLength() / total) * 100 : 100;
+    el.ringProgress.style.strokeDashoffset = 100;
     if (round && !round.done) {
       const remaining = MAX_TRIES - round.attempts.length;
       const nextLen = LENGTHS[round.attempts.length + 1];
-      el.skipBtn.textContent = remaining === 1 ? "Feladom" : `Kihagyás (+${nextLen - currentLength()} mp)`;
+      el.skipBtn.textContent = remaining === 1 ? "Feladom" : `Kihagyás +${nextLen - currentLength()} mp`;
     }
   }
 
+  // Hullámforma: a dalhoz kötött, ál-véletlen oszlopok (a hangot nem kell előre letölteni).
+  let waveBars = [];
+  let waveUnlocked = -1;
+  function buildWave(intro) {
+    el.wave.innerHTML = "";
+    el.wave.classList.toggle("intro", !!intro && !reducedMotion.matches);
+    const rng = mulberry32(round ? round.track.id : 1);
+    const raw = Array.from({ length: WAVE_BARS }, () => rng());
+    const total = scaleLength();
+    waveBars = raw.map((v, i) => {
+      const smooth = (v + (raw[i - 1] ?? v) + (raw[i + 1] ?? v)) / 3;
+      const t = ((i + 0.5) / WAVE_BARS) * total;
+      const env = 0.45 + 0.55 * Math.min(1, t / 5);
+      const h = Math.max(0.12, Math.min(1, (0.25 + smooth * 0.9) * env));
+      const bar = document.createElement("i");
+      bar.style.height = Math.round(h * 100) + "%";
+      if (intro) bar.style.animationDelay = i * 8 + "ms";
+      el.wave.appendChild(bar);
+      return { node: bar, t };
+    });
+    waveUnlocked = -1;
+
+    el.waveMarks.innerHTML = "";
+    if (total === MAX_LEN) {
+      for (const l of LENGTHS) {
+        const m = document.createElement("span");
+        m.textContent = l + "s";
+        m.style.left = Math.min(97, (l / total) * 100) + "%";
+        el.waveMarks.appendChild(m);
+      }
+    }
+  }
+
+  function renderWaveState(playedSec, sweep) {
+    if (!waveBars.length) return;
+    const unlockedSec = round ? currentLength() : 0;
+    const newlyFrom = waveUnlocked;
+    waveBars.forEach((b, i) => {
+      const unlocked = b.t <= unlockedSec;
+      const played = playedSec > 0 && b.t <= playedSec;
+      if (sweep && unlocked && b.t > newlyFrom && newlyFrom >= 0) b.node.style.transitionDelay = (i * 14) % 500 + "ms";
+      else b.node.style.transitionDelay = "";
+      b.node.classList.toggle("unlocked", unlocked);
+      b.node.classList.toggle("played", played);
+    });
+    if (sweep) waveUnlocked = unlockedSec;
+    [...el.waveMarks.children].forEach((m, i) => m.classList.toggle("on", LENGTHS[i] <= unlockedSec));
+  }
+
   function renderStreak() {
+    const flame = '<span class="flame">🔥</span>';
     if (mode === "daily") {
       const st = dailyStreakNow();
       el.streakLine.innerHTML = st > 0
-        ? `📅 Napi sorozat: <b>${st}</b> · legjobb: ${dailyStats.maxStreak}`
+        ? `${flame} Napi sorozat: <b>${st}</b> · legjobb: ${dailyStats.maxStreak}`
         : dailyStats.played ? `Napi legjobb sorozat: ${dailyStats.maxStreak}` : "Találd ki a mai dalt!";
     } else {
       el.streakLine.innerHTML = stats.streak > 0
-        ? `🔥 Sorozat: <b>${stats.streak}</b> · legjobb: ${stats.maxStreak}`
+        ? `${flame} Sorozat: <b>${stats.streak}</b> · legjobb: ${stats.maxStreak}`
         : stats.played ? `Legjobb sorozat: ${stats.maxStreak}` : "";
     }
   }
 
-  function renderPoints(bump) {
-    el.pointsPill.textContent = `⭐ ${points.toLocaleString("hu-HU")}`;
-    if (bump) {
-      el.pointsPill.classList.remove("bump");
-      void el.pointsPill.offsetWidth;
-      el.pointsPill.classList.add("bump");
-    }
+  function renderPoints() {
+    el.pointsNum.textContent = shownPoints.toLocaleString("hu-HU");
+  }
+
+  function animatePoints() {
+    const from = shownPoints, to = points, start = performance.now(), dur = 1100;
+    if (from === to) return;
+    retrigger(el.pointsPill, "bump");
+    const step = (now) => {
+      const k = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - k, 3);
+      shownPoints = Math.round(from + (to - from) * eased);
+      renderPoints();
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function floatPoints(n) {
+    if (!n) return;
+    el.floatPoints.textContent = `+${n}`;
+    retrigger(el.floatPoints, "go");
   }
 
   function setControls(on) {
@@ -617,47 +787,87 @@
     el.clearBtn.hidden = !el.input.value;
   }
 
-  function shake(node) {
-    node.classList.remove("shake");
-    void node.offsetWidth;
-    node.classList.add("shake");
-  }
-
   function confetti() {
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const colors = ["#1ed760", "#f5c542", "#ef4f5f", "#4fa3ef", "#f2f2f5"];
-    for (let i = 0; i < 70; i++) {
+    if (reducedMotion.matches) return;
+    const colors = ["#1ed760", "#19e3c0", "#ffc547", "#ff5470", "#2bb3ff", "#f4f4f8"];
+    for (let i = 0; i < 90; i++) {
       const c = document.createElement("i");
       c.style.left = Math.random() * 100 + "vw";
       c.style.background = colors[i % colors.length];
-      c.style.setProperty("--dx", (Math.random() - 0.5) * 200 + "px");
-      c.style.setProperty("--rot", Math.random() * 720 + "deg");
-      c.style.animationDuration = 1.4 + Math.random() * 1.2 + "s";
-      c.style.animationDelay = Math.random() * 0.25 + "s";
+      c.style.setProperty("--dx", (Math.random() - 0.5) * 240 + "px");
+      c.style.setProperty("--rot", Math.random() * 900 + "deg");
+      c.style.animationDuration = 1.4 + Math.random() * 1.4 + "s";
+      c.style.animationDelay = Math.random() * 0.3 + "s";
+      if (i % 3 === 0) { c.style.width = "10px"; c.style.height = "10px"; c.style.borderRadius = "50%"; }
       el.confetti.appendChild(c);
     }
-    setTimeout(() => { el.confetti.innerHTML = ""; }, 3000);
+    setTimeout(() => { el.confetti.innerHTML = ""; }, 3200);
   }
 
-  // ---------- Hang ----------
+  // Hullám-effekt koppintáskor
+  document.addEventListener("pointerdown", (e) => {
+    const btn = e.target.closest(".btn, .chip, .segmented button");
+    if (!btn || btn.disabled || reducedMotion.matches) return;
+    const r = btn.getBoundingClientRect();
+    const size = Math.max(r.width, r.height) * 2;
+    const rip = document.createElement("span");
+    rip.className = "ripple";
+    rip.style.width = rip.style.height = size + "px";
+    rip.style.left = e.clientX - r.left - size / 2 + "px";
+    rip.style.top = e.clientY - r.top - size / 2 + "px";
+    btn.appendChild(rip);
+    setTimeout(() => rip.remove(), 650);
+  });
+
+  // ---------- Hang (Web Audio: hangerő + vizualizáció) ----------
+  let actx = null, gainNode = null, analyser = null, freq = null;
+
+  function ensureAudioGraph() {
+    if (actx) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    try {
+      // iOS: a némító kapcsoló ne némítsa el a játékot.
+      if (navigator.audioSession) navigator.audioSession.type = "playback";
+      actx = new Ctx();
+      const src = actx.createMediaElementSource(el.audio);
+      analyser = actx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.78;
+      freq = new Uint8Array(analyser.frequencyBinCount);
+      gainNode = actx.createGain();
+      src.connect(analyser);
+      analyser.connect(gainNode);
+      gainNode.connect(actx.destination);
+      applyVolume();
+    } catch (e) {
+      console.warn("Web Audio nem érhető el:", e);
+      actx = null;
+    }
+  }
+
   let rafId = 0;
   let stopAt = 0;
 
   function stopAudio() {
     cancelAnimationFrame(rafId);
     el.audio.pause();
+    document.body.classList.remove("playing");
     el.playBtn.classList.remove("playing", "loading");
     el.playBtn.setAttribute("aria-label", "Lejátszás");
-    el.timelineFill.style.width = "0";
+    el.ringProgress.style.strokeDashoffset = 100;
     el.timeNow.textContent = fmt(0);
+    renderWaveState(0, false);
   }
 
   async function playClip() {
     if (!round) return;
     if (el.playBtn.classList.contains("playing") || el.playBtn.classList.contains("loading")) return stopAudio();
+    ensureAudioGraph();
+    if (actx && actx.state === "suspended") actx.resume();
     el.playBtn.classList.remove("pulse");
     stopAt = currentLength();
-    const total = round.done ? FULL_PREVIEW : MAX_LEN;
+    const total = scaleLength();
     el.playBtn.classList.add("loading");
     try {
       el.audio.currentTime = 0;
@@ -670,11 +880,13 @@
     }
     el.playBtn.classList.remove("loading");
     el.playBtn.classList.add("playing");
+    document.body.classList.add("playing");
     el.playBtn.setAttribute("aria-label", "Megállítás");
     const tick = () => {
       const t = el.audio.currentTime;
-      el.timelineFill.style.width = Math.min(t / total, 1) * 100 + "%";
+      el.ringProgress.style.strokeDashoffset = 100 - Math.min(t / total, 1) * 100;
       el.timeNow.textContent = fmt(t);
+      renderWaveState(t, false);
       if (t >= stopAt || el.audio.ended) return stopAudio();
       rafId = requestAnimationFrame(tick);
     };
@@ -697,30 +909,96 @@
     }).catch(() => setStatus("Hiba a hang betöltésekor.", true));
   });
 
+  // Kör alakú vizualizáció a lemez körül.
+  const vctx = el.viz.getContext("2d");
+  let vizSize = 0;
+  const VIZ_BARS = 72;
+  const vizLevels = new Float32Array(VIZ_BARS);
+  let accentColor = "#1ed760";
+
+  function sizeViz() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = el.viz.getBoundingClientRect();
+    vizSize = r.width;
+    el.viz.width = Math.round(r.width * dpr);
+    el.viz.height = Math.round(r.height * dpr);
+    vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function drawViz(now) {
+    requestAnimationFrame(drawViz);
+    if (document.hidden || !vizSize) return;
+    const playing = document.body.classList.contains("playing");
+    const loading = el.stage.classList.contains("loading");
+    if (playing && analyser) analyser.getByteFrequencyData(freq);
+    const cx = vizSize / 2, cy = vizSize / 2;
+    const discR = el.disc.getBoundingClientRect().width / 2;
+    const inner = discR + 14;
+    const maxLen = Math.max(10, cx - inner - 4);
+    vctx.clearRect(0, 0, vizSize, vizSize);
+    vctx.lineCap = "round";
+    vctx.lineWidth = Math.max(2, (2 * Math.PI * inner) / VIZ_BARS * 0.45);
+    for (let i = 0; i < VIZ_BARS; i++) {
+      const half = i < VIZ_BARS / 2 ? i : VIZ_BARS - i;
+      let target;
+      if (playing && analyser) {
+        const bin = Math.floor(2 + (half / (VIZ_BARS / 2)) * (freq.length * 0.55));
+        target = freq[bin] / 255;
+      } else if (playing) {
+        target = 0.35 + 0.3 * Math.sin(now / 160 + i * 0.7);
+      } else if (loading) {
+        const pos = ((now / 900) * VIZ_BARS) % VIZ_BARS;
+        const dist = Math.min(Math.abs(i - pos), VIZ_BARS - Math.abs(i - pos));
+        target = Math.max(0, 0.5 - dist * 0.06);
+      } else {
+        target = reducedMotion.matches ? 0.06 : 0.05 + 0.04 * Math.sin(now / 700 + i * 0.35);
+      }
+      vizLevels[i] += (target - vizLevels[i]) * 0.25;
+      const len = 3 + vizLevels[i] * maxLen;
+      const a = (i / VIZ_BARS) * Math.PI * 2 - Math.PI / 2;
+      const cos = Math.cos(a), sin = Math.sin(a);
+      vctx.globalAlpha = 0.25 + vizLevels[i] * 0.75;
+      vctx.strokeStyle = accentColor;
+      vctx.beginPath();
+      vctx.moveTo(cx + cos * inner, cy + sin * inner);
+      vctx.lineTo(cx + cos * (inner + len), cy + sin * (inner + len));
+      vctx.stroke();
+    }
+    vctx.globalAlpha = 1;
+  }
+
+  // A vizualizáció színe a háttérárnyalatot követi.
+  setInterval(() => {
+    const c = getComputedStyle(document.documentElement).getPropertyValue("--t1").trim();
+    if (c) accentColor = c;
+  }, 400);
+
+  window.addEventListener("resize", sizeViz);
+
   // ---------- Hangerő ----------
-  // iOS-en a weboldal nem állíthatja a hangerőt (a volume mindig 1), csak némítani lehet.
-  const volumeSupported = (() => {
-    const a = document.createElement("audio");
-    a.volume = 0.5;
-    return a.volume === 0.5;
-  })();
   let volume = load("volume", { level: 80, muted: false });
 
   function applyVolume() {
-    el.audio.volume = Math.max(0, Math.min(1, volume.level / 100));
-    el.audio.muted = volume.muted || volume.level === 0;
+    const level = Math.max(0, Math.min(1, volume.level / 100));
+    const silent = volume.muted || volume.level === 0;
+    if (gainNode) {
+      gainNode.gain.setTargetAtTime(silent ? 0 : level, actx.currentTime, 0.03);
+      el.audio.volume = 1;
+      el.audio.muted = false;
+    } else {
+      el.audio.volume = level;
+      el.audio.muted = silent;
+    }
     el.volumeRange.value = volume.level;
+    el.volumeRange.style.setProperty("--fill", volume.level + "%");
     el.volumeVal.textContent = volume.muted ? "néma" : volume.level + "%";
     el.muteBtn.textContent = volume.muted ? "🔈" : "🔇";
     el.muteBtn.setAttribute("aria-label", volume.muted ? "Hang be" : "Némítás");
-    const silent = volume.muted || volume.level === 0;
     el.volumeBtn.classList.toggle("muted", silent);
     el.volumeBtn.classList.toggle("low", !silent && volume.level < 50);
     save("volume", volume);
   }
 
-  el.volumeRange.hidden = !volumeSupported;
-  el.volumeNote.hidden = volumeSupported;
   el.volumeRange.addEventListener("input", () => {
     volume.level = +el.volumeRange.value;
     volume.muted = false;
@@ -744,30 +1022,62 @@
   let suggestionItems = [];
   let activeIndex = -1;
 
+  // Az ebben a körben már tippelt dalok ne jelenjenek meg újra.
+  function guessedKeys() {
+    const keys = new Set();
+    if (!round) return keys;
+    for (const a of round.attempts) {
+      if (a.key) keys.add(a.key);
+      else if (a.label) keys.add("label:" + a.label);
+    }
+    return keys;
+  }
+
+  // Minden beírt szónak szerepelnie kell a címben vagy valamelyik előadóban
+  // (a közreműködőket is beleértve). Ha a keresés több előadót is érint,
+  // a közös dalaik kerülnek előre.
   function search(q) {
     const nq = norm(q);
     if (!nq) return [];
-    const starts = [], contains = [];
+    const tokens = nq.split(" ");
+    const guessed = guessedKeys();
+    const hits = [];
     for (const t of pool) {
-      if (t.nTitle.startsWith(nq)) starts.push(t);
-      else if (t.nTitle.includes(nq) || t.nArtist.includes(nq) || (t.nArtist + " " + t.nTitle).includes(nq)) contains.push(t);
+      if (guessed.has(t.key) || guessed.has("label:" + trackLabel(t))) continue;
+      if (!tokens.every((tok) => t.hay.includes(tok))) continue;
+      const artistsHit = t.nArtists.filter((a) => tokens.some((tok) => a.includes(tok))).length;
+      let score = t.nTitle.startsWith(nq) ? 0
+        : t.nArtists.some((a) => a.startsWith(nq)) ? 1
+        : t.nTitle.includes(nq) ? 2 : 3;
+      if (artistsHit >= 2) score -= 2;
+      hits.push({ t, score });
     }
-    return starts.concat(contains).slice(0, 12);
+    hits.sort((a, b) => a.score - b.score || b.t.rank - a.t.rank);
+    return hits.slice(0, 12).map((h) => h.t);
   }
 
   // A beírt szöveget kiemeli a találatban (ékezetektől függetlenül).
   function highlighted(text, q) {
-    const span = document.createDocumentFragment();
-    const fq = fold(q.trim());
-    const idx = fq ? fold(text).indexOf(fq) : -1;
-    if (idx < 0 || fold(text).length !== text.length) {
-      span.append(text);
-      return span;
+    const frag = document.createDocumentFragment();
+    const ft = fold(text);
+    if (ft.length !== text.length) { frag.append(text); return frag; }
+    const on = new Array(text.length).fill(false);
+    for (const tok of fold(q).split(/\s+/).filter(Boolean)) {
+      const i = ft.indexOf(tok);
+      if (i >= 0) for (let k = i; k < i + tok.length; k++) on[k] = true;
     }
-    const mark = document.createElement("mark");
-    mark.textContent = text.slice(idx, idx + fq.length);
-    span.append(text.slice(0, idx), mark, text.slice(idx + fq.length));
-    return span;
+    let i = 0;
+    while (i < text.length) {
+      let j = i;
+      while (j < text.length && on[j] === on[i]) j++;
+      if (on[i]) {
+        const mark = document.createElement("mark");
+        mark.textContent = text.slice(i, j);
+        frag.append(mark);
+      } else frag.append(text.slice(i, j));
+      i = j;
+    }
+    return frag;
   }
 
   function renderSuggestions() {
@@ -800,13 +1110,21 @@
       const artist = document.createElement("span");
       artist.className = "s-artist";
       artist.appendChild(highlighted(t.artist, q));
+      if (t.feat.length) {
+        const feat = document.createElement("span");
+        feat.className = "s-feat";
+        feat.append(" feat. ", highlighted(t.feat.join(", "), q));
+        artist.appendChild(feat);
+      }
       text.append(title, artist);
       li.append(img, text);
       // pointerdown, hogy a mobil billentyűzet bezáródása előtt fusson le
       li.addEventListener("pointerdown", (e) => { e.preventDefault(); choose(t); });
       el.suggestions.appendChild(li);
     });
+    const wasHidden = el.suggestions.hidden;
     el.suggestions.hidden = false;
+    if (wasHidden) retrigger(el.suggestions, "open");
     el.suggestions.scrollTop = 0;
   }
 
@@ -825,7 +1143,7 @@
 
   function choose(t) {
     selected = t;
-    el.input.value = `${t.title} – ${t.artist}`;
+    el.input.value = trackLabel(t);
     hideSuggestions();
     updateSubmit();
     updateClear();
@@ -834,23 +1152,23 @@
   function submit() {
     if (!round || round.done) return;
     let guess = selected;
-    if (!guess || el.input.value !== `${guess.title} – ${guess.artist}`) {
+    if (!guess || el.input.value !== trackLabel(guess)) {
       guess = search(el.input.value)[0] || null;
     }
     if (!guess) {
-      shake(el.input);
+      retrigger(el.input, "shake");
       setStatus("Válassz egy dalt a listából!", true);
       return;
     }
     const answer = round.track;
     const right = guess.key === answer.key || guess.base === answer.base;
-    const near = !right && guess.nArtist === answer.nArtist;
+    const near = !right && guess.nArtists.some((a) => answer.nArtists.includes(a));
     selected = null;
     el.input.value = "";
     hideSuggestions();
     updateSubmit();
     updateClear();
-    registerAttempt({ type: right ? "right" : near ? "near" : "wrong", label: `${guess.title} – ${guess.artist}` });
+    registerAttempt({ type: right ? "right" : near ? "near" : "wrong", label: trackLabel(guess), key: guess.key });
   }
 
   el.input.addEventListener("input", () => { selected = null; renderSuggestions(); updateSubmit(); updateClear(); });
@@ -897,7 +1215,7 @@
         return;
       }
       await navigator.clipboard.writeText(text);
-      toast("Vágólapra másolva!");
+      toast("Vágólapra másolva! ✨");
     } catch (e) {
       if (e && e.name !== "AbortError") toast("Nem sikerült megosztani.");
     }
@@ -905,6 +1223,7 @@
 
   // ---------- Gombok és billentyűk ----------
   el.playBtn.addEventListener("click", playClip);
+  el.disc.addEventListener("click", () => { if (!el.playBtn.disabled) playClip(); });
   el.submitBtn.addEventListener("click", submit);
   el.skipBtn.addEventListener("click", () => {
     if (round && !round.done) registerAttempt({ type: "skip" });
@@ -942,7 +1261,7 @@
   }
 
   function renderStats() {
-    el.statPoints.textContent = `⭐ ${points.toLocaleString("hu-HU")} pont`;
+    el.statPoints.textContent = points.toLocaleString("hu-HU");
     statCells(el.statGrid, stats, stats.streak);
     statCells(el.statGridDaily, dailyStats, dailyStreakNow());
     const s = mode === "daily" ? dailyStats : stats;
@@ -959,6 +1278,7 @@
       if (i === MAX_TRIES) bar.classList.add("loss");
       else if (round && round.done && round.won && round.attempts.length === i + 1) bar.classList.add("hl");
       bar.style.width = Math.max(8, (v / max) * 100) + "%";
+      bar.style.animationDelay = i * 60 + "ms";
       bar.textContent = v;
       row.append(lab, bar);
       el.dist.appendChild(row);
@@ -973,7 +1293,10 @@
   renderMode();
   renderCategories();
   renderPoints();
-  renderStreak();
+  buildWave(false);
+  renderAll();
+  sizeViz();
+  requestAnimationFrame(drawViz);
   if (!load("seenHelp", false)) {
     el.helpDialog.showModal();
     save("seenHelp", true);
