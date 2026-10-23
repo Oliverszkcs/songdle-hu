@@ -690,6 +690,9 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   list-style: none;
   max-height: min(52vh, 420px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   background: rgba(24, 24, 32, .98);
   border-radius: 18px;
   box-shadow: 0 -16px 40px rgba(0, 0, 0, .55);

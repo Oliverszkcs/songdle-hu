@@ -1236,14 +1236,30 @@
       }
       text.append(title, artist);
       li.append(img, text);
-      // pointerdown, hogy a mobil billentyűzet bezáródása előtt fusson le
-      li.addEventListener("pointerdown", (e) => { e.preventDefault(); choose(t); });
+      // A mousedown tiltása megtartja a fókuszt (és a billentyűzetet); a választás
+      // click-re történik, így mobilon a lista görgetése nem választ ki dalt.
+      li.addEventListener("mousedown", (e) => e.preventDefault());
+      li.addEventListener("click", () => choose(t));
       el.suggestions.appendChild(li);
     });
     const wasHidden = el.suggestions.hidden;
     el.suggestions.hidden = false;
     if (wasHidden) retrigger(el.suggestions, "open");
+    fitSuggestions();
     el.suggestions.scrollTop = 0;
+  }
+
+  // A lista ne lógjon ki a látható területből, ha a billentyűzet nyitva van.
+  function fitSuggestions() {
+    if (el.suggestions.hidden) return;
+    const vv = window.visualViewport;
+    const top = vv ? vv.offsetTop : 0;
+    const space = el.input.getBoundingClientRect().top - top - 16;
+    el.suggestions.style.maxHeight = Math.max(120, Math.min(420, space)) + "px";
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", fitSuggestions);
+    window.visualViewport.addEventListener("scroll", fitSuggestions);
   }
 
   function hideSuggestions() {
