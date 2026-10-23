@@ -119,8 +119,13 @@
     return fn();
   }
 
+  // A régi, 50 dalos gyorsítótár (artist2.*) helyett 100 dalos (artist3.*); a régit töröljük.
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith(LS + "artist2.")).forEach((k) => localStorage.removeItem(k));
+  } catch { /* nem elérhető */ }
+
   async function loadArtist(artist) {
-    const cacheKey = "artist2." + (artist.id || norm(artist.name));
+    const cacheKey = "artist3." + (artist.id || norm(artist.name));
     const cached = load(cacheKey, null);
     if (cached && Date.now() - cached.ts < CFG.POOL_CACHE_HOURS * 3600e3) return cached.tracks;
 

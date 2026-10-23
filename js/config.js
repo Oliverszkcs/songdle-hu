@@ -117,8 +117,8 @@ window.SONGDLE_CONFIG = {
     { name: "Unique", id: 13675, tags: ["disco", "pop"] },
   ],
 
-  // Hány dalt kérjünk le előadónként (Deezer max. ~100).
-  TRACKS_PER_ARTIST: 50,
+  // Hány dalt kérjünk le előadónként (a Deezer top listája legfeljebb 100).
+  TRACKS_PER_ARTIST: 100,
 
   // Ilyen szavakat tartalmazó címeket kihagyunk a készletből.
   EXCLUDE_TITLE_WORDS: ["remix", "karaoke", "instrumental", "acapella", "a cappella", "sped up", "slowed", "extended mix"],

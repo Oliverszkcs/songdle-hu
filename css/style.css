@@ -4,6 +4,7 @@
 @property --t3 { syntax: "<color>"; inherits: true; initial-value: #8b5cf6; }
 
 :root {
+  --silver: #e4e7ec;
   --bg: #0b0b10;
   --glass: rgba(24, 24, 32, .62);
   --glass-strong: rgba(30, 30, 40, .86);
@@ -477,21 +478,22 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   width: 64px; height: 64px;
   border-radius: 50%;
   border: none;
-  background: rgba(255, 255, 255, .95);
-  color: #0b0b10;
+  /* Zöld gomb, ezüst nyíl */
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--silver);
   display: grid; place-items: center;
   cursor: pointer;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 6px rgba(255, 255, 255, .08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 6px rgba(30, 215, 96, .14);
   transition: transform .3s var(--ease-spring), box-shadow .3s, opacity .3s, background .3s;
 }
 .play-btn:hover:not(:disabled) { transform: scale(1.08); }
 .play-btn:active:not(:disabled) { transform: scale(.92); }
-.play-btn svg { width: 30px; height: 30px; }
+.play-btn svg { width: 30px; height: 30px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
 .play-btn .i-play { margin-left: 3px; }
 .play-btn .i-stop, .play-btn.playing .i-play { display: none; }
 .play-btn.playing .i-stop { display: block; }
-/* Letiltva is sötét marad a nyíl: csak a gomb halványul, a nyíl nem. */
-.play-btn:disabled { cursor: default; background: rgba(255, 255, 255, .6); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
+/* Letiltva a gomb halványabb zöld, a nyíl ezüst marad. */
+.play-btn:disabled { cursor: default; background: linear-gradient(135deg, rgba(30, 215, 96, .5), rgba(25, 227, 192, .5)); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
 .play-btn .spinner {
   position: absolute; inset: -6px;
   border-radius: 50%;
@@ -1099,8 +1101,8 @@ kbd {
   width: 32px; height: 32px;
   margin-right: 4px;
   border-radius: 50%;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: 1px solid transparent;
   transition: background .2s, border-color .2s, transform .2s var(--ease-spring);
 }
 .lib-play::before {
@@ -1109,7 +1111,7 @@ kbd {
   transform: translate(-35%, -50%);
   border-style: solid;
   border-width: 6px 0 6px 10px;
-  border-color: transparent transparent transparent var(--text);
+  border-color: transparent transparent transparent var(--silver);
 }
 .lib-tracks li.playing { background: rgba(30, 215, 96, .08); }
 .lib-tracks li.playing .t b { color: var(--accent); }
@@ -1122,9 +1124,9 @@ kbd {
   border: none;
   width: 3px; height: 12px;
   border-radius: 2px;
-  background: var(--accent-ink);
+  background: var(--silver);
   transform: translate(-50%, -50%);
-  box-shadow: -6px 0 0 var(--accent-ink), 6px 0 0 var(--accent-ink);
+  box-shadow: -6px 0 0 var(--silver), 6px 0 0 var(--silver);
   animation: lib-eq .9s ease-in-out infinite;
 }
 .lib-tracks li.loading .lib-play::before { animation: lib-eq .45s ease-in-out infinite; opacity: .6; }
