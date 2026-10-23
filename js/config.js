@@ -19,7 +19,7 @@ window.SONGDLE_CONFIG = {
     { id: "alter", label: "Alter" },
     { id: "rap", label: "Rap" },
     { id: "rock", label: "Rock" },
-    { id: "trash", label: "Trash" },
+    { id: "trash", label: "Bűnös élvezet" },
     { id: "mulatos", label: "Mulatós" },
     { id: "retro", label: "Retró" },
     { id: "disco", label: "Diszkó" },
@@ -64,20 +64,21 @@ window.SONGDLE_CONFIG = {
     { name: "Bëlga", id: 101, tags: ["rap"] },
     { name: "Beton.Hofi", id: 80234972, tags: ["rap"] },
 
-    // Trash
-    { name: "Kkevin", id: 91432962, tags: ["trash"] },
+    // Bűnös élvezet (id: trash, hogy a mentett állások megmaradjanak)
+    { name: "Kkevin", id: 91432962, tags: ["trash", "rap"] },
     { name: "Bruno X Spacc", id: 98175162, tags: ["trash", "rap"] },
-    { name: "L.L. Junior", id: 992816, tags: ["trash"] },
+    { name: "L.L. Junior", id: 992816, tags: ["trash", "pop"] },
     { name: "T. Danny", id: 12834819, tags: ["trash", "rap"] },
     { name: "Desh", id: 1442145, tags: ["trash", "rap"] },
-    { name: "LMEN PRALA", id: 14814623, tags: ["trash"] },
-    { name: "Marics Peti", id: 171192717, tags: ["trash"] },
-    { name: "BSW", id: 9812410, tags: ["trash"] },
+    { name: "LMEN PRALA", id: 14814623, tags: ["trash", "rap"] },
+    { name: "Marics Peti", id: 171192717, tags: ["trash", "pop"] },
+    { name: "BSW", id: 9812410, tags: ["trash", "rap"] },
     // A régi Beerseewalk névről csak a Picsa; a többi dal a BSW-től jön.
     { name: "Beerseewalk", id: 5400018, tags: ["trash", "rap"], only: ["Picsa"] },
     { name: "Fluor", id: 1569284, tags: ["trash", "rap"], top: 5 },
     { name: "Belaño", id: 50033762, tags: ["trash", "rap"] },
     { name: "Mirror Glimpse", id: 127032772, tags: ["trash", "rap"], top: 8 },
+    { name: "Vini", id: 80514092, tags: ["trash", "rap"] },
 
     // Mulatós
     { name: "Kis Grófo", id: 5511228, tags: ["mulatos"] },
@@ -104,6 +105,22 @@ window.SONGDLE_CONFIG = {
     { name: "Fenyő Miklós", id: 1508963, tags: ["retro"] },
     { name: "Generál", id: 8805, tags: ["retro"] },
     { name: "Delhusa Gjon", id: 293520, tags: ["retro"] },
+    { name: "Edda Művek", id: 65472, tags: ["retro", "rock"] },
+    { name: "P. Mobil", id: 6446998, tags: ["retro", "rock"] },
+    { name: "Piramis", id: 4082, tags: ["retro", "rock"] },
+    { name: "Korál", id: 17279, tags: ["retro", "rock"] },
+    { name: "Beatrice", id: 198295, tags: ["retro", "rock"] },
+    { name: "Karthago", id: 132770, tags: ["retro", "rock"] },
+    { name: "Bergendy", id: 263019, tags: ["retro"] },
+    { name: "Apostol", id: 1514245, tags: ["retro"] },
+    { name: "Demjén Ferenc", id: 957121, tags: ["retro", "pop"] },
+    { name: "Koncz Zsuzsa", id: 4731301, tags: ["retro"] },
+    { name: "Kovács Kati", id: 4520558, tags: ["retro"] },
+    { name: "Cserháti Zsuzsa", id: 6540, tags: ["retro", "disco"] },
+    { name: "Máté Péter", id: 1511773, tags: ["retro"] },
+    { name: "Szécsi Pál", id: 1511774, tags: ["retro"] },
+    { name: "Szűcs Judith", id: 64824, tags: ["retro", "disco"] },
+    { name: "Katona Klári", id: 194228, tags: ["retro"] },
 
     // Diszkó
     { name: "Neoton Família", id: 458508, tags: ["disco", "retro"] },
@@ -127,7 +144,7 @@ window.SONGDLE_CONFIG = {
   EXCLUDE_TITLE_WORDS: ["remix", "karaoke", "instrumental", "acapella", "a cappella", "sped up", "slowed", "extended mix"],
 
   // Meghallgatható hosszak másodpercben (próbálkozásonként).
-  CLIP_LENGTHS: [1, 2, 4, 7, 11, 16],
+  CLIP_LENGTHS: [1, 2, 4, 8, 15, 30],
 
   // Mennyi ideig használjuk egy előadó gyorsítótárazott dallistáját (óra).
   POOL_CACHE_HOURS: 24,
@@ -180,6 +197,8 @@ window.SONGDLE_CONFIG = {
 
   // Ennyi legutóbbi dalt nem sorsolunk újra.
   RECENT_MEMORY: 40,
+  // Ennyi körig nem jön újra ugyanaz az előadó (végtelen módban).
+  ARTIST_GAP: 3,
 
   // Napi előadó-találós (a Napi mód „Előadó” lapja). Előadónként:
   //   type:   "solo" (szóló), "duo" (duó) vagy "band" (zenekar)

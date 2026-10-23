@@ -9,7 +9,7 @@ Magyar dalfelismerős játék (Heardle-stílusban), végtelen móddal és kateg�
 
 ## Játék
 
-1 mp → 2 → 4 → 7 → 11 → 16 mp. Rossz tipp vagy kihagyás után hosszabb részletet hallasz.
+1 mp → 2 → 4 → 8 → 15 → 30 mp. Rossz tipp vagy kihagyás után hosszabb részletet hallasz.
 6 próbálkozás után (vagy ha eltalálod) jön a megoldás borítóval, majd a **Következő dal**.
 A sorozat és a statisztika a böngésző `localStorage`-ában tárolódik.
 

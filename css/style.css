@@ -4,8 +4,12 @@
 @property --t3 { syntax: "<color>"; inherits: true; initial-value: #8b5cf6; }
 
 :root {
-  --silver: #e4e7ec;
-  --silver-dark: #4f555e;
+  /* Minden lejátszás gomb ugyanaz az ezüst, sötét ikonnal (sötét háttéren is jól látszik). */
+  --play-silver: #c9ced6;
+  --play-silver-hover: #dfe3e8;
+  --play-silver-active: #b2b8c1;
+  --play-silver-disabled: rgba(201, 206, 214, .45);
+  --play-icon: #16181d;
   --bg: #0b0b10;
   --glass: rgba(24, 24, 32, .62);
   --glass-strong: rgba(30, 30, 40, .86);
@@ -479,22 +483,21 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   width: 64px; height: 64px;
   border-radius: 50%;
   border: none;
-  /* Zöld gomb, sötétezüst nyíl */
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: var(--silver-dark);
+  background: var(--play-silver);
+  color: var(--play-icon);
   display: grid; place-items: center;
   cursor: pointer;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 6px rgba(30, 215, 96, .14);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 6px rgba(201, 206, 214, .12);
   transition: transform .3s var(--ease-spring), box-shadow .3s, opacity .3s, background .3s;
 }
-.play-btn:hover:not(:disabled) { transform: scale(1.08); }
-.play-btn:active:not(:disabled) { transform: scale(.92); }
-.play-btn svg { width: 30px; height: 30px; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .35)); }
+.play-btn:hover:not(:disabled) { transform: scale(1.08); background: var(--play-silver-hover); }
+.play-btn:active:not(:disabled) { transform: scale(.92); background: var(--play-silver-active); }
+.play-btn svg { width: 30px; height: 30px; }
 .play-btn .i-play { margin-left: 3px; }
 .play-btn .i-stop, .play-btn.playing .i-play { display: none; }
 .play-btn.playing .i-stop { display: block; }
-/* Letiltva a gomb halványabb zöld, a nyíl ezüst marad. */
-.play-btn:disabled { cursor: default; background: linear-gradient(135deg, rgba(30, 215, 96, .5), rgba(25, 227, 192, .5)); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
+/* Letiltva halványabb ezüst, az ikon sötét marad. */
+.play-btn:disabled { cursor: default; background: var(--play-silver-disabled); box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
 .play-btn .spinner {
   position: absolute; inset: -6px;
   border-radius: 50%;
@@ -515,10 +518,9 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 @keyframes ring-out { from { transform: scale(1); opacity: .7; } to { transform: scale(1.8); opacity: 0; } }
 .disc.revealed ~ .play-btn {
   width: 52px; height: 52px;
-  color: var(--silver);
   transform: translate(calc(var(--disc) * .36), calc(var(--disc) * .36));
 }
-.disc.revealed ~ .play-btn svg { width: 24px; height: 24px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
+.disc.revealed ~ .play-btn svg { width: 24px; height: 24px; }
 
 .float-points {
   position: absolute; left: 50%; top: 42%;
@@ -1113,22 +1115,25 @@ kbd {
   width: 32px; height: 32px;
   margin-right: 4px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background: var(--play-silver);
   border: 1px solid transparent;
   transition: background .2s, border-color .2s, transform .2s var(--ease-spring);
 }
+@media (hover: hover) { .lib-tracks li:hover .lib-play { background: var(--play-silver-hover); } }
+.lib-tracks li:active .lib-play { background: var(--play-silver-active); transform: scale(.92); }
+.lib-tracks li.is-blocked .lib-play { background: var(--play-silver-disabled); }
 .lib-play::before {
   content: "";
   position: absolute; left: 50%; top: 50%;
   transform: translate(-35%, -50%);
   border-style: solid;
   border-width: 6px 0 6px 10px;
-  border-color: transparent transparent transparent var(--silver);
+  border-color: transparent transparent transparent var(--play-icon);
 }
 .lib-tracks li.playing { background: rgba(30, 215, 96, .08); }
 .lib-tracks li.playing .t b { color: var(--accent); }
 .lib-tracks li.playing .lib-play {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background: var(--play-silver);
   border-color: transparent;
 }
 .lib-tracks li.playing .lib-play::before {
@@ -1136,9 +1141,9 @@ kbd {
   border: none;
   width: 3px; height: 12px;
   border-radius: 2px;
-  background: var(--silver);
+  background: var(--play-icon);
   transform: translate(-50%, -50%);
-  box-shadow: -6px 0 0 var(--silver), 6px 0 0 var(--silver);
+  box-shadow: -6px 0 0 var(--play-icon), 6px 0 0 var(--play-icon);
   animation: lib-eq .9s ease-in-out infinite;
 }
 .lib-tracks li.loading .lib-play::before { animation: lib-eq .45s ease-in-out infinite; opacity: .6; }

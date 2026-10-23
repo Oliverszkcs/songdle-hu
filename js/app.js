@@ -142,6 +142,9 @@
     return tracks;
   }
 
+  const nameKey = (s) => norm(s).split(" ").sort().join(" ");
+  const sameName = (x, y) => nameKey(x) === nameKey(y);
+
   // Egyszerre néhány kérés; a tempót a deezer.js szabályozza.
   async function loadArtists(artists, onProgress) {
     const results = [];
@@ -160,9 +163,10 @@
           // Ha a Deezer csak kis-nagybetűben vagy ékezetben tér el (pl. „General”, „BÓDI GUSZTI”),
           // a configban megadott írásmódot mutatjuk.
           results.push(...list.map((t) => {
-            const artist = norm(t.artist) === norm(a.name) ? a.name : t.artist;
+            // Fordított névsorrendnél is (pl. „Klári Katona” → „Katona Klári”).
+            const artist = sameName(t.artist, a.name) ? a.name : t.artist;
             // A Deezer néha a fő előadót közreműködőként is felsorolja („Generál feat. General”).
-            const feat = (t.feat || []).filter((f) => norm(f) !== norm(artist));
+            const feat = (t.feat || []).filter((f) => !sameName(f, artist));
             return { ...t, artist, feat, src: a.name };
           }));
         } catch (e) { console.warn("Nem sikerült:", a.name, e); }
@@ -561,11 +565,37 @@
   }
 
   // ---------- Kör ----------
+  // Előadó-rotáció: előbb előadót sorsolunk (a sokdalos előadók ne nyomják el a
+  // kevésdalosakat), és kihagyjuk azt, aki az utolsó ARTIST_GAP körben szerepelt.
+  const artistsOf = (t) => [t.src || t.artist, ...(t.nArtists || [norm(t.artist)])].map(norm);
+
   function pickTrack() {
-    const recentSet = new Set(load("recent", []));
+    const recent = load("recent", []);
+    const recentSet = new Set(recent);
     const allowed = pool.filter((t) => !isReported(t.id));
     const fresh = allowed.filter((t) => !recentSet.has(t.id));
-    return weightedPick(fresh.length ? fresh : allowed.length ? allowed : pool, Math.random);
+    const cands = fresh.length ? fresh : allowed.length ? allowed : pool;
+
+    const byId = new Map(pool.map((t) => [t.id, t]));
+    const last = recent.map((id) => byId.get(id)).filter(Boolean);
+    let list = cands;
+    // Ha egy kategóriában kevés az előadó, rövidebb kihagyással próbálkozunk.
+    for (let gap = CFG.ARTIST_GAP ?? 3; gap > 0; gap--) {
+      const avoid = new Set(last.slice(0, gap).flatMap(artistsOf));
+      const ok = cands.filter((t) => !artistsOf(t).some((a) => avoid.has(a)));
+      if (ok.length) { list = ok; break; }
+    }
+
+    const groups = new Map();
+    for (const t of list) {
+      const k = norm(t.src || t.artist);
+      if (!groups.has(k)) groups.set(k, { weight: 0, tracks: [] });
+      const g = groups.get(k);
+      g.tracks.push(t);
+      g.weight += t.weight ?? 1;
+    }
+    for (const g of groups.values()) g.weight = Math.sqrt(g.weight);
+    return weightedPick(weightedPick([...groups.values()], Math.random).tracks, Math.random);
   }
 
   async function startRound(track, saved) {
@@ -2008,7 +2038,15 @@
     el.statsDialog.showModal();
     el.statsDialog.scrollTop = 0;
   });
-  $("helpBtn").addEventListener("click", () => el.helpDialog.showModal());
+  // A súgó mindig a tetején nyílik: a fókusz a címre kerül (nem a lenti „Kezdjük!” gombra),
+  // és a görgetést is visszaállítjuk.
+  function openHelp() {
+    el.helpDialog.showModal();
+    const top = () => { el.helpDialog.scrollTop = 0; el.helpDialog.querySelector("form").scrollTop = 0; };
+    top();
+    requestAnimationFrame(top);
+  }
+  $("helpBtn").addEventListener("click", openHelp);
 
   // ---------- Napi előadó ----------
   // Találós a Napi módban: minden tippnél megmutatjuk, mennyire hasonlít a tippelt
@@ -2405,7 +2443,7 @@
   sizeViz();
   requestAnimationFrame(drawViz);
   if (!load("seenHelp", false)) {
-    el.helpDialog.showModal();
+    openHelp();
     save("seenHelp", true);
   }
   enterMode();
