@@ -178,6 +178,7 @@ window.SONGDLE_CONFIG = {
     { id: 3207292351, note: "Simmer – nem a magyar Desh (Deezer összevont oldal, kiadó: Chillhop Music)" },
     { id: 3332864101, note: "Pintxos – nem a magyar Desh (Deezer összevont oldal, kiadó: Lofi Jazz Records)" },
     { id: 4298088992, note: "Freaky Friday – nem a magyar Desh (Deezer összevont oldal, kiadó: Lofi Jazz Records)" },
+    { id: 1908841947, note: "Bloomin – nem a magyar Desh (Deezer összevont oldal, kiadó: Lofi Jazz Records)" },
     { id: 2054540477, note: "Sunbeams – nem a magyar Desh (Deezer összevont oldal, kiadó: Hip Dozer)" },
     { id: 3001351431, note: "Flashbacks – nem a magyar Desh (Deezer összevont oldal, kiadó: Hip Dozer)" },
     { id: 2064360047, note: "Do You – nem a magyar Desh (Deezer összevont oldal, kiadó: Steezyasfuck)" },
