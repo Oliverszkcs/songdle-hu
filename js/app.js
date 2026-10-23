@@ -176,7 +176,7 @@
   // Népszerűségi súly: a lista rangsor szerinti helyéből (0 = leggyengébb,
   // 1 = legnagyobb sláger) exponenciálisan, hogy a kiugró értékek ne torzítsanak.
   function assignWeights(list) {
-    const bias = CFG.POPULARITY_BIAS ?? 3;
+    const bias = CFG.POPULARITY_BIAS ?? 2;
     const byRank = [...list].sort((a, b) => a.rank - b.rank);
     const n = byRank.length;
     byRank.forEach((t, i) => {
