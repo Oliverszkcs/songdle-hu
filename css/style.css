@@ -1299,6 +1299,46 @@ button.ad-tile:active { transform: scale(.95); }
   .categories { justify-content: center; flex-wrap: wrap; -webkit-mask-image: none; mask-image: none; }
 }
 
+/* Asztali nézet: több levegő a sorok között, nagyobb lemez, függőlegesen középre igazított játék. */
+@media (min-width: 900px) and (min-height: 700px) {
+  :root { --disc: clamp(140px, calc(100dvh - 610px), 340px); }
+  .topbar { padding: 12px 28px 8px; }
+  .mode-row { max-width: 640px; padding-bottom: 12px; }
+  .categories { gap: 10px; padding: 2px 16px 12px; }
+  .chip { min-height: 38px; padding: 0 18px; }
+  .scroll { display: flex; flex-direction: column; }
+  .game { max-width: 600px; width: 100%; margin: auto; gap: 10px; padding: 6px 16px 14px; }
+  .wave { height: 48px; }
+  .dock-inner { max-width: 600px; gap: 10px; padding: 14px 16px 18px; }
+  .artist-view { max-width: 680px; width: 100%; padding-top: 8px; }
+  .ad-top {
+    top: 8px; margin: 0 0 14px; padding: 16px 18px 4px;
+    border-radius: 20px; border: 1px solid var(--border);
+    background: var(--glass-strong); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .ad-search { margin: 16px 0 12px; }
+  .ad-tools { margin-bottom: 18px; }
+  .ad-guesses { gap: 22px; }
+  .ad-name { margin-bottom: 8px; font-size: 1rem; }
+  .ad-tiles { gap: 8px; }
+  .ad-tile { min-height: 58px; font-size: .86rem; }
+  .ad-tile small { font-size: .62rem; margin-bottom: 3px; }
+  .ad-empty { margin: 24px 4px; font-size: .98rem; }
+  .ad-help { font-size: .92rem; }
+  .ad-help dl { gap: 10px 16px; }
+}
+/* Magas asztali képernyőn még több hely. */
+@media (min-width: 900px) and (min-height: 860px) {
+  :root { --disc: clamp(180px, calc(100dvh - 660px), 340px); }
+  .topbar { padding: 18px 28px 14px; }
+  .mode-row { padding-bottom: 18px; }
+  .categories { padding-bottom: 18px; }
+  .chip { min-height: 40px; }
+  .game { gap: 14px; padding: 8px 16px 20px; }
+  .wave { height: 56px; }
+  .dock-inner { gap: 12px; padding: 16px 16px 22px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
   .blob { animation: none !important; }
