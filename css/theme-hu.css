@@ -1,60 +1,82 @@
-/* ---------- Magyaros téma (visszafogott, piros–fehér–zöld) ----------
-   A style.css után töltődik be, és csak felülír: visszafogott színek, nemzetiszínű szalag és logó. */
+/* ---------- Magyaros téma: nemzeti színek, letisztult felület ----------
+   A style.css után töltődik be, és csak felülír. Lapos piros–fehér–zöld színek: a zöld a
+   pozitív/kiválasztott, a piros a lejátszás és a párbaj. Az alap semleges sötét marad,
+   minta nélkül; a nemzetiszínű csík csak vékony szegélyként jelenik meg. */
 
 :root {
-  --play-bg: linear-gradient(135deg, #d7263d, #f2552c);
-  --play-bg-hover: linear-gradient(135deg, #e43a50, #ff6a3d);
-  --play-bg-active: linear-gradient(135deg, #b81f30, #d84a24);
-  --play-bg-disabled: linear-gradient(135deg, rgba(215, 38, 61, .5), rgba(242, 85, 44, .5));
-  --play-silver: #fff4e4;
-  /* Az alapszínek (háttér, üveg, szöveg) a style.css semleges sötét árnyalatai maradnak. */
-  --accent: #3fae62;
-  --accent-2: #9ccc4a;
-  --accent-rgb: 63, 174, 98;
-  --accent-2-rgb: 156, 204, 74;
-  --accent-ink: #08160c;
-  --wrong: #ff5a5f;
+  --hu-red: #ce2939;
+  --hu-red-2: #e0443f;
+  --hu-white: #f7f4ee;
+  --hu-green: #2b9450;
+  --hu-green-2: #36a85e;
+  --hu-tricolor: linear-gradient(90deg, var(--hu-red) 0 33.4%, var(--hu-white) 33.4% 66.6%, var(--hu-green) 66.6%);
+
+  --accent: var(--hu-green);
+  --accent-2: var(--hu-green-2);
+  --accent-rgb: 43, 148, 80;
+  --accent-2-rgb: 54, 168, 94;
+  --accent-ink: #ffffff;
+  --wrong: #ef4a5a;
   --near: #f2b632;
-  --hu-red: #d7263d;
-  --hu-green: #3e8e4f;
-  --hu-white: #f8f0e3;
-  --hu-gold: #f2b632;
-  --t1: #24304d;
-  --t2: #3e8e4f;
-  --t3: #2a3350;
+
+  --play-bg: linear-gradient(135deg, var(--hu-red), var(--hu-red-2));
+  --play-bg-hover: linear-gradient(135deg, #db3445, #ea5450);
+  --play-bg-active: linear-gradient(135deg, #b31f2e, #c93733);
+  --play-bg-disabled: linear-gradient(135deg, rgba(206, 41, 57, .5), rgba(224, 68, 63, .5));
+  --play-silver: #ffffff;
+
+  /* Háttérfények alapszíne: piros fent, zöld lent (a borító színei felülírják). */
+  --t1: #ce2939;
+  --t2: #2b9450;
+  --t3: #1d2538;
 }
 
-/* Piros–fehér–zöld szalag az oldal tetején */
+/* Halványabb háttérfények, hogy a felület tiszta maradjon */
+.b1 { opacity: .13; }
+.b2 { opacity: .16; }
+.b3 { opacity: .1; }
+
+/* Nemzetiszínű csík az oldal tetején */
 body::before {
   content: ""; position: fixed; z-index: 60; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, var(--hu-red) 0 33.4%, var(--hu-white) 33.4% 66.6%, var(--hu-green) 66.6%);
+  background: var(--hu-tricolor);
   pointer-events: none;
 }
 
-/* Címbetű csak a logón: Fraunces (népies, lágy talpas) */
-.logo {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif;
-  font-variation-settings: "SOFT" 100, "WONK" 1;
-  font-weight: 800;
-  letter-spacing: 0;
-}
+/* Logó: fehér HU-jelvény, alján nemzetiszínű csíkkal */
 .logo-hu {
+  position: relative; overflow: hidden;
   background: var(--hu-white);
   color: var(--hu-red);
-  border-top: 3px solid var(--hu-red);
-  border-bottom: 3px solid var(--hu-green);
-  border-radius: 6px;
-  padding: 0 7px;
-  font-family: "Outfit", system-ui, sans-serif;
-  font-weight: 900;
-  box-shadow: 0 0 12px rgba(215, 38, 61, .2);
+  border-radius: 7px;
+  padding: 1px 7px 4px;
+  box-shadow: none;
+}
+.logo-hu::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  background: var(--hu-tricolor);
 }
 .logo-eq i:nth-child(1) { background: var(--hu-red); }
 .logo-eq i:nth-child(2) { background: var(--hu-white); }
 .logo-eq i:nth-child(3) { background: var(--hu-green); }
-.logo-eq i:nth-child(4) { background: var(--hu-gold); }
+.logo-eq i:nth-child(4) { background: var(--hu-red); }
 
-/* Lemez és kiemelések */
-.play-btn { box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 6px rgba(215, 38, 61, .16); }
-.chip.battle-chip { border-color: rgba(242, 182, 50, .45); background: rgba(242, 182, 50, .1); }
-.cat-ico { background: linear-gradient(135deg, var(--hu-red), #f2552c); box-shadow: 0 4px 14px rgba(215, 38, 61, .35); }
+/* Zöld kiemelések visszafogottabb ragyogással */
+.seg-indicator { box-shadow: 0 4px 14px rgba(var(--accent-rgb), .3), inset 0 1px 0 rgba(255, 255, 255, .2); }
+.btn-primary { box-shadow: 0 6px 18px rgba(var(--accent-rgb), .28); }
+
+/* Lejátszás: piros, fehér ikonnal */
+.play-btn { box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 6px rgba(206, 41, 57, .14); }
+
+/* Párbaj és kategória-ikon: piros */
+.chip.battle-chip { border-color: rgba(206, 41, 57, .55); background: rgba(206, 41, 57, .14); }
+.cat-ico { background: var(--hu-red); box-shadow: 0 4px 12px rgba(206, 41, 57, .3); }
+
+/* Megfejtés-kártya és ablakok: vékony nemzetiszínű felső szegély */
+.reveal { position: relative; overflow: hidden; }
+.reveal::before,
+.dialog[open]::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--hu-tricolor);
+  pointer-events: none;
+}
