@@ -283,7 +283,7 @@ window.SONGDLE_CONFIG = {
 
   // Látogatottság (GoatCounter, sütik nélkül). Regisztrálj a goatcounter.com-on, és írd ide
   // a kódodat (pl. "songdlehu" → https://songdlehu.goatcounter.com). Üresen nincs mérés.
-  GOATCOUNTER: "",
+  GOATCOUNTER: "oliverszkcs",
 
   // Napi előadó-találós (a Napi mód „Előadó” lapja). Előadónként:
   //   type:   "solo" (szóló), "duo" (duó) vagy "band" (zenekar)
