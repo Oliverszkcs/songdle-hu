@@ -2146,6 +2146,7 @@
     bt.nick.value = load("nick", "");
     bt.start.hidden = false;
     bt.wait.hidden = true;
+    bt.nick.closest(".field").hidden = false;
     bt.code.value = typeof code === "string" ? code : "";
     battleStatus("");
     bt.dialog.showModal();
@@ -2179,6 +2180,8 @@
     peer.on("open", () => {
       bt.start.hidden = true;
       bt.wait.hidden = false;
+      // A szoba már a névvel nyílt meg, a mező itt csak helyet foglalna.
+      bt.nick.closest(".field").hidden = true;
       bt.codeShow.textContent = code;
       battleStatus("Várakozás a másik játékosra…");
     });

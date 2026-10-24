@@ -1508,14 +1508,22 @@ input[role="switch"]:focus-visible { outline: 2px solid var(--accent); outline-o
   background: var(--surface); color: var(--text);
   font: inherit; font-size: 16px;
 }
-.battle-step { display: grid; gap: 10px; margin: 6px 0 10px; }
+.battle-step { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 6px 0 10px; }
 .battle-or { text-align: center; margin: 2px 0 !important; font-size: .85rem; }
 .battle-join { display: flex; gap: 8px; }
-.battle-join input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: .3em; font-weight: 800; text-align: center; }
+.battle-join input { flex: 1; width: 0; min-width: 0; text-transform: uppercase; letter-spacing: .3em; font-weight: 800; text-align: center; }
 .battle-code {
   margin: 0 !important; text-align: center;
   font-size: 2.6rem; font-weight: 900; letter-spacing: .25em;
   color: var(--text) !important;
 }
-.battle-status { min-height: 1.3em; text-align: center; font-weight: 600; }
+.battle-join .btn { flex: none; }
+#battleDialog .field input { width: 100%; min-width: 0; }
+#battleDialog > form > .btn { margin-top: 6px; }
+.battle-status { margin: 4px 0 !important; min-height: 1.3em; text-align: center; font-weight: 600; }
+@media (max-height: 600px) {
+  .battle-code { font-size: 2rem; }
+  #battleDialog h2 { margin-bottom: 8px; }
+  #battleDialog .field { margin: 8px 0; }
+}
 .battle-status.error { color: var(--wrong) !important; }

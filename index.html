@@ -337,8 +337,9 @@
     </form>
   </dialog>
 
-  <dialog id="battleDialog" class="dialog">
+  <dialog id="battleDialog" class="dialog sheet">
     <form method="dialog">
+      <div class="sheet-grip" aria-hidden="true"></div>
       <h2>⚔️ Párbaj</h2>
       <p>Játssz élőben egy barátoddal: ugyanazt az 5 dalt kapjátok egyszerre, és aki több pontot gyűjt, nyer.</p>
       <label class="field"><span>A neved</span><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="pl. Bence"></label>
@@ -346,7 +347,7 @@
         <button type="button" class="btn btn-primary" id="battleHostBtn">Szoba nyitása</button>
         <p class="battle-or">vagy csatlakozz egy kóddal</p>
         <div class="battle-join">
-          <input id="battleCode" maxlength="4" placeholder="KÓD" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Szoba kódja">
+          <input id="battleCode" size="4" maxlength="4" placeholder="KÓD" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Szoba kódja">
           <button type="button" class="btn btn-ghost" id="battleJoinBtn">Csatlakozás</button>
         </div>
       </div>
