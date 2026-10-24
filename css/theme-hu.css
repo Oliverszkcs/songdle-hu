@@ -1,82 +1,18 @@
-/* ---------- Magyaros téma: nemzeti színek, letisztult felület ----------
-   A style.css után töltődik be, és csak felülír. Lapos piros–fehér–zöld színek: a zöld a
-   pozitív/kiválasztott, a piros a lejátszás és a párbaj. Az alap semleges sötét marad,
-   minta nélkül; a nemzetiszínű csík csak vékony szegélyként jelenik meg. */
+/* ---------- Magyaros téma: finom színárnyalatok ----------
+   A style.css után töltődik be. A felület az eredeti marad; a háttérfények alapból
+   piros–fehér–zöldek (bal fent piros, középen halvány fehér, jobb lent zöld), a türkiz helyett
+   tisztább zöld, és a logó hangszínjelző csíkjai is nemzetiszínűek. */
 
 :root {
-  --hu-red: #ce2939;
-  --hu-red-2: #e0443f;
-  --hu-white: #f7f4ee;
-  --hu-green: #2b9450;
-  --hu-green-2: #36a85e;
-  --hu-tricolor: linear-gradient(90deg, var(--hu-red) 0 33.4%, var(--hu-white) 33.4% 66.6%, var(--hu-green) 66.6%);
-
-  --accent: var(--hu-green);
-  --accent-2: var(--hu-green-2);
-  --accent-rgb: 43, 148, 80;
-  --accent-2-rgb: 54, 168, 94;
-  --accent-ink: #ffffff;
-  --wrong: #ef4a5a;
-  --near: #f2b632;
-
-  --play-bg: linear-gradient(135deg, var(--hu-red), var(--hu-red-2));
-  --play-bg-hover: linear-gradient(135deg, #db3445, #ea5450);
-  --play-bg-active: linear-gradient(135deg, #b31f2e, #c93733);
-  --play-bg-disabled: linear-gradient(135deg, rgba(206, 41, 57, .5), rgba(224, 68, 63, .5));
-  --play-silver: #ffffff;
-
-  /* Háttérfények alapszíne: piros fent, zöld lent (a borító színei felülírják). */
-  --t1: #ce2939;
-  --t2: #2b9450;
-  --t3: #1d2538;
+  --accent-2: #5fd98a;
+  --t1: #b8333f;
+  --t2: #1e9e54;
+  --t3: #e8e2d6;
 }
 
-/* Halványabb háttérfények, hogy a felület tiszta maradjon */
-.b1 { opacity: .13; }
-.b2 { opacity: .16; }
-.b3 { opacity: .1; }
+.b3 { opacity: .07; }
 
-/* Nemzetiszínű csík az oldal tetején */
-body::before {
-  content: ""; position: fixed; z-index: 60; top: 0; left: 0; right: 0; height: 3px;
-  background: var(--hu-tricolor);
-  pointer-events: none;
-}
-
-/* Logó: fehér HU-jelvény, alján nemzetiszínű csíkkal */
-.logo-hu {
-  position: relative; overflow: hidden;
-  background: var(--hu-white);
-  color: var(--hu-red);
-  border-radius: 7px;
-  padding: 1px 7px 4px;
-  box-shadow: none;
-}
-.logo-hu::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
-  background: var(--hu-tricolor);
-}
-.logo-eq i:nth-child(1) { background: var(--hu-red); }
-.logo-eq i:nth-child(2) { background: var(--hu-white); }
-.logo-eq i:nth-child(3) { background: var(--hu-green); }
-.logo-eq i:nth-child(4) { background: var(--hu-red); }
-
-/* Zöld kiemelések visszafogottabb ragyogással */
-.seg-indicator { box-shadow: 0 4px 14px rgba(var(--accent-rgb), .3), inset 0 1px 0 rgba(255, 255, 255, .2); }
-.btn-primary { box-shadow: 0 6px 18px rgba(var(--accent-rgb), .28); }
-
-/* Lejátszás: piros, fehér ikonnal */
-.play-btn { box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 6px rgba(206, 41, 57, .14); }
-
-/* Párbaj és kategória-ikon: piros */
-.chip.battle-chip { border-color: rgba(206, 41, 57, .55); background: rgba(206, 41, 57, .14); }
-.cat-ico { background: var(--hu-red); box-shadow: 0 4px 12px rgba(206, 41, 57, .3); }
-
-/* Megfejtés-kártya és ablakok: vékony nemzetiszínű felső szegély */
-.reveal { position: relative; overflow: hidden; }
-.reveal::before,
-.dialog[open]::before {
-  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: var(--hu-tricolor);
-  pointer-events: none;
-}
+.logo-eq i:nth-child(1) { background: #e0444f; }
+.logo-eq i:nth-child(2) { background: #f4f1ea; }
+.logo-eq i:nth-child(3),
+.logo-eq i:nth-child(4) { background: var(--accent); }

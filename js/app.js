@@ -12,7 +12,7 @@
   const DIFFS = CFG.DAILY_DIFFICULTIES;
   const diffById = (id) => DIFFS.find((d) => d.id === id) || DIFFS[0];
   const WAVE_BARS = 64;
-  const DEFAULT_TINT = ["#24304d", "#3e8e4f", "#2a3350"];
+  const DEFAULT_TINT = ["#b8333f", "#1e9e54", "#e8e2d6"];
   const LS = "songdle.";
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -407,6 +407,17 @@
     }
     return null;
   }
+
+  // Magyaros szólások a visszajelzésekhez (hideg–meleg, szólásmondások).
+  // seed (pl. a dal azonosítója) esetén ugyanarra a dalra mindig ugyanaz a szöveg jön.
+  const pickOne = (list, seed) => list[(seed ?? Math.floor(Math.random() * 1e6)) % list.length];
+  const HU = {
+    idle: ["Nyomd meg a lemezt, és figyelj!", "Hegyezd a füled!", "Szól a nóta – ráismersz?"],
+    wrong: ["Hideg!", "Mellé!", "Nem ez az."],
+    lost: ["Most nem jött össze", "Sebaj, majd a következő!", "Ez most nem a te nótád volt"],
+    win: ["Elsőre! Le a kalappal!", "Fején találtad a szöget!", "Ez az, megvan!",
+      "Lassan járj, tovább érsz!", "Hajszálon múlt!", "Az utolsó pillanatban!"],
+  };
 
   function setStatus(msg, isError) {
     if (el.status.textContent === (msg || "")) return;
@@ -881,7 +892,7 @@
       return;
     }
     setControls(true);
-    setStatus(round.attempts.length ? "Folytasd, ahol abbahagytad!" : "Nyomd meg a lemezt, és figyelj!");
+    setStatus(round.attempts.length ? "Folytasd, ahol abbahagytad!" : pickOne(HU.idle, round.track.id));
     el.playBtn.classList.add("pulse");
   }
 
@@ -958,8 +969,8 @@
       vibrate(60);
       retrigger(el.input, "shake");
       setStatus(attempt.type === "near"
-        ? `Jó előadó, de nem ez a dal! Most már ${len} mp.`
-        : `Nem ez az. Most már ${len} mp-et hallhatsz.`);
+        ? `Meleg! Jó előadó, de nem ez a dal. Most már ${len} mp.`
+        : `${pickOne(HU.wrong)} Most már ${len} mp-et hallhatsz.`);
     }
   }
 
@@ -1112,8 +1123,8 @@
     el.disc.classList.add("revealed");
 
     el.revealResult.textContent = round.won
-      ? (round.attempts.length === 1 ? "Elsőre! 🤯" : `Eltaláltad · ${round.attempts.length}. tipp`)
-      : "Most nem jött össze";
+      ? HU.win[Math.min(round.attempts.length, HU.win.length) - 1]
+      : pickOne(HU.lost, t.id);
     el.revealResult.classList.toggle("lost", !round.won);
     el.revealTitle.textContent = t.title;
     el.revealArtist.textContent = artistLine(t);
@@ -1436,7 +1447,7 @@
 
   function confetti() {
     if (reducedMotion.matches) return;
-    const colors = ["#d7263d", "#f8f0e3", "#3e8e4f", "#f2b632", "#f2552c", "#9ccc4a"];
+    const colors = ["#e0444f", "#f4f1ea", "#1ed760", "#5fd98a", "#ffc547", "#e0444f"];
     for (let i = 0; i < 90; i++) {
       const c = document.createElement("i");
       c.style.left = Math.random() * 100 + "vw";
@@ -1622,7 +1633,7 @@
   let vizSize = 0;
   const VIZ_BARS = 72;
   const vizLevels = new Float32Array(VIZ_BARS);
-  let accentColor = "#d7263d";
+  let accentColor = "#1ed760";
 
   function sizeViz() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
