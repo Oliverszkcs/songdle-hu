@@ -1,6 +1,6 @@
 // Az alkalmazás saját fájljait tároljuk. A Deezer API és a borítók a hálózatról jönnek;
 // a legutóbbi hangrészleteket az app maga teszi el (songdle-clips-* tár), azt itt nem töröljük.
-const CACHE = "songdle-hu-v40";
+const CACHE = "songdle-hu-v41";
 const SHELL = [
   "./",
   "index.html",
@@ -41,7 +41,10 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== self.location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    // no-cache: a böngésző HTTP-gyorsítótárát is megkerüljük (a GitHub Pages 10 percig engedné),
+    // így egy frissítés tényleg azonnal megjelenik.
+    // (Navigációs kérésből nem lehet új kérést készíteni, ezért ott a címet adjuk át.)
+    fetch(e.request.mode === "navigate" ? e.request.url : e.request, { cache: "no-cache" })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();

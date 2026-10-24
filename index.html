@@ -168,6 +168,10 @@
           <p class="reveal-title" id="revealTitle"></p>
           <p class="reveal-artist" id="revealArtist"></p>
           <p class="reveal-album" id="revealAlbum"></p>
+          <div class="bonus" id="bonus" hidden>
+            <p class="bonus-q" id="bonusQ"></p>
+            <div class="bonus-opts" id="bonusOpts"></div>
+          </div>
           <div class="reveal-meta">
             <span class="reveal-emoji" id="revealEmoji" aria-hidden="true"></span>
             <span class="reveal-points" id="revealPoints"></span>
@@ -195,10 +199,7 @@
           <div class="set-slots" id="setSlots" aria-label="A kör dalai"></div>
           <div class="set-record" title="Legjobb 5 dalos kör">🏆 <b id="setRecord">0</b></div>
         </div>
-        <div class="vs-bar" id="vsBar" hidden>
-          <div class="vs-row"><b class="vs-name">Te</b><div class="set-slots" id="vsMe"></div><b class="vs-score" id="vsMeScore">0</b></div>
-          <div class="vs-row opp"><b class="vs-name" id="vsOppName"></b><div class="set-slots" id="vsOpp"></div><b class="vs-score" id="vsOppScore">0</b></div>
-        </div>
+        <div class="vs-bar" id="vsBar" hidden></div>
 
         <div class="streak-line" id="streakLine"></div>
 
@@ -274,10 +275,11 @@
         <li><span class="help-ico">⌨</span><span>Kezdd el gépelni a címet vagy az előadót, és válassz a listából.</span></li>
         <li><span class="help-ico near">~</span><span>Sárga: jó az előadó, de más a dal.</span></li>
         <li><span class="help-ico">⭐</span><span><b>Pontok:</b> 1. tippre 100, aztán 80, 60, 40, 25, 10. A sorozatod bónuszt ad (+5 pont dalonként, max. +50).</span></li>
+        <li><span class="help-ico">🎯</span><span><b>Bónuszkérdés:</b> ha eltaláltad a dalt, tippeld meg a megjelenés évét vagy az albumot 4 lehetőségből: +25 pont.</span></li>
         <li><span class="help-ico">🏆</span><span><b>Kör:</b> végtelen módban 5 dal egy kör. A kör pontjait összeadjuk, és a legjobb kör a rekordod.</span></li>
         <li><span class="help-ico">📅</span><span><b>Napi dal:</b> naponta 4 dal, mindenkinek ugyanaz: 🟢 Könnyű (×1), 🟡 Közepes (×2), 🟠 Nehéz (×3) és 🔴 Extrém (×4 pont). Minél nehezebb, annál kevésbé ismert a dal. Mindegyiknek külön sorozata van.</span></li>
         <li><span class="help-ico">🔥</span><span><b>Nehéz mód:</b> a dal eleje visszafelé szól, hosszabb részletekkel (2–30 mp), a pont ×1,5. <b>Évtizedek:</b> a kategória-gombbal egy évtized dalait is választhatod.</span></li>
-        <li><span class="help-ico">⚔️</span><span><b>Párbaj:</b> nyiss egy szobát, küldd el a kódot egy barátodnak, és élőben játsszatok ugyanarra az 5 dalra. <b>Kihívás:</b> egy kör végén a Megosztás linkjén a barátod ugyanazt az 5 dalt kapja, és látja a pontodat.</span></li>
+        <li><span class="help-ico">⚔️</span><span><b>Párbaj:</b> nyiss egy szobát, küldd el a kódot a barátaidnak (legfeljebb 6-an lehettek), válassz kategóriát és hosszt (5, 10 vagy 15 dal), és élőben játsszatok ugyanazokra a dalokra. <b>Kihívás:</b> egy kör végén a Megosztás linkjén a barátod ugyanazt az 5 dalt kapja, és látja a pontodat.</span></li>
         <li><span class="help-ico">🎤</span><span><b>Előadó:</b> a harmadik fülön naponta egy előadót kell kitalálni. Minden tipp 8 mezőt mutat (típus, nem, műfaj, státusz, születés/alakulás, debüt, Spotify havi hallgatók, Eurovízió): zöld = egyezik, sárga = közel, ▲▼ = merre van a megfejtés. Bármelyik mezőre koppintva elmagyarázza. 4 tipp után belehallgathatsz egy dalába, 5 után feladhatod.</span></li>
       </ul>
       <p class="hint-keys">Billentyűzeten: <kbd>Szóköz</kbd> lejátszás, <kbd>Enter</kbd> tipp / következő dal.</p>
@@ -341,12 +343,9 @@
     <form method="dialog">
       <div class="sheet-grip" aria-hidden="true"></div>
       <h2>⚔️ Párbaj</h2>
-      <p>Játssz élőben egy barátoddal: ugyanazt az 5 dalt kapjátok egyszerre, és aki több pontot gyűjt, nyer.</p>
+      <p>Játssz élőben a barátaiddal (legfeljebb 6-an): ugyanazokat a dalokat kapjátok egyszerre, és aki több pontot gyűjt, nyer.</p>
       <div class="battle-step" id="battleStart">
-        <div class="battle-fields">
-          <label class="field"><span>A neved</span><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="pl. Bence"></label>
-          <button type="button" class="cat-pill battle-cat-btn" id="battleCatBtn" aria-haspopup="dialog"></button>
-        </div>
+        <label class="field"><span>A neved</span><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="pl. Bence"></label>
         <button type="button" class="btn btn-primary" id="battleHostBtn">Szoba nyitása</button>
         <p class="battle-or">vagy csatlakozz egy kóddal</p>
         <div class="battle-join">
@@ -356,8 +355,14 @@
       </div>
       <div class="battle-step" id="battleWait" hidden>
         <p class="battle-code" id="battleCodeShow"></p>
-        <p>Küldd el a kódot vagy a linket a barátodnak!</p>
-        <button type="button" class="btn btn-ghost" id="battleShareBtn">Link megosztása</button>
+        <button type="button" class="btn btn-ghost" id="battleShareBtn">Meghívó link megosztása</button>
+        <div class="battle-settings" id="battleSettings">
+          <button type="button" class="cat-pill battle-cat-btn" id="battleCatBtn" aria-haspopup="dialog"></button>
+          <div class="battle-len" id="battleLen" role="group" aria-label="Dalok száma"></div>
+        </div>
+        <p class="battle-info" id="battleInfo"></p>
+        <ul class="battle-players" id="battlePlayers" aria-label="Játékosok"></ul>
+        <button type="button" class="btn btn-primary" id="battleGoBtn" disabled>Indítás</button>
       </div>
       <p class="battle-status" id="battleStatus" role="status" aria-live="polite"></p>
       <button class="btn btn-ghost" value="cancel">Mégse</button>
@@ -367,11 +372,7 @@
   <dialog id="vsResultDialog" class="dialog vs-result">
     <form method="dialog">
       <p class="vs-res-verdict" id="vsResVerdict"></p>
-      <div class="vs-res-score">
-        <div><span>Te</span><b id="vsResMe"></b></div>
-        <i>–</i>
-        <div><span id="vsResOppName"></span><b id="vsResOpp"></b></div>
-      </div>
+      <ol class="vs-rank" id="vsResRank"></ol>
       <p class="battle-status" id="vsResStatus" role="status" aria-live="polite"></p>
       <button type="button" class="btn btn-primary" id="vsRematchBtn">🔁 Visszavágó</button>
       <div class="buttons">

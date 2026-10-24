@@ -604,7 +604,7 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 
 /* 5 dalos kör állása */
 .set-bar { display: flex; align-items: center; gap: 10px; }
-.set-slots { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.set-slots { flex: 1; display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); gap: 6px; }
 .set-slots span {
   height: 26px;
   display: grid; place-items: center;
@@ -699,6 +699,16 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
   vertical-align: 1px;
 }
 .reveal-year.bump { animation: bump-text .6s var(--ease-spring); }
+/* Bónuszkérdés a megfejtés után */
+.bonus { margin: 8px 0 2px; }
+.bonus-q { font-size: .85rem; font-weight: 800; color: var(--near) !important; }
+.bonus.pending .bonus-q { animation: blink 1s ease-in-out infinite; }
+.bonus-opts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.bonus-opts.albums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bonus-opts .chip { min-height: 36px; padding: 4px 8px; font-size: .82rem; justify-content: center; text-align: center; white-space: normal; line-height: 1.15; overflow-wrap: anywhere; }
+.bonus-opts .chip:disabled { opacity: .55; cursor: default; }
+.bonus-opts .chip.right { opacity: 1; color: var(--accent-ink); background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; }
+.bonus-opts .chip.wrong { opacity: 1; color: var(--wrong); border-color: rgba(255, 84, 112, .5); background: rgba(255, 84, 112, .12); }
 .reveal-meta { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
 .reveal-emoji { letter-spacing: 2px; font-size: 1rem; }
 .reveal-points {
@@ -1508,8 +1518,6 @@ input[role="switch"]:focus-visible { outline: 2px solid var(--accent); outline-o
   background: var(--surface); color: var(--text);
   font: inherit; font-size: 16px;
 }
-.battle-fields { display: grid; gap: 8px; }
-.battle-fields .field { margin: 0; }
 .battle-cat-btn { min-height: 52px; border-radius: 16px; padding-left: 8px; background: rgba(255, 255, 255, .04); }
 .battle-cat-btn .cat-ico { width: 36px; height: 36px; border-radius: 12px; }
 .battle-step { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 6px 0 10px; }
@@ -1535,8 +1543,27 @@ input[role="switch"]:focus-visible { outline: 2px solid var(--accent); outline-o
 .vs-result .btn-primary { width: 100%; margin-top: 6px; }
 .vs-res-verdict { margin: 4px 0 16px; font-size: 1.7rem; font-weight: 900; color: var(--text) !important; }
 .vs-res-verdict.win { color: var(--accent) !important; }
-.vs-res-score { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 10px; }
-.vs-res-score div { display: grid; gap: 2px; min-width: 90px; }
-.vs-res-score span { font-size: .8rem; font-weight: 700; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
-.vs-res-score b { font-size: 2.2rem; font-weight: 900; }
-.vs-res-score i { font-style: normal; font-size: 1.5rem; color: var(--muted); }
+.vs-rank { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; text-align: left; }
+.vs-rank li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(255, 255, 255, .05); }
+.vs-rank li.me { background: rgba(30, 215, 96, .12); outline: 1px solid rgba(30, 215, 96, .35); }
+.vs-rank li.gone { opacity: .5; }
+.vs-rank .place { flex: none; width: 1.8em; font-weight: 900; }
+.vs-rank .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.vs-rank b { font-size: 1.25rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+/* Párbaj: hosszabb meccsnél kisebb mezők, sok játékosnál tömörebb sorok. */
+.vs-bar.long .set-slots { gap: 3px; }
+.vs-bar.long .set-slots span { font-size: .62rem; border-radius: 6px; }
+.vs-bar.xlong .set-slots span { font-size: .5rem; }
+.vs-bar.many { gap: 3px; }
+.vs-bar.many .set-slots span { height: 18px; }
+.vs-bar.many .vs-name, .vs-bar.many .vs-score { font-size: .74rem; }
+.vs-row.gone { opacity: .45; }
+.battle-settings { display: grid; gap: 8px; }
+.battle-len { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.battle-len .chip[aria-pressed="true"] { color: var(--accent-ink); background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; }
+.battle-info { margin: 0 !important; text-align: center; font-size: .85rem; }
+.battle-info:empty { display: none; }
+.battle-players { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.battle-players li { padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, .07); font-size: .85rem; font-weight: 700; }
+.battle-players li.host::before { content: "👑 "; }
+.battle-players li.me { outline: 1px solid rgba(30, 215, 96, .5); }
