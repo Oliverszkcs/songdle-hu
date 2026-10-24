@@ -12,7 +12,7 @@
   const DIFFS = CFG.DAILY_DIFFICULTIES;
   const diffById = (id) => DIFFS.find((d) => d.id === id) || DIFFS[0];
   const WAVE_BARS = 64;
-  const DEFAULT_TINT = ["#1ed760", "#2bb3ff", "#8b5cf6"];
+  const DEFAULT_TINT = ["#d7263d", "#3e8e4f", "#f2b632"];
   const LS = "songdle.";
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -1430,7 +1430,7 @@
 
   function confetti() {
     if (reducedMotion.matches) return;
-    const colors = ["#1ed760", "#19e3c0", "#ffc547", "#ff5470", "#2bb3ff", "#f4f4f8"];
+    const colors = ["#d7263d", "#f8f0e3", "#3e8e4f", "#f2b632", "#f2552c", "#9ccc4a"];
     for (let i = 0; i < 90; i++) {
       const c = document.createElement("i");
       c.style.left = Math.random() * 100 + "vw";
@@ -1614,7 +1614,7 @@
   let vizSize = 0;
   const VIZ_BARS = 72;
   const vizLevels = new Float32Array(VIZ_BARS);
-  let accentColor = "#1ed760";
+  let accentColor = "#d7263d";
 
   function sizeViz() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
