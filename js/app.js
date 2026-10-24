@@ -12,7 +12,7 @@
   const DIFFS = CFG.DAILY_DIFFICULTIES;
   const diffById = (id) => DIFFS.find((d) => d.id === id) || DIFFS[0];
   const WAVE_BARS = 64;
-  const DEFAULT_TINT = ["#d7263d", "#3e8e4f", "#f2b632"];
+  const DEFAULT_TINT = ["#24304d", "#3e8e4f", "#2a3350"];
   const LS = "songdle.";
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 

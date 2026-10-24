@@ -7,15 +7,7 @@
   --play-bg-active: linear-gradient(135deg, #b81f30, #d84a24);
   --play-bg-disabled: linear-gradient(135deg, rgba(215, 38, 61, .5), rgba(242, 85, 44, .5));
   --play-silver: #fff4e4;
-  --bg: #0f0b0b;
-  --glass: rgba(30, 22, 21, .66);
-  --glass-strong: rgba(36, 27, 25, .9);
-  --surface: rgba(255, 240, 220, .05);
-  --surface-2: rgba(255, 240, 220, .09);
-  --border: rgba(255, 236, 210, .11);
-  --border-strong: rgba(255, 236, 210, .2);
-  --text: #f8f0e3;
-  --muted: #b9ab9b;
+  /* Az alapszínek (háttér, üveg, szöveg) a style.css semleges sötét árnyalatai maradnak. */
   --accent: #3fae62;
   --accent-2: #9ccc4a;
   --accent-rgb: 63, 174, 98;
@@ -27,9 +19,9 @@
   --hu-green: #3e8e4f;
   --hu-white: #f8f0e3;
   --hu-gold: #f2b632;
-  --t1: #d7263d;
+  --t1: #24304d;
   --t2: #3e8e4f;
-  --t3: #f2b632;
+  --t3: #2a3350;
 }
 
 /* Piros–fehér–zöld szalag az oldal tetején */
@@ -66,4 +58,3 @@ body::before {
 .play-btn { box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 0 6px rgba(215, 38, 61, .16); }
 .chip.battle-chip { border-color: rgba(242, 182, 50, .45); background: rgba(242, 182, 50, .1); }
 .cat-ico { background: linear-gradient(135deg, var(--hu-red), #f2552c); box-shadow: 0 4px 14px rgba(215, 38, 61, .35); }
-.dialog { background: rgba(30, 21, 20, .94); }
