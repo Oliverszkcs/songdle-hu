@@ -564,15 +564,10 @@
     const pick = document.createElement("button");
     pick.className = "cat-pill";
     pick.setAttribute("aria-haspopup", "dialog");
-    const c = allCats.find((x) => x.id === category) || CFG.CATEGORIES[0];
-    const decade = decadeOf(category);
-    pick.innerHTML = `<span class="cat-ico" aria-hidden="true"></span><span class="cat-text"><small>${decade ? "Évtized" : "Kategória"}</small><b></b></span>`
-      + (hard ? `<span class="cat-hard">🔥 ×${HARD_MULT_TEXT}</span>` : "")
-      + `<svg class="cat-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    pick.querySelector(".cat-ico").textContent = decade ? "📅" : c.icon || "🎵";
-    pick.querySelector("b").textContent = c.label;
+    const c = fillCatPill(pick, category, decadeOf(category) ? "Évtized" : "Kategória");
+    if (hard) pick.querySelector(".cat-chev").insertAdjacentHTML("beforebegin", `<span class="cat-hard">🔥 ×${HARD_MULT_TEXT}</span>`);
     pick.setAttribute("aria-label", `Kategória: ${c.label}${hard ? ", nehéz mód" : ""}. Váltás`);
-    pick.addEventListener("click", openCatSheet);
+    pick.addEventListener("click", () => openCatSheet({ current: category, onPick: changeCategory }));
     el.categories.appendChild(pick);
 
     const battle = document.createElement("button");
@@ -583,15 +578,27 @@
   }
 
   // Kategóriaválasztó lap: műfajok, évtizedek és a nehéz mód kapcsolója egy helyen.
+  // Kategória-gomb tartalma (ikon, felirat, név, nyíl) – a végtelen módban és a párbajnál is.
+  function fillCatPill(btn, id, caption) {
+    const c = allCats.find((x) => x.id === id) || CFG.CATEGORIES[0];
+    btn.innerHTML = `<span class="cat-ico" aria-hidden="true"></span><span class="cat-text"><small></small><b></b></span>`
+      + `<svg class="cat-chev" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    btn.querySelector(".cat-ico").textContent = decadeOf(c.id) ? "📅" : c.icon || "🎵";
+    btn.querySelector("small").textContent = caption;
+    btn.querySelector("b").textContent = c.label;
+    return c;
+  }
+
   const catSheet = $("catSheet"), hardSwitch = $("hardSwitch");
-  function openCatSheet() {
+  // opts: current (kiválasztott id), onPick(id), title, withHard (nehéz mód kapcsoló látszik-e)
+  function openCatSheet({ current, onPick, title = "Mit játszunk?", withHard = true }) {
     const tiles = (box, list, decades) => {
       box.innerHTML = "";
       for (const c of list) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "cat-tile";
-        b.setAttribute("aria-pressed", String(c.id === category));
+        b.setAttribute("aria-pressed", String(c.id === current));
         if (decades) {
           b.textContent = c.short || c.label;
           b.setAttribute("aria-label", c.label);
@@ -602,13 +609,15 @@
         }
         b.addEventListener("click", () => {
           catSheet.close();
-          changeCategory(c.id);
+          onPick(c.id);
         });
         box.appendChild(b);
       }
     };
     tiles($("catGenres"), CFG.CATEGORIES, false);
     tiles($("catDecades"), DECADES, true);
+    $("catSheetTitle").textContent = title;
+    $("hardRow").hidden = !withHard;
     hardSwitch.checked = hard;
     catSheet.showModal();
   }
@@ -2191,23 +2200,21 @@
     const id = load("battleCat", category);
     return allCats.some((c) => c.id === id) ? id : "all";
   };
-  function fillBattleCats() {
-    const sel = $("battleCat");
-    sel.innerHTML = "";
-    for (const [label, list] of [["Műfaj", CFG.CATEGORIES], ["Évtized", DECADES]]) {
-      if (!list.length) continue;
-      const g = document.createElement("optgroup");
-      g.label = label;
-      for (const c of list) g.appendChild(new Option(`${c.icon ? c.icon + " " : ""}${c.label}`, c.id));
-      sel.appendChild(g);
-    }
-    sel.value = battleCatId();
+  const battleCatBtn = $("battleCatBtn");
+  function renderBattleCat() {
+    const c = fillCatPill(battleCatBtn, battleCatId(), "Mit játszotok?");
+    battleCatBtn.setAttribute("aria-label", `Mit játszotok: ${c.label}. Váltás`);
   }
-  $("battleCat").addEventListener("change", (e) => save("battleCat", e.target.value));
+  battleCatBtn.addEventListener("click", () => openCatSheet({
+    current: battleCatId(),
+    title: "Mit játszotok?",
+    withHard: false,
+    onPick: (id) => { save("battleCat", id); renderBattleCat(); },
+  }));
 
   function openBattle(code) {
     if (bt.dialog.open) return;
-    fillBattleCats();
+    renderBattleCat();
     bt.nick.value = load("nick", "");
     bt.start.hidden = false;
     bt.wait.hidden = true;

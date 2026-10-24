@@ -329,7 +329,7 @@
       <div class="cat-grid" id="catGenres"></div>
       <h3>Évtized</h3>
       <div class="cat-grid decades" id="catDecades"></div>
-      <label class="switch-row">
+      <label class="switch-row" id="hardRow">
         <span><b>🔥 Nehéz mód</b><small>A dal visszafelé szól, hosszabb részletekkel · ×1,5 pont</small></span>
         <input type="checkbox" id="hardSwitch" role="switch">
       </label>
@@ -345,7 +345,7 @@
       <div class="battle-step" id="battleStart">
         <div class="battle-fields">
           <label class="field"><span>A neved</span><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="pl. Bence"></label>
-          <label class="field"><span>Mit játszotok?</span><select id="battleCat"></select></label>
+          <button type="button" class="cat-pill battle-cat-btn" id="battleCatBtn" aria-haspopup="dialog"></button>
         </div>
         <button type="button" class="btn btn-primary" id="battleHostBtn">Szoba nyitása</button>
         <p class="battle-or">vagy csatlakozz egy kóddal</p>
