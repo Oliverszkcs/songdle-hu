@@ -107,7 +107,7 @@ window.SONGDLE_CONFIG = {
     { name: "Bunyós Pityu", id: 5123792, tags: ["mulatos"] },
     { name: "Bódi Guszti", id: 4821636, tags: ["mulatos"] },
     { name: "Sláger Tibó", id: 7076161, tags: ["mulatos"] },
-    { name: "MC Hawer és Tekknő", id: 7917112, tags: ["mulatos", "trash"] },
+    { name: "MC Hawer és Tekknő", id: 7917112, tags: ["mulatos"] },
     { name: "Romantic", id: 288469, tags: ["mulatos"] },
     { name: "Bódi Csabi", id: 5511227, tags: ["mulatos"] },
 
