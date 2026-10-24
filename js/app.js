@@ -503,7 +503,7 @@
       const b = document.createElement("b");
       b.textContent = versus.opp.name;
       el.dailyBanner.append(versus.kind === "battle" ? "⚔️ Párbaj · Te vs " : "🎯 Kihívás · ", b,
-        versus.kind === "battle" ? ` · ${versus.ids.length} dal` : ` · ${versus.opp.score} pont – győzd le!`);
+        versus.kind === "battle" ? `${versus.cat ? " · " + versus.cat : ""} · ${versus.ids.length} dal` : ` · ${versus.opp.score} pont – győzd le!`);
     } else {
       const d = diffById(dailyDiff);
       el.dailyBanner.innerHTML = `Mai dal · <b>${prettyDate(dateKey())}</b> · ${d.label} · <b>×${d.multiplier}</b> pont`;
@@ -1988,9 +1988,9 @@
     return out.map((t) => t.id);
   }
 
-  function startVersus(kind, ids, opp) {
+  function startVersus(kind, ids, opp, cat = "") {
     stopAudio();
-    versus = { kind, ids, idx: 0, results: [], opp: { results: [], live: {}, ...opp }, waiting: false };
+    versus = { kind, ids, cat, idx: 0, results: [], opp: { results: [], live: {}, ...opp }, waiting: false };
     mode = "versus";
     renderMode();
     renderCategories();
@@ -2141,12 +2141,31 @@
   };
   const nick = () => (bt.nick.value.trim() || load("nick", "") || "Ismeretlen").slice(0, 16);
 
+  // A szobát nyitó választ kategóriát (műfaj vagy évtized); a vendég ugyanazokat a dalokat kapja.
+  const battleCatId = () => {
+    const id = load("battleCat", category);
+    return allCats.some((c) => c.id === id) ? id : "all";
+  };
+  function fillBattleCats() {
+    const sel = $("battleCat");
+    sel.innerHTML = "";
+    for (const [label, list] of [["Műfaj", CFG.CATEGORIES], ["Évtized", DECADES]]) {
+      if (!list.length) continue;
+      const g = document.createElement("optgroup");
+      g.label = label;
+      for (const c of list) g.appendChild(new Option(`${c.icon ? c.icon + " " : ""}${c.label}`, c.id));
+      sel.appendChild(g);
+    }
+    sel.value = battleCatId();
+  }
+  $("battleCat").addEventListener("change", (e) => save("battleCat", e.target.value));
+
   function openBattle(code) {
     if (bt.dialog.open) return;
+    fillBattleCats();
     bt.nick.value = load("nick", "");
     bt.start.hidden = false;
     bt.wait.hidden = true;
-    bt.nick.closest(".field").hidden = false;
     bt.code.value = typeof code === "string" ? code : "";
     battleStatus("");
     bt.dialog.showModal();
@@ -2180,8 +2199,6 @@
     peer.on("open", () => {
       bt.start.hidden = true;
       bt.wait.hidden = false;
-      // A szoba már a névvel nyílt meg, a mező itt csak helyet foglalna.
-      bt.nick.closest(".field").hidden = true;
       bt.codeShow.textContent = code;
       battleStatus("Várakozás a másik játékosra…");
     });
@@ -2229,13 +2246,22 @@
   let oppName = "";
   async function hostStartMatch() {
     battleStatus("Dalok sorsolása…");
-    // A teljes dallistából sorsolunk (ugyanaz, mint amit a vendég is betölt).
-    const list = buildPool(await loadArtists(artistsFor("all"), () => {}));
+    const catId = battleCatId();
+    let list = buildPool(await loadArtists(artistsFor(catId), () => {}));
+    const decade = decadeOf(catId);
+    if (decade) {
+      const years = await loadYears();
+      list = list.filter((t) => years[t.id] >= decade.from && years[t.id] <= decade.to);
+    }
+    // Túl kevés dalnál (pl. hiányzó évadatok) a teljes listából sorsolunk.
+    if (list.length < VS_SONGS) list = buildPool(await loadArtists(artistsFor("all"), () => {}));
+    assignWeights(list);
     const ids = pickSet(list, VS_SONGS);
+    const cat = catId === "all" ? "" : catLabel(catId);
     if (!peerConn) return;
-    peerConn.send({ type: "start", ids });
+    peerConn.send({ type: "start", ids, cat });
     if (bt.dialog.open) bt.dialog.close("started");
-    startVersus("battle", ids, { name: oppName });
+    startVersus("battle", ids, { name: oppName }, cat);
   }
 
   function vsRematch() {
@@ -2260,7 +2286,7 @@
       battleStatus("Ez a szoba már tele van.", true);
     } else if (m.type === "start" && Array.isArray(m.ids) && !peerHost) {
       if (bt.dialog.open) bt.dialog.close("started");
-      startVersus("battle", m.ids.map(Number).slice(0, 10), { name: oppName });
+      startVersus("battle", m.ids.map(Number).slice(0, 10), { name: oppName }, String(m.cat || "").slice(0, 30));
     } else if (m.type === "rematch" && peerHost) {
       hostStartMatch();
     } else if (m.type === "progress" && versus && versus.kind === "battle") {

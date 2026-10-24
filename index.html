@@ -342,8 +342,11 @@
       <div class="sheet-grip" aria-hidden="true"></div>
       <h2>⚔️ Párbaj</h2>
       <p>Játssz élőben egy barátoddal: ugyanazt az 5 dalt kapjátok egyszerre, és aki több pontot gyűjt, nyer.</p>
-      <label class="field"><span>A neved</span><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="pl. Bence"></label>
       <div class="battle-step" id="battleStart">
+        <div class="battle-fields">
+          <label class="field"><span>A neved</span><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="pl. Bence"></label>
+          <label class="field"><span>Mit játszotok?</span><select id="battleCat"></select></label>
+        </div>
         <button type="button" class="btn btn-primary" id="battleHostBtn">Szoba nyitása</button>
         <p class="battle-or">vagy csatlakozz egy kóddal</p>
         <div class="battle-join">
