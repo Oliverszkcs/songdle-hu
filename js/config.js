@@ -274,8 +274,9 @@ window.SONGDLE_CONFIG = {
   // Ennyi körig nem jön újra ugyanaz az előadó (végtelen módban).
   ARTIST_GAP: 3,
 
-  // Nehéz mód: a részlet a dal egy véletlen pontjáról indul (HARD_START mp között), a pont ×HARD_MULTIPLIER.
-  HARD_START: [5, 15],
+  // Nehéz mód: a dal eleje visszafelé szól, cserébe hosszabb részletekkel (ugyanannyi lépés,
+  // mint a CLIP_LENGTHS); a pont ×HARD_MULTIPLIER.
+  HARD_CLIP_LENGTHS: [2, 4, 7, 12, 20, 30],
   HARD_MULTIPLIER: 1.5,
 
   // Párbaj és kihívás: ennyi dalból áll egy meccs.

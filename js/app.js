@@ -341,15 +341,13 @@
   let mode = ["daily", "artist"].includes(load("mode", "endless")) ? load("mode", "endless") : "endless";
   let category = load("category", "all");
   if (!allCats.some((c) => c.id === category)) category = "all";
-  // Nehéz mód (végtelen): a részlet a dal egy véletlen pontjáról indul, több pontért.
+  // Nehéz mód (végtelen): a dal eleje visszafelé szól, hosszabb részletekkel, több pontért.
   let hard = load("hard", false);
   const HARD_MULT = CFG.HARD_MULTIPLIER || 1.5;
   const HARD_MULT_TEXT = String(HARD_MULT).replace(".", ",");
-  const hardOffset = () => {
-    const [a, b] = CFG.HARD_START || [5, 15];
-    return Math.round(a + Math.random() * (b - a));
-  };
-  const multOf = (r) => r.mode === "daily" ? diffById(r.diff).multiplier : r.offset ? HARD_MULT : 1;
+  const HARD_LENGTHS = (CFG.HARD_CLIP_LENGTHS || []).length === MAX_TRIES ? CFG.HARD_CLIP_LENGTHS : LENGTHS;
+  const lengthsOf = (r) => (r && r.reverse ? HARD_LENGTHS : LENGTHS);
+  const multOf = (r) => r.mode === "daily" ? diffById(r.diff).multiplier : r.reverse ? HARD_MULT : 1;
   let pool = [];
   // round: { mode, date?, track, attempts: [{type, label, key?}], done, won, points, preview, md5 }
   let round = null;
@@ -626,12 +624,13 @@
     const fresh = round && round.mode === "endless" && !round.done && !round.attempts.length
       && !el.playBtn.classList.contains("playing");
     if (fresh) {
-      round.offset = hard ? hardOffset() : 0;
+      round.reverse = hard;
       persistRound();
+      buildWave(false);
       renderAll();
     }
     toast(hard
-      ? `🔥 Nehéz mód: a részlet a dal közepéről indul, ×${HARD_MULT_TEXT} pont${fresh ? "" : " (a következő daltól)"}.`
+      ? `🔥 Nehéz mód: a dal visszafelé szól, hosszabb részletekkel, ×${HARD_MULT_TEXT} pont${fresh ? "" : " (a következő daltól)"}.`
       : `Nehéz mód kikapcsolva${fresh ? "" : " (a következő daltól)"}.`);
   }
 
@@ -827,8 +826,8 @@
           mode, date: mode === "daily" ? dateKey() : null, diff: mode === "daily" ? dailyDiff : null, track: t,
           attempts: saved ? saved.attempts : [], done: !!(saved && saved.done), won: !!(saved && saved.won),
           points: saved && saved.points ? saved.points : null,
-          // Nehéz módban a részlet kezdőpontja (mp); a mentett körnél a régi marad.
-          offset: saved ? saved.offset || 0 : mode === "endless" && hard ? hardOffset() : 0,
+          // Nehéz mód: visszafelé szól; a mentett körnél a régi beállítás marad.
+          reverse: saved ? !!saved.reverse : mode === "endless" && hard,
           preview: clip.preview, blob: clip.blob || null,
           md5: clip.md5 || t.md5, year: clip.year || "",
         };
@@ -915,7 +914,7 @@
         trackId: round.track.id, attempts: round.attempts, done: round.done, won: round.won, points: round.points,
       });
     } else if (!round.done) {
-      save("round", { category, trackId: round.track.id, attempts: round.attempts, offset: round.offset });
+      save("round", { category, trackId: round.track.id, attempts: round.attempts, reverse: round.reverse });
     } else {
       save("round", null);
     }
@@ -924,8 +923,7 @@
   function currentLength() {
     if (!round) return LENGTHS[0];
     if (round.done) return FULL_PREVIEW;
-    // Nehéz módban a dal végéig tarthat a részlet.
-    return Math.min(LENGTHS[Math.min(round.attempts.length, MAX_TRIES - 1)], FULL_PREVIEW - (round.offset || 0));
+    return lengthsOf(round)[Math.min(round.attempts.length, MAX_TRIES - 1)];
   }
   const scaleLength = () => (round && round.done ? FULL_PREVIEW : MAX_LEN);
 
@@ -1199,7 +1197,7 @@
       mark.textContent = { right: "✓", wrong: "✗", near: "~", skip: "»" }[a.type];
       const label = document.createElement("span");
       label.className = "label";
-      label.textContent = a.type === "skip" ? `Kihagyva · ${LENGTHS[i]} mp` : a.label;
+      label.textContent = a.type === "skip" ? `Kihagyva · ${lengthsOf(round)[i]} mp` : a.label;
       li.append(mark, label);
       if (a.type === "near") {
         const tag = document.createElement("span");
@@ -1228,18 +1226,18 @@
     el.timeMax.textContent = fmt(total);
     el.timeNow.textContent = fmt(0);
     el.clipLen.textContent = !round ? " " : round.done ? "Teljes előnézet" : `${currentLength()} mp`;
-    if (round && !round.done && round.offset) {
+    if (round && !round.done && round.reverse) {
       // Nehéz mód: külön színnel, mert a színátmenetes szövegben az emoji is elszíneződne.
       const s = document.createElement("span");
       s.className = "clip-hard";
-      s.textContent = `🔥 ${fmt(round.offset)}-tól`;
+      s.textContent = "⏪ visszafelé";
       el.clipLen.append(" · ", s);
     }
     el.ringUnlocked.style.strokeDashoffset = round ? 100 - (currentLength() / total) * 100 : 100;
     el.ringProgress.style.strokeDashoffset = 100;
     if (round && !round.done) {
       const remaining = MAX_TRIES - round.attempts.length;
-      const nextLen = LENGTHS[round.attempts.length + 1];
+      const nextLen = lengthsOf(round)[round.attempts.length + 1];
       el.skipBtn.textContent = remaining === 1 ? "Feladom" : `Kihagyás +${nextLen - currentLength()} mp`;
     }
   }
@@ -1268,7 +1266,7 @@
 
     el.waveMarks.innerHTML = "";
     if (total === MAX_LEN) {
-      for (const l of LENGTHS) {
+      for (const l of lengthsOf(round)) {
         const m = document.createElement("span");
         m.textContent = l + "s";
         m.style.left = Math.min(97, (l / total) * 100) + "%";
@@ -1290,7 +1288,7 @@
       b.node.classList.toggle("played", played);
     });
     if (sweep) waveUnlocked = unlockedSec;
-    [...el.waveMarks.children].forEach((m, i) => m.classList.toggle("on", LENGTHS[i] <= unlockedSec));
+    [...el.waveMarks.children].forEach((m, i) => m.classList.toggle("on", lengthsOf(round)[i] <= unlockedSec));
   }
 
   function renderStreak() {
@@ -1492,6 +1490,12 @@
     playToken++;
     cancelAnimationFrame(rafId);
     el.audio.pause();
+    if (revSource) {
+      const s = revSource;
+      revSource = null;
+      try { s.stop(); } catch { /* már leállt */ }
+      s.disconnect();
+    }
     document.body.classList.remove("playing");
     el.playBtn.classList.remove("playing", "loading");
     el.playBtn.setAttribute("aria-label", "Lejátszás");
@@ -1508,10 +1512,10 @@
     el.playBtn.classList.remove("pulse");
     const token = ++playToken;
     el.playBtn.classList.add("loading");
-    // Nehéz módban a részlet a kör kezdőpontjától szól; a megfejtés után az elejétől.
-    const start = round.done ? 0 : round.offset || 0;
+    // Nehéz mód: visszafelé (Web Audio nélkül marad a sima lejátszás). A megfejtés után előre szól.
+    if (round.reverse && !round.done && actx) return playReversed(token);
     try {
-      el.audio.currentTime = start;
+      el.audio.currentTime = 0;
       await el.audio.play();
     } catch (e) {
       if (token !== playToken) return; // közben megállították (pl. kihagyás)
@@ -1522,6 +1526,11 @@
     }
     // Ha indulás közben kihagyott vagy tippelt, ez a lejátszás már elavult.
     if (token !== playToken) { el.audio.pause(); return; }
+    startTicker(token, () => el.audio.currentTime, () => el.audio.ended);
+  }
+
+  // Lejátszás közben: gomb állapota, gyűrű, idő és hullámforma; a részlet végén megáll.
+  function startTicker(token, elapsed, ended) {
     el.playBtn.classList.remove("loading");
     el.playBtn.classList.add("playing");
     document.body.classList.add("playing");
@@ -1529,14 +1538,50 @@
     const total = scaleLength();
     const tick = () => {
       if (token !== playToken) return;
-      const t = Math.max(0, el.audio.currentTime - start);
+      const t = Math.max(0, elapsed());
       el.ringProgress.style.strokeDashoffset = 100 - Math.min(t / total, 1) * 100;
       el.timeNow.textContent = fmt(t);
       renderWaveState(t, false);
-      if (t >= currentLength() || el.audio.ended) return stopAudio();
+      if (t >= currentLength() || ended()) return stopAudio();
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
+  }
+
+  // Nehéz mód: a hangmintákat megfordítjuk, és a dal első másodperceit visszafelé játsszuk.
+  let revSource = null;
+  let revCache = null; // { id, buf } – csak az aktuális dal
+  async function reversedBuffer(r) {
+    if (revCache && revCache.id === r.track.id) return revCache.buf;
+    const data = r.blob ? await r.blob.arrayBuffer() : await (await fetch(r.preview)).arrayBuffer();
+    const buf = await actx.decodeAudioData(data);
+    for (let c = 0; c < buf.numberOfChannels; c++) buf.getChannelData(c).reverse();
+    revCache = { id: r.track.id, buf };
+    return buf;
+  }
+  async function playReversed(token) {
+    let buf;
+    try {
+      buf = await reversedBuffer(round);
+    } catch (e) {
+      if (token !== playToken) return;
+      console.warn(e);
+      el.playBtn.classList.remove("loading");
+      setStatus("Nem sikerült lejátszani. Próbáld újra!", true);
+      return;
+    }
+    if (token !== playToken) return;
+    const len = Math.min(currentLength(), buf.duration);
+    const src = actx.createBufferSource();
+    src.buffer = buf;
+    src.connect(analyser);
+    // A megfordított hangban az eredeti eleje a végén van: onnan indulunk, így a dal legelején ér véget.
+    src.start(0, buf.duration - len, len);
+    revSource = src;
+    const startedAt = actx.currentTime;
+    let done = false;
+    src.onended = () => { done = true; };
+    startTicker(token, () => actx.currentTime - startedAt, () => done);
   }
 
   el.audio.addEventListener("waiting", () => {
@@ -1915,7 +1960,7 @@
     if (round.mode === "versus") return vsShare();
     const head = round.mode === "daily"
       ? `Songdle HU 📅 ${round.date} · ${diffById(round.diff).icon} ${diffById(round.diff).label}`
-      : `Songdle HU 🎵 ${catLabel(category)}` + (round.offset ? " · 🔥 nehéz" : "");
+      : `Songdle HU 🎵 ${catLabel(category)}` + (round.reverse ? " · 🔥 visszafelé" : "");
     const streak = round.mode === "daily" ? dailyStreakNow(round.diff) : stats.streak;
     const lines = [head, emojiRow(round)];
     const extra = [];

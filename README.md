@@ -16,7 +16,8 @@ A sorozat és a statisztika a böngésző `localStorage`-ában tárolódik.
 ## Módok
 
 - **Végtelen**: 5 dalos körök kategóriánként vagy évtizedenként (60-70-es évek … 2020-as évek).
-  A **🔥 Nehéz** kapcsolóval a részlet a dal közepéről indul (5–15. mp), ×1,5 pontért.
+  A **🔥 Nehéz mód** kapcsolóval (a kategóriaválasztóban) a dal eleje visszafelé szól, hosszabb
+  részletekkel (2 → 4 → 7 → 12 → 20 → 30 mp), ×1,5 pontért.
 - **Napi**: mindenkinek ugyanaz a dal, három nehézségi szinten; a statisztikában havi naptár mutatja a napokat.
 - **Előadó**: napi előadó-találós. 4 rossz tipp után kérhető a „Hallgass bele” és a
   „💡 Egy dala” súgó (ez utóbbi −40 pont).
