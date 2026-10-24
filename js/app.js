@@ -246,6 +246,9 @@
 
   // Kitiltott dalok: a configban megadottak teljesen kimaradnak; a játékos által
   // jelentettek bent maradnak (tippelni lehet rájuk), csak nem sorsoljuk őket.
+  // Az `aka` nevek (pl. Locomotiv GT) helyett a config szerinti név látszik (LGT), de a régi névre is lehet keresni.
+  const AKA = new Map(CFG.ARTISTS.flatMap((a) => (a.aka || []).map((n) => [n, a.name])));
+  const shownName = (n) => AKA.get(n) || n;
   const configBlocked = new Set((CFG.BLOCKED_TRACKS || []).map((b) => (typeof b === "object" ? b.id : b)));
   let reported = load("reported", []);
   const isReported = (id) => reported.some((r) => r.id === id);
@@ -254,6 +257,8 @@
     const byKey = new Map();
     for (const t of tracks) {
       if (configBlocked.has(t.id)) continue;
+      if (AKA.has(t.artist)) { t.aka = t.artist; t.artist = shownName(t.artist); }
+      if (t.feat) t.feat = t.feat.map(shownName).filter((n) => n !== t.artist);
       t.base = baseTitle(t.title);
       t.key = t.base + "|" + norm(t.artist);
       const prev = byKey.get(t.key);
@@ -274,7 +279,7 @@
       t.nTitle = norm(t.title);
       t.nArtist = norm(t.artist);
       t.nArtists = [t.artist, ...t.feat].map(norm);
-      t.hay = t.nTitle + " " + t.nArtists.join(" ");
+      t.hay = t.nTitle + " " + t.nArtists.join(" ") + (t.aka ? " " + norm(t.aka) : "");
     }
     pool.sort((a, b) => a.title.localeCompare(b.title, "hu"));
     assignWeights(pool);
@@ -630,8 +635,8 @@
     save("hard", hard);
     renderCategories();
     // Ha a dalt még el sem kezdte, rögtön erre a dalra is érvényes.
-    const fresh = round && round.mode === "endless" && !round.done && !round.attempts.length
-      && !el.playBtn.classList.contains("playing");
+    // Csak a még meg sem hallgatott dalra érvényes azonnal (különben előre lehetne hallgatni sima módban).
+    const fresh = round && round.mode === "endless" && !round.done && !round.attempts.length && !round.heard;
     if (fresh) {
       round.reverse = hard;
       persistRound();
@@ -837,13 +842,14 @@
           points: saved && saved.points ? saved.points : null,
           // Nehéz mód: visszafelé szól; a mentett körnél a régi beállítás marad.
           reverse: saved ? !!saved.reverse : mode === "endless" && hard,
+          heard: !!(saved && saved.heard),
           preview: clip.preview, blob: clip.blob || null,
           md5: clip.md5 || t.md5, year: clip.year || "",
         };
         if (!t.feat.length && clip.feat) {
-          t.feat = clip.feat.filter((n) => norm(n) !== norm(t.artist));
+          t.feat = clip.feat.map(shownName).filter((n) => norm(n) !== norm(t.artist));
           t.nArtists = [t.artist, ...t.feat].map(norm);
-          t.hay = t.nTitle + " " + t.nArtists.join(" ");
+          t.hay = t.nTitle + " " + t.nArtists.join(" ") + (t.aka ? " " + norm(t.aka) : "");
         }
       } catch (e) {
         console.warn("Dal betöltése sikertelen:", t.title, e);
@@ -923,7 +929,7 @@
         trackId: round.track.id, attempts: round.attempts, done: round.done, won: round.won, points: round.points,
       });
     } else if (!round.done) {
-      save("round", { category, trackId: round.track.id, attempts: round.attempts, reverse: round.reverse });
+      save("round", { category, trackId: round.track.id, attempts: round.attempts, reverse: round.reverse, heard: round.heard });
     } else {
       save("round", null);
     }
@@ -1519,6 +1525,8 @@
     ensureAudioGraph();
     if (actx && actx.state === "suspended") actx.resume();
     el.playBtn.classList.remove("pulse");
+    // Ha egyszer meghallgatta, a nehéz mód kapcsolása már csak a következő dalra hat.
+    if (!round.done && !round.heard) { round.heard = true; persistRound(); }
     const token = ++playToken;
     el.playBtn.classList.add("loading");
     // Nehéz mód: visszafelé (Web Audio nélkül marad a sima lejátszás). A megfejtés után előre szól.
@@ -2799,7 +2807,7 @@
   // előadó a mai megfejtésre (zöld: egyezik, sárga: részben/közel, nyíl: merre).
   const AD_INFO = CFG.ARTIST_INFO || {};
   const adArtists = CFG.ARTISTS.filter((a) => a.id && AD_INFO[a.name]).map((a) => ({
-    ...a, ...AD_INFO[a.name], n: norm(a.name), genres: a.tags.filter((t) => t !== "all"),
+    ...a, ...AD_INFO[a.name], n: norm([a.name, ...(a.aka || [])].join(" ")), genres: a.tags.filter((t) => t !== "all"),
   }));
   const AD_TYPE = { solo: "Szóló", duo: "Duó", band: "Zenekar" };
   const AD_GENDER = { m: "Férfi", f: "Nő", mixed: "Vegyes" };
