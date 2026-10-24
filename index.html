@@ -364,6 +364,23 @@
     </form>
   </dialog>
 
+  <dialog id="vsResultDialog" class="dialog vs-result">
+    <form method="dialog">
+      <p class="vs-res-verdict" id="vsResVerdict"></p>
+      <div class="vs-res-score">
+        <div><span>Te</span><b id="vsResMe"></b></div>
+        <i>–</i>
+        <div><span id="vsResOppName"></span><b id="vsResOpp"></b></div>
+      </div>
+      <p class="battle-status" id="vsResStatus" role="status" aria-live="polite"></p>
+      <button type="button" class="btn btn-primary" id="vsRematchBtn">🔁 Visszavágó</button>
+      <div class="buttons">
+        <button type="button" class="btn btn-ghost" id="vsResShareBtn">Megosztás</button>
+        <button type="button" class="btn btn-ghost" id="vsResLeaveBtn">Kilépés</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="confirmDialog" class="dialog">
     <form method="dialog">
       <h2>Kategóriaváltás</h2>

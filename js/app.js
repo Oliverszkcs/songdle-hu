@@ -521,7 +521,11 @@
         const waiting = versus.waiting;
         el.nextBtn.textContent = waiting ? "Várakozás…" : "Következő dal →";
         el.nextBtn.disabled = waiting;
-      } else el.nextBtn.textContent = versus.kind === "battle" && peerConn ? "🔁 Visszavágó" : "Vissza a játékba →";
+      } else if (!vsOppOver()) {
+        // Az utolsó dal után is megvárjuk az ellenfelet, csak utána jön az eredmény.
+        el.nextBtn.textContent = "Várakozás…";
+        el.nextBtn.disabled = true;
+      } else el.nextBtn.textContent = "🏁 Eredmény";
       return;
     }
     if (mode !== "daily") { el.nextBtn.textContent = gameDone() ? "Új kör →" : "Következő dal →"; return; }
@@ -2052,6 +2056,7 @@
 
   function startVersus(kind, ids, opp, cat = "") {
     stopAudio();
+    if (vr.dialog.open) vr.dialog.close();
     versus = { kind, ids, cat, idx: 0, results: [], opp: { results: [], live: {}, ...opp }, waiting: false };
     mode = "versus";
     renderMode();
@@ -2077,8 +2082,8 @@
 
   function vsNext() {
     if (vsOver()) {
-      if (versus.kind === "battle" && peerConn) return vsRematch();
-      return leaveVersus();
+      if (vsOppOver()) openVsResult();
+      return;
     }
     // Párbajban megvárjuk, hogy az ellenfél is végezzen ezzel a dallal.
     if (versus.kind === "battle" && !versus.oppGone && !versus.opp.results[versus.idx]) {
@@ -2168,7 +2173,46 @@
       versus.counted = true;
       countEvent(`${versus.kind}-${r.win ? "won" : r.win === false ? "lost" : "draw"}`);
     }
+    updateNextButton();
+    // Ha mindketten végeztek, egyszer magától feljön az eredmény.
+    if (vsOppOver() && !versus.resultShown) {
+      versus.resultShown = true;
+      setTimeout(openVsResult, animate ? 1600 : 400);
+    }
   }
+
+  // ----- Eredményablak: győztes, pontok, visszavágó (csak ha mindketten kérik) -----
+  const vr = {
+    dialog: $("vsResultDialog"), verdict: $("vsResVerdict"), me: $("vsResMe"), opp: $("vsResOpp"),
+    oppName: $("vsResOppName"), status: $("vsResStatus"), rematch: $("vsRematchBtn"),
+  };
+
+  function renderVsResult() {
+    if (!versus) return;
+    const r = vsResultText();
+    vr.verdict.textContent = r.verdict;
+    vr.verdict.classList.toggle("win", !!r.win);
+    vr.me.textContent = r.me;
+    vr.opp.textContent = r.opp;
+    vr.oppName.textContent = versus.opp.name;
+    const live = versus.kind === "battle" && peerConn && !versus.oppGone;
+    vr.rematch.hidden = !live;
+    vr.rematch.disabled = !!versus.rematchMe;
+    vr.rematch.textContent = versus.rematchMe ? "Várakozás…" : versus.rematchOpp ? "🔁 Elfogadom a visszavágót" : "🔁 Visszavágó";
+    vr.status.textContent = !live && versus.kind === "battle" ? `${versus.opp.name} kilépett.`
+      : versus.rematchMe ? `Várakozás: ${versus.opp.name} is kéri a visszavágót?`
+      : versus.rematchOpp ? `${versus.opp.name} visszavágót kér!` : "";
+  }
+
+  function openVsResult() {
+    if (!versus || !vsOver() || !vsOppOver() || document.querySelector("dialog[open]")) return;
+    renderVsResult();
+    vr.dialog.showModal();
+  }
+
+  vr.rematch.addEventListener("click", () => { vsRematch(); renderVsResult(); });
+  $("vsResShareBtn").addEventListener("click", vsShare);
+  $("vsResLeaveBtn").addEventListener("click", () => { vr.dialog.close(); leaveVersus(); });
 
   async function vsShare() {
     const r = vsResultText();
@@ -2254,6 +2298,7 @@
     battleStatus("Szoba nyitása…");
     try { await loadPeerLib(); } catch { return battleStatus("Nem sikerült betölteni a párbajt. Van internet?", true); }
     const code = newRoomCode();
+    bt.codeShow.textContent = "";
     peerHost = true;
     peer = new window.Peer(PEER_PREFIX + code);
     peer.on("open", () => {
@@ -2266,11 +2311,26 @@
       if (peerConn) { c.on("open", () => { c.send({ type: "full" }); setTimeout(() => c.close(), 300); }); return; }
       setupConn(c);
     });
+    peer.on("disconnected", () => { if (!document.hidden) setTimeout(peerResume, 1000); });
     peer.on("error", (e) => {
-      if (e.type === "unavailable-id" && attempt < 3) return battleHost(attempt + 1);
+      if (e.type === "unavailable-id" && attempt < 3 && !bt.codeShow.textContent) return battleHost(attempt + 1);
+      // Megosztáskor a böngésző a háttérbe kerül, és a telefon bontja a közvetítő kapcsolatot:
+      // a szoba megmarad, visszatéréskor újracsatlakozunk ugyanazzal a kóddal.
+      if (SOFT_PEER_ERRORS.includes(e.type) && peer && !peer.destroyed) {
+        if (!bt.wait.hidden) battleStatus("Újracsatlakozás…");
+        return;
+      }
       battleStatus("Hiba a kapcsolatban: " + (e.type || e.message), true);
     });
   }
+
+  const SOFT_PEER_ERRORS = ["network", "disconnected", "socket-error", "socket-closed", "server-error"];
+  function peerResume() {
+    if (!peer || peer.destroyed || !peer.disconnected) return;
+    try { peer.reconnect(); } catch { /* következő alkalommal újra */ }
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) peerResume(); });
+  window.addEventListener("online", peerResume);
 
   async function battleJoin() {
     const code = bt.code.value.trim().toUpperCase();
@@ -2281,8 +2341,22 @@
     try { await loadPeerLib(); } catch { return battleStatus("Nem sikerült betölteni a párbajt. Van internet?", true); }
     peerHost = false;
     peer = new window.Peer();
-    peer.on("open", () => setupConn(peer.connect(PEER_PREFIX + code, { reliable: true })));
-    peer.on("error", (e) => battleStatus(e.type === "peer-unavailable" ? "Nincs ilyen szoba (vagy már bezárt)." : "Hiba a kapcsolatban: " + (e.type || e.message), true));
+    const me = peer;
+    let tries = 0;
+    const connect = () => { if (peer === me && !peerConn) setupConn(me.connect(PEER_PREFIX + code, { reliable: true })); };
+    me.on("open", () => { if (!peerConn) connect(); });
+    me.on("disconnected", () => { if (!document.hidden) setTimeout(peerResume, 1000); });
+    me.on("error", (e) => {
+      if (peer !== me) return;
+      // A szobát nyitó épp átválthatott a csevegőbe a link elküldéséhez; adunk neki kb. fél percet.
+      if (e.type === "peer-unavailable" && !versus && tries++ < 10) {
+        peerConn = null;
+        battleStatus("Várakozás a szobára…");
+        return setTimeout(connect, 3000);
+      }
+      if (SOFT_PEER_ERRORS.includes(e.type) && !me.destroyed) return;
+      battleStatus(e.type === "peer-unavailable" ? "Nincs ilyen szoba (vagy már bezárt)." : "Hiba a kapcsolatban: " + (e.type || e.message), true);
+    });
   }
 
   function setupConn(c) {
@@ -2292,6 +2366,7 @@
     c.on("close", () => {
       if (peerConn !== c) return;
       peerConn = null;
+      if (vr.dialog.open) renderVsResult();
       if (versus && versus.kind === "battle" && !vsOppOver()) {
         versus.oppGone = true;
         versus.waiting = false;
@@ -2324,10 +2399,12 @@
     startVersus("battle", ids, { name: oppName }, cat);
   }
 
+  // Visszavágó csak akkor indul, ha mindketten kérték; addig az eredményablak marad.
   function vsRematch() {
-    if (peerHost) return hostStartMatch();
+    if (!peerConn || !versus || versus.rematchMe) return;
+    versus.rematchMe = true;
     peerConn.send({ type: "rematch" });
-    setStatus(`Visszavágó kérve – ${versus.opp.name} indítja…`);
+    if (peerHost && versus.rematchOpp) hostStartMatch();
   }
 
   function vsSendProgress() {
@@ -2347,8 +2424,13 @@
     } else if (m.type === "start" && Array.isArray(m.ids) && !peerHost) {
       if (bt.dialog.open) bt.dialog.close("started");
       startVersus("battle", m.ids.map(Number).slice(0, 10), { name: oppName }, String(m.cat || "").slice(0, 30));
-    } else if (m.type === "rematch" && peerHost) {
-      hostStartMatch();
+    } else if (m.type === "rematch" && versus && versus.kind === "battle") {
+      versus.rematchOpp = true;
+      if (peerHost && versus.rematchMe) hostStartMatch();
+      else {
+        renderVsResult();
+        toast(`${versus.opp.name} visszavágót kér!`);
+      }
     } else if (m.type === "progress" && versus && versus.kind === "battle") {
       const i = +m.idx;
       versus.opp.live[i] = { attempts: +m.attempts || 0 };
