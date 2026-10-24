@@ -2302,6 +2302,7 @@
     peerHost = true;
     peer = new window.Peer(PEER_PREFIX + code);
     peer.on("open", () => {
+      resumeTries = 0;
       bt.start.hidden = true;
       bt.wait.hidden = false;
       bt.codeShow.textContent = code;
@@ -2314,6 +2315,12 @@
     peer.on("disconnected", () => { if (!document.hidden) setTimeout(peerResume, 1000); });
     peer.on("error", (e) => {
       if (e.type === "unavailable-id" && attempt < 3 && !bt.codeShow.textContent) return battleHost(attempt + 1);
+      // Visszatéréskor a közvetítő még a régi kapcsolatunkhoz köthette a kódot: kicsit később újra próbáljuk.
+      if (e.type === "unavailable-id" && bt.codeShow.textContent && peer && !peer.destroyed && resumeTries++ < 10) {
+        battleStatus("Újracsatlakozás…");
+        setTimeout(peerResume, 3000);
+        return;
+      }
       // Megosztáskor a böngésző a háttérbe kerül, és a telefon bontja a közvetítő kapcsolatot:
       // a szoba megmarad, visszatéréskor újracsatlakozunk ugyanazzal a kóddal.
       if (SOFT_PEER_ERRORS.includes(e.type) && peer && !peer.destroyed) {
@@ -2325,6 +2332,7 @@
   }
 
   const SOFT_PEER_ERRORS = ["network", "disconnected", "socket-error", "socket-closed", "server-error"];
+  let resumeTries = 0;
   function peerResume() {
     if (!peer || peer.destroyed || !peer.disconnected) return;
     try { peer.reconnect(); } catch { /* következő alkalommal újra */ }
