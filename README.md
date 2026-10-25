@@ -47,8 +47,14 @@ A sorozat, a pontok és a statisztika a böngésző `localStorage`-ában tárol�
   - Szigorú (pl. egyes mobil-) hálózatokon TURN-szerver nélkül előfordulhat, hogy nem jön létre a kapcsolat.
 - **📺 Streamer vs Chat**: a Végtelen mód „📺 Stream” gombjával. A streamer megadja a Twitch-csatornáját,
   kategóriát, hosszt (5, 10 vagy 15 dal) és a szavazási időt (20, 25 vagy 30 mp).
-  - Minden dalnál a streamer lejátssza a részletet, és rejtve beírja a tippjét (a mező maszkolt, nincs
-    javaslatlista), ezzel lezárja. Utána nyílik a chat szavazása: `!tipp dalcím` (vagy `!t`), kihagyás `!skip`.
+  - Indítás előtt a streamer kiválasztja, hogyan tippel:
+    - **🪟 Beírós**: a „Tipp-ablak” gomb egy külön böngészőablakot nyit, rendes javaslatlistával. Az OBS csak a játék
+      ablakát veszi fel, így a tipp nem kerül a streamre. Ha nincs nyitva, a lenti mezőbe is beírhatja (maszkolva).
+      A chat: `!tipp dalcím` (vagy `!t`), kihagyás `!skip`.
+    - **🔢 Választós**: 6 lehetőség (a jó dal, legfeljebb 2 másik dal ugyanattól az előadótól, a többi máshonnan). A streamer
+      az 1–6 billentyűvel választ, a gomb nem jelöli meg, melyiket. A chat a számot írja (`3`, `!3` vagy `!tipp 3`).
+      Dal közben a szavazás megoszlása nem látszik (abból kikövetkeztethető lenne a jó válasz), csak a dal végén.
+  - Lezárás után nyílik a chat szavazása; a rossz tippek a körök után látszanak, a jók a dal végéig rejtve.
     Mindenki szavazhat, nem csak a feliratkozók; nézőnként az utolsó szavazat számít.
   - A chat egy játékosként tippel: a legtöbb szavazatot kapott dal a tippje. A pont a tippek számán múlik
     (100 / 80 / 60 / 40 / 25 / 10), nem az időn. A végén bónuszkérdés (`!1`–`!4`), +25 pont.

@@ -4,7 +4,7 @@
   // Ugyanaz a szám, mint az index.html data-v-je, a ?v= linkek és az sw.js CACHE-e: frissítéskor mindet emeld.
   // Ha egy frissítés után a CDN régi oldalt adna új szkripttel (vagy fordítva), a kettő nem illik össze,
   // és félbemaradna az indulás. Ilyenkor egyszer újratöltjük az oldalt.
-  const APP_V = "50";
+  const APP_V = "51";
   if (document.documentElement.dataset.v !== APP_V) {
     let reloaded = false;
     try { reloaded = sessionStorage.getItem("songdle.vReload") === APP_V; sessionStorage.setItem("songdle.vReload", APP_V); } catch { /* nincs tároló */ }
@@ -3193,6 +3193,10 @@
   // (!tipp dalcím / !skip); a legtöbb szavazatot kapott tipp a chaté. A pont a tippek számától
   // függ, mint a játékban. Bárki szavazhat a chatből, nézőnként egy szavazat (az utolsó számít).
   const STREAM_WINDOWS = [20, 25, 30];
+  // Tippelés módja: „type” = beírós (a streamer külön tipp-ablakban ír, javaslatokkal),
+  // „choice” = választós (6 lehetőség, a streamer a számbillentyűvel választ, a chat a számot írja).
+  const STREAM_STYLES = ["type", "choice"];
+  const CHOICE_N = 6;
   const STREAM_BOTS = new Set(["nightbot", "streamelements", "moobot", "fossabot", "streamlabs", "wizebot", "sery_bot", "soundalerts", "botrixoficial", "kofistreambot"]);
   // { channel, cat, catLabel, len, win, ids, idx, me, chat, cur, mvp: Map(néző → { name, pts, hits }), calls: [név], timer }
   // cur (az aktuális dal): { stage, heard, phase: "play" | "vote" | "bonus" | "bvote" | "done", pending,
@@ -3201,12 +3205,14 @@
 
   const sd = {
     dialog: $("streamDialog"), channel: $("streamChannel"), catBtn: $("streamCatBtn"),
-    len: $("streamLen"), win: $("streamWin"), status: $("streamStatus"), go: $("streamGoBtn"),
+    len: $("streamLen"), win: $("streamWin"), style: $("streamStyle"), styleNote: $("streamStyleNote"),
+    status: $("streamStatus"), go: $("streamGoBtn"),
   };
   const st = {
     me: $("stMe"), chat: $("stChat"), vote: $("stVote"), voteTitle: $("stVoteTitle"), voteHelp: $("stVoteHelp"),
     voteTime: $("stVoteTime"), voteCount: $("stVoteCount"), closeVote: $("stCloseVote"), hint: $("stHint"),
     meList: $("stMeList"), chatList: $("stChatList"), bars: $("stBars"), mvp: $("stMvp"), openVote: $("stOpenVote"),
+    popBtn: $("stPopBtn"), choices: $("stChoices"),
   };
   const sdStatus = (msg, isError) => {
     sd.status.textContent = msg || "";
@@ -3220,6 +3226,7 @@
   };
   const streamLen = () => (BATTLE_LENGTHS.includes(load("streamLen", 10)) ? load("streamLen", 10) : 10);
   const streamWin = () => (STREAM_WINDOWS.includes(load("streamWin", 25)) ? load("streamWin", 25) : 25);
+  const streamStyle = () => (STREAM_STYLES.includes(load("streamStyle", "type")) ? load("streamStyle", "type") : "type");
 
   function settingChips(box, list, current, label, key) {
     box.innerHTML = "";
@@ -3238,6 +3245,10 @@
     sd.catBtn.setAttribute("aria-label", `Mit játszunk: ${c.label}. Váltás`);
     settingChips(sd.len, BATTLE_LENGTHS, streamLen(), (n) => `${n} dal`, "streamLen");
     settingChips(sd.win, STREAM_WINDOWS, streamWin(), (n) => `${n} mp`, "streamWin");
+    settingChips(sd.style, STREAM_STYLES, streamStyle(), (k) => (k === "type" ? "🪟 Beírós" : "🔢 Választós"), "streamStyle");
+    sd.styleNote.textContent = streamStyle() === "type"
+      ? "Külön tipp-ablakban írod be a címet, javaslatokkal. Azt az ablakot ne mutasd a streamen (OBS: csak a játék ablakát vedd fel)."
+      : `${CHOICE_N} lehetőség látszik. Te a számbillentyűvel választasz (nem látszik, melyiket), a chat a számot írja (1–${CHOICE_N}).`;
   }
   function openStreamSetup() {
     sd.channel.value = load("streamChannel", "");
@@ -3325,23 +3336,30 @@
     });
   }
   $("streamCopyRules").addEventListener("click", async () => {
-    const text = "🎵 Songdle – a chat a streamer ellen játszik! Szavazáskor írd: !tipp dalcím (vagy !skip a kihagyáshoz), "
+    const text = "🎵 Songdle – a chat a streamer ellen játszik! Szavazáskor írd: !tipp dalcím (választósnál csak a számot: 1–6), kihagyás: !skip, "
       + "bónusznál: 1, 2, 3 vagy 4. A legtöbb szavazatot kapott tipp a chaté. Aki a jó dalra szavaz, MVP-pontot kap! songdle.hu";
     toast(await copyText(text) ? "Másolva – illeszd be a chatbe! 📋" : "Nem sikerült másolni.");
   });
 
   // Mégse: ha nem indult meccs, a félbehagyott chatkapcsolatot is bontjuk.
-  sd.dialog.addEventListener("close", () => { if (!stream) twClose(); resetStreamGo(); });
+  // (A close esemény később fut le: ha közben újra megnyitották, már nem bontunk.)
+  sd.dialog.addEventListener("close", () => {
+    if (sd.dialog.open) return;
+    if (!stream) twClose();
+    resetStreamGo();
+  });
 
   function startStream(channel) {
     if (mode === "versus") closeVersus();
     if (stream) clearInterval(stream.timer);
     const cat = streamCatId();
     stream = {
-      channel, cat, catLabel: cat === "all" ? "" : catLabel(cat), len: streamLen(), win: streamWin(),
+      channel, cat, catLabel: cat === "all" ? "" : catLabel(cat), len: streamLen(), win: streamWin(), style: streamStyle(),
       ids: null, idx: 0, me: 0, chat: 0, cur: null, mvp: new Map(), calls: [], timer: 0,
     };
     if (!tw || tw.channel !== channel) twConnect(channel);
+    document.body.dataset.streamStyle = stream.style;
+    if (stream.style !== "type") closeGuessWindow();
     mode = "stream";
     renderMode();
     renderCategories();
@@ -3360,6 +3378,8 @@
     if (stream) clearInterval(stream.timer);
     if (sr.dialog.open) sr.dialog.close();
     twClose();
+    closeGuessWindow();
+    delete document.body.dataset.streamStyle;
     stream = null;
   }
 
@@ -3376,6 +3396,7 @@
     stream.cur = {
       stage: 0, heard: -1, phase: "play", pending: null, me: side(), chat: side(),
       votes: new Map(), lastTally: null, calledIt: null, rewarded: new Set(), bonus: null, mePts: 0, chatPts: 0,
+      options: stream.style === "choice" ? makeChoices(t) : null, marks: [],
     };
     renderStream();
     startRound(t);
@@ -3384,8 +3405,48 @@
   function streamSongReady() {
     streamControls();
     renderStream();
-    setStatus("Játszd le a részletet, aztán zárd le a tipped (vagy hagyd ki)!");
+    setStatus(stream.style === "choice"
+      ? `Játszd le a részletet, aztán nyomd meg a számot (1–${CHOICE_N}), vagy hagyd ki!`
+      : "Játszd le a részletet, aztán zárd le a tipped (vagy hagyd ki)!");
   }
+
+  // Választós mód: a jó dal mellé legfeljebb 2 dal ugyanattól az előadótól (hogy ne legyen túl könnyű),
+  // a többi más előadóktól. Minden cím különböző, a sorrend véletlen.
+  function makeChoices(t) {
+    const who = (p) => norm(p.src || p.artist);
+    const titles = new Set([t.base]);
+    const pick = (list, n) => {
+      const out = [];
+      for (const p of shuffle(list.slice())) {
+        if (out.length >= n) break;
+        if (titles.has(p.base)) continue;
+        titles.add(p.base);
+        out.push(p);
+      }
+      return out;
+    };
+    const same = pick(pool.filter((p) => p !== t && who(p) === who(t)), 2);
+    const rest = pick(pool.filter((p) => who(p) !== who(t)), CHOICE_N - 1 - same.length);
+    return shuffle([t, ...same, ...rest]);
+  }
+
+  // A streamer választása: a gomb nem jelöli meg, melyiket nyomta (a chat nem láthatja).
+  function streamPickChoice(i) {
+    const c = stream && stream.cur;
+    if (!c || !c.options || !c.options[i] || c.phase !== "play" || c.me.done || c.pending || round.done) return;
+    const o = c.options[i];
+    streamLock({ type: judge(o, round.track), label: `${i + 1}. ${trackLabel(o)}`, key: o.key, opt: i });
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+
+  // Számbillentyűk: választós módban a lehetőség, a bónusznál a válasz.
+  document.addEventListener("keydown", (e) => {
+    if (mode !== "stream" || !stream || !stream.cur || document.querySelector("dialog[open]")) return;
+    if (e.target === el.input || e.ctrlKey || e.metaKey || e.altKey || !/^[1-9]$/.test(e.key)) return;
+    const c = stream.cur, i = +e.key - 1;
+    if (c.phase === "bonus" && c.bonus && i < c.bonus.options.length) { e.preventDefault(); streamPickBonus(i); }
+    else if (c.phase === "play" && c.options && i < c.options.length) { e.preventDefault(); streamPickChoice(i); }
+  });
 
   // A beviteli mező és a gombok állapota: tippelni csak a részlet meghallgatása után lehet.
   function streamControls() {
@@ -3400,6 +3461,7 @@
     updateSubmit();
     st.openVote.hidden = !(c.phase === "play" && c.me.done && !c.chat.done && !round.done);
     st.openVote.disabled = !heard;
+    renderGuessWindow();
   }
 
   // A streamer tippje rejtve lezárul; ezután a chat szavaz (ha még játszik).
@@ -3471,7 +3533,18 @@
     let vote = null, m;
     if (c.phase === "vote") {
       if (/^!(skip|kihagy|passz)\b/i.test(msg)) vote = { skip: true };
-      else if ((m = msg.match(/^!(?:t|tipp|g|guess)\s+(.{2,100})$/i))) {
+      else if (c.options) {
+        // Választós: a szám (3, !3, !tipp 3), vagy a lehetőségek egyikének címe.
+        let i = -1;
+        if ((m = msg.match(/^!?(?:(?:t|tipp|g|guess)\s*)?([1-9])$/i))) i = +m[1] - 1;
+        else if ((m = msg.match(/^!(?:t|tipp|g|guess)\s+(.{2,100})$/i))) {
+          const t = chatMatch(m[1]);
+          i = t ? c.options.indexOf(t) : -1;
+        }
+        if (!c.options[i]) return;
+        vote = { track: c.options[i] };
+        if (!c.calledIt && judge(vote.track, round.track) === "right") c.calledIt = user.name;
+      } else if ((m = msg.match(/^!(?:t|tipp|g|guess)\s+(.{2,100})$/i))) {
         const t = chatMatch(m[1]);
         if (!t) return;
         vote = { track: t };
@@ -3526,15 +3599,21 @@
   };
   function resolveStage(tally) {
     const c = stream.cur, ans = round.track;
+    // Választósnál a rossz tippek a lehetőségeken is látszanak (a jót csak a dal végén mutatjuk).
+    const mark = (a, side) => { if (a.opt !== undefined && a.type !== "right") c.marks.push({ i: a.opt, side }); };
     if (c.pending && !c.me.done) {
       c.me.attempts.push(c.pending);
       sideDone(c.me, c.pending);
+      mark(c.pending, "me");
     }
     c.pending = null;
     if (tally) {
       const top = tally.list[0];
+      const opt = top && top.v.track && c.options ? c.options.indexOf(top.v.track) : -1;
       const a = !top || top.k === "skip" ? { type: "skip" }
-        : { type: judge(top.v.track, ans), label: trackLabel(top.v.track), key: top.v.track.key };
+        : { type: judge(top.v.track, ans), label: (opt >= 0 ? `${opt + 1}. ` : "") + trackLabel(top.v.track), key: top.v.track.key };
+      if (opt >= 0) a.opt = opt;
+      mark(a, "chat");
       a.share = top ? Math.round((top.n / tally.total) * 100) : 0;
       a.votes = tally.total;
       c.chat.attempts.push(a);
@@ -3749,11 +3828,21 @@
     st.vote.hidden = !voting;
     if (voting) {
       st.voteTitle.textContent = c.phase === "vote" ? "💬 Chat, szavazz!" : "💬 Chat, bónusz!";
-      st.voteHelp.innerHTML = c.phase === "vote"
-        ? "Írd a chatbe: <b>!tipp dalcím</b> · kihagyás: <b>!skip</b>"
-        : "Írd a chatbe: <b>1</b>, <b>2</b>, <b>3</b> vagy <b>4</b>";
+      st.voteHelp.innerHTML = c.phase === "bvote" ? "Írd a chatbe: <b>1</b>, <b>2</b>, <b>3</b> vagy <b>4</b>"
+        : c.options ? `Írd a chatbe a számot: <b>1–${c.options.length}</b> · kihagyás: <b>!skip</b>`
+        : "Írd a chatbe: <b>!tipp dalcím</b> · kihagyás: <b>!skip</b>";
     }
-    st.hint.hidden = !(c.phase === "play" && !c.me.done && !c.pending);
+    const myTurn = c.phase === "play" && !c.me.done && !c.pending;
+    const gwOpen = !!(gw && !gw.win.closed);
+    st.hint.hidden = !myTurn;
+    st.hint.textContent = c.options ? `🙈 Ne nézd a chatet! Nyomd meg a számot (1–${c.options.length}) a billentyűzeten – nem látszik, melyiket választottad.`
+      : gwOpen ? "🙈 Ne nézd a chatet! Tippelj a tipp-ablakban – azt ne mutasd a streamen."
+      : "🙈 Ne nézd a chatet! Nyisd meg a tipp-ablakot (javaslatokkal), vagy írd be lent – a cím rejtve marad.";
+    st.popBtn.hidden = stream.style !== "type" || !round || round.done;
+    st.popBtn.textContent = gwOpen ? "🪟 Tipp-ablak nyitva – előtérbe hozás" : "🪟 Tipp-ablak megnyitása";
+    document.body.classList.toggle("gw-open", gwOpen && stream.style === "type");
+    renderStreamChoices();
+    renderGuessWindow();
 
     renderStreamBars();
     renderStreamMvp();
@@ -3768,6 +3857,8 @@
     st.bars.hidden = !t || !t.total;
     if (st.bars.hidden) return;
     const over = c.phase === "bonus" || c.phase === "bvote" || c.phase === "done";
+    // Választósnál a dal közben nem mutatjuk a szavazás megoszlását: a lehetőségek közül kikövetkeztethető lenne a jó.
+    if (c.options && !over && !bonusTally) { st.bars.hidden = true; return; }
     st.bars.innerHTML = "";
     const head = document.createElement("p");
     head.className = "st-bars-head";
@@ -3783,8 +3874,10 @@
       const fillEl = document.createElement("i");
       fillEl.style.width = pct + "%";
       const label = document.createElement("span");
+      const opt = c.options && g.v.track ? c.options.indexOf(g.v.track) : -1;
       if (bonusTally) label.textContent = `${g.k + 1}. ${b.options[g.k]}`;
       else if (g.k === "skip") label.textContent = "⏭ Kihagyás";
+      else if (opt >= 0 && over) label.textContent = `${opt + 1}. ${trackLabel(g.v.track)}`;
       else if (!over && judge(g.v.track, round.track) === "right") label.textContent = "??? (titok a dal végéig)";
       else label.textContent = trackLabel(g.v.track);
       const n = document.createElement("b");
@@ -3792,6 +3885,196 @@
       row.append(fillEl, label, n);
       st.bars.appendChild(row);
     }
+  }
+
+  // Választós mód: a lehetőségek. A streamer választása nem látszik; a rossz tippek a kör után,
+  // a jó válasz a dal végén kerül rájuk.
+  function renderStreamChoices() {
+    const c = stream.cur;
+    st.choices.hidden = !c.options;
+    if (!c.options) return;
+    const over = c.phase === "bonus" || c.phase === "bvote" || c.phase === "done";
+    const open = c.phase === "play" && !c.me.done && !c.pending && !!round && !round.done;
+    st.choices.innerHTML = "";
+    c.options.forEach((o, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "st-choice";
+      b.disabled = !open;
+      const n = document.createElement("b");
+      n.textContent = i + 1;
+      const label = document.createElement("span");
+      label.textContent = trackLabel(o);
+      label.title = label.textContent;
+      const tags = document.createElement("small");
+      tags.textContent = c.marks.filter((m) => m.i === i).map((m) => (m.side === "me" ? "🎬✗" : "💬✗")).join(" ");
+      b.append(n, label, tags);
+      if (over && round && judge(o, round.track) === "right") b.classList.add("right");
+      else if (c.marks.some((m) => m.i === i)) b.classList.add("wrong");
+      b.addEventListener("click", () => streamPickChoice(i));
+      st.choices.appendChild(b);
+    });
+  }
+
+  // ----- Tipp-ablak (beírós mód) -----
+  // Külön böngészőablak a streamer tippjéhez, rendes javaslatlistával. Az OBS csak a játék ablakát veszi fel,
+  // így ez nem kerül a streamre. Az ablakot innen építjük fel és innen kezeljük (azonos eredet).
+  let gw = null; // { win, input, sugg, status, play, skip, lock, list, items, idx, sel }
+  function openGuessWindow() {
+    if (gw && !gw.win.closed) return gw.win.focus();
+    const win = window.open("", "songdle-tipp", "popup=yes,width=460,height=640");
+    if (!win) return toast("A böngésző letiltotta a felugró ablakot. Engedélyezd, vagy írd be a tipped lent (rejtve).");
+    const css = [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => `<link rel="stylesheet" href="${l.href}">`).join("");
+    const d = win.document;
+    d.open();
+    d.write(`<!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>🔒 Songdle – tipp-ablak</title>${css}</head><body class="gw-body"><main class="gw">
+      <p class="gw-warn">🔒 Tipp-ablak – <b>ezt ne mutasd a streamen!</b></p>
+      <p class="gw-status" id="gwStatus"></p>
+      <button type="button" class="btn btn-ghost" id="gwPlay">▶ Részlet lejátszása</button>
+      <div class="guess-box gw-box">
+        <input id="gwInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Dal címe vagy előadó…" aria-label="Tipp">
+        <ul class="suggestions glass" id="gwSugg" role="listbox" hidden></ul>
+      </div>
+      <div class="buttons"><button type="button" class="btn btn-ghost" id="gwSkip">Kihagyás</button><button type="button" class="btn btn-primary" id="gwLock">🔒 Lezárás</button></div>
+      <ol class="guesses st-list gw-list" id="gwList"></ol>
+      </main></body></html>`);
+    d.close();
+    const $w = (id) => d.getElementById(id);
+    gw = { win, input: $w("gwInput"), sugg: $w("gwSugg"), status: $w("gwStatus"), play: $w("gwPlay"), skip: $w("gwSkip"),
+      lock: $w("gwLock"), list: $w("gwList"), items: [], idx: -1, sel: null, msg: "" };
+    const g = gw;
+    g.input.addEventListener("input", () => { g.sel = null; g.msg = ""; gwSuggest(); });
+    g.input.addEventListener("keydown", (e) => {
+      const n = g.items.length;
+      if (e.key === "ArrowDown" && n) { e.preventDefault(); g.idx = (g.idx + 1) % n; gwRenderSugg(); }
+      else if (e.key === "ArrowUp" && n) { e.preventDefault(); g.idx = (g.idx - 1 + n) % n; gwRenderSugg(); }
+      else if (e.key === "Enter") {
+        e.preventDefault();
+        if (!g.sel && g.items[g.idx]) gwChoose(g.items[g.idx]);
+        else gwLock();
+      } else if (e.key === "Escape") { g.items = []; gwRenderSugg(); }
+    });
+    g.play.addEventListener("click", () => { if (!el.playBtn.disabled) playClip(); });
+    g.skip.addEventListener("click", () => gwSubmit({ type: "skip" }));
+    g.lock.addEventListener("click", gwLock);
+    win.addEventListener("pagehide", () => { if (gw === g) setTimeout(renderStream, 0); });
+    renderStream();
+    streamControls();
+    win.focus();
+  }
+  function closeGuessWindow() {
+    if (gw && !gw.win.closed) gw.win.close();
+    gw = null;
+    document.body.classList.remove("gw-open");
+  }
+  // A főablak újratöltésekor a tipp-ablak is bezárul (a kezelői a főablakban élnek).
+  window.addEventListener("pagehide", () => { if (gw && !gw.win.closed) gw.win.close(); });
+  // Ha a streamer bezárja a tipp-ablakot, visszajön a lenti (rejtett) beviteli mező.
+  setInterval(() => {
+    if (gw && gw.win.closed) { gw = null; if (stream && stream.cur) { renderStream(); streamControls(); } else document.body.classList.remove("gw-open"); }
+  }, 700);
+  st.popBtn.addEventListener("click", openGuessWindow);
+
+  function gwSuggest() {
+    const q = gw.input.value;
+    gw.items = q.trim() ? search(q, true).slice(0, 8) : [];
+    gw.idx = gw.items.length ? 0 : -1;
+    gwRenderSugg();
+  }
+  function gwRenderSugg() {
+    const g = gw, d = g.win.document;
+    g.sugg.innerHTML = "";
+    g.sugg.hidden = !g.items.length;
+    g.items.forEach((t, i) => {
+      const li = d.createElement("li");
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", String(i === g.idx));
+      const img = d.createElement("img");
+      img.className = "s-cover";
+      img.alt = "";
+      if (t.md5) img.src = coverUrl(t.md5, 120);
+      const text = d.createElement("span");
+      text.className = "s-text";
+      const title = d.createElement("span");
+      title.className = "s-title";
+      title.textContent = t.title;
+      const artist = d.createElement("span");
+      artist.className = "s-artist";
+      artist.textContent = artistLine(t);
+      text.append(title, artist);
+      li.append(img, text);
+      li.addEventListener("mousedown", (e) => e.preventDefault());
+      li.addEventListener("click", () => gwChoose(t));
+      g.sugg.appendChild(li);
+    });
+  }
+  function gwChoose(t) {
+    gw.sel = t;
+    gw.input.value = trackLabel(t);
+    gw.items = [];
+    gwRenderSugg();
+    gw.input.focus();
+  }
+  function gwLock() {
+    const t = gw.sel && gw.input.value === trackLabel(gw.sel) ? gw.sel : chatMatch(gw.input.value);
+    if (!t) {
+      gw.msg = "Nincs ilyen dal a listában – válassz a javaslatokból!";
+      return renderGuessWindow();
+    }
+    gwSubmit({ type: judge(t, round.track), label: trackLabel(t), key: t.key });
+  }
+  function gwSubmit(attempt) {
+    const c = stream && stream.cur;
+    if (!c || c.phase !== "play" || c.me.done || c.pending || round.done) return;
+    if (c.heard !== c.stage) {
+      gw.msg = "Előbb játszd le a részletet, hogy a chat is hallja!";
+      return renderGuessWindow();
+    }
+    gw.msg = "";
+    gw.sel = null;
+    gw.input.value = "";
+    gw.items = [];
+    gwRenderSugg();
+    streamLock(attempt);
+  }
+
+  function renderGuessWindow() {
+    if (!gw || gw.win.closed) return;
+    const g = gw, c = stream && stream.cur, d = g.win.document;
+    const ready = !!c && !!round && round.mode === "stream";
+    const over = ready && (round.done || c.phase === "bonus" || c.phase === "bvote" || c.phase === "done");
+    const canLock = ready && c.phase === "play" && !c.me.done && !c.pending && !round.done;
+    const heard = !!c && c.heard === c.stage;
+    let msg;
+    if (!ready) msg = "Dal betöltése…";
+    else if (over) msg = `Dal vége: ${trackLabel(round.track)}. A következő dalt a főablakban indítod.`;
+    else if (c.pending) msg = `🔒 Lezártad: ${c.pending.type === "skip" ? "kihagyás" : c.pending.label}. Most a chat szavaz…`;
+    else if (c.me.done) msg = "✓ Ezzel a dallal végeztél – a chat még tippel.";
+    else msg = `Dal ${stream.idx + 1}/${stream.len} · ${c.stage + 1}. tipp · ${currentLength()} mp. `
+      + (heard ? "Írd be a tipped, és zárd le!" : "Előbb játszd le a részletet.");
+    g.status.textContent = g.msg || msg;
+    g.status.classList.toggle("error", !!g.msg);
+    g.input.disabled = !canLock;
+    g.lock.disabled = !canLock;
+    g.skip.disabled = !canLock || !heard;
+    g.play.disabled = !ready || el.playBtn.disabled;
+    // A saját tippjeid csak itt látszanak, a jó is (a főablakban a dal végéig rejtve).
+    g.list.innerHTML = "";
+    const mine = c ? [...c.me.attempts, ...(c.pending ? [c.pending] : [])] : [];
+    mine.forEach((a, i) => {
+      const li = d.createElement("li");
+      const locked = c.pending && i === mine.length - 1;
+      li.className = locked ? "pending" : a.type;
+      const mark = d.createElement("span");
+      mark.className = "mark";
+      mark.textContent = locked ? "🔒" : { right: "✓", wrong: "✗", near: "~", skip: "»" }[a.type];
+      const label = d.createElement("span");
+      label.className = "label";
+      label.textContent = a.type === "skip" ? "Kihagyva" : a.label;
+      li.append(mark, label);
+      g.list.appendChild(li);
+    });
   }
 
   const mvpList = () => [...stream.mvp.values()].sort((a, b) => b.pts - a.pts || b.hits - a.hits);

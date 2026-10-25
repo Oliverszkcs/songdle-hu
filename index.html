@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hu" data-v="50">
+<html lang="hu" data-v="51">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
@@ -45,7 +45,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=50">
+  <link rel="stylesheet" href="css/style.css?v=51">
 </head>
 <body>
   <div class="bg" aria-hidden="true">
@@ -223,7 +223,9 @@
             <p class="st-vote-time"><b id="stVoteTime"></b><small>mp</small> · <span id="stVoteCount"></span></p>
             <button type="button" class="chip" id="stCloseVote">Szavazás lezárása most</button>
           </div>
-          <p class="st-hint" id="stHint" hidden>🙈 Ne nézd a chatet, amíg le nem zártad a tipped! A beírt cím rejtve marad.</p>
+          <p class="st-hint" id="stHint" hidden></p>
+          <button type="button" class="btn btn-ghost st-pop" id="stPopBtn" hidden>🪟 Tipp-ablak megnyitása</button>
+          <div class="st-choices" id="stChoices" role="group" aria-label="Lehetőségek" hidden></div>
           <div class="st-board">
             <div><p class="st-col">🎬 Streamer</p><ol class="guesses st-list" id="stMeList"></ol></div>
             <div><p class="st-col">💬 Chat</p><ol class="guesses st-list" id="stChatList"></ol></div>
@@ -319,7 +321,7 @@
         <li><span class="help-ico">📅</span><span><b>Napi dal:</b> naponta 4 dal, mindenkinek ugyanaz: 🟢 Könnyű (×1), 🟡 Közepes (×2), 🟠 Nehéz (×3) és 🔴 Extrém (×4 pont). Minél nehezebb, annál kevésbé ismert a dal. Mindegyiknek külön sorozata van.</span></li>
         <li><span class="help-ico">🔥</span><span><b>Nehéz mód:</b> a dal eleje visszafelé szól, hosszabb részletekkel (2–30 mp), a pont ×1,5. <b>Évtizedek:</b> a kategória-gombbal egy évtized dalait is választhatod.</span></li>
         <li><span class="help-ico">⚔️</span><span><b>Párbaj:</b> nyiss egy szobát, küldd el a kódot a barátaidnak (legfeljebb 6-an lehettek), válassz kategóriát és hosszt (5, 10 vagy 15 dal), és élőben játsszatok ugyanazokra a dalokra. <b>Kihívás:</b> egy kör végén a Megosztás linkjén a barátod ugyanazt az 5 dalt kapja, és látja a pontodat.</span></li>
-        <li><span class="help-ico">📺</span><span><b>Stream:</b> streamereknek. Te játszol a Twitch-chated ellen: rejtve lezárod a tipped, utána a chat szavaz (<b>!tipp dalcím</b>, <b>!skip</b>), és a legtöbbet írt tipp a chaté. A végén chat MVP. <button type="button" class="st-guide-link" data-stream-guide>📖 Útmutató streamereknek</button></span></li>
+        <li><span class="help-ico">📺</span><span><b>Stream:</b> streamereknek. Te játszol a Twitch-chated ellen: rejtve lezárod a tipped (külön tipp-ablakban, vagy választósnál számbillentyűvel), utána a chat szavaz (<b>!tipp dalcím</b> vagy a szám, <b>!skip</b>), és a legtöbbet írt tipp a chaté. A végén chat MVP. <button type="button" class="st-guide-link" data-stream-guide>📖 Útmutató streamereknek</button></span></li>
         <li><span class="help-ico">🎤</span><span><b>Előadó:</b> a harmadik fülön naponta egy előadót kell kitalálni. Minden tipp 8 mezőt mutat (típus, nem, műfaj, státusz, születés/alakulás, debüt, Spotify havi hallgatók, Eurovízió): zöld = egyezik, sárga = közel, ▲▼ = merre van a megfejtés. Bármelyik mezőre koppintva elmagyarázza. 4 tipp után belehallgathatsz egy dalába, 5 után feladhatod.</span></li>
       </ul>
       <p class="hint-keys">Billentyűzeten: <kbd>Szóköz</kbd> lejátszás, <kbd>Enter</kbd> tipp / következő dal.</p>
@@ -421,10 +423,13 @@
         <div class="battle-len" id="streamLen" role="group" aria-label="Dalok száma"></div>
         <p class="st-setlabel">Szavazási idő körönként</p>
         <div class="battle-len" id="streamWin" role="group" aria-label="Szavazási idő"></div>
+        <p class="st-setlabel">Hogyan tippelsz?</p>
+        <div class="battle-len" id="streamStyle" role="group" aria-label="Tippelés módja"></div>
+        <p class="st-style-note" id="streamStyleNote"></p>
       </div>
       <ul class="st-rules">
         <li>Te játszod le a részletet, és <b>rejtve</b> lezárod a tipped. Csak utána szavaz a chat.</li>
-        <li>Chat: <b>!tipp dalcím</b> · kihagyás: <b>!skip</b> · bónusznál <b>1–4</b>. Bárki szavazhat, nézőnként 1 szavazat (az utolsó számít).</li>
+        <li>Chat: <b>!tipp dalcím</b> (választósnál a szám: <b>1–6</b>) · kihagyás: <b>!skip</b> · bónusznál <b>1–4</b>. Bárki szavazhat, nézőnként 1 szavazat (az utolsó számít).</li>
         <li>Pont a tippek száma szerint (100, 80, 60…), mindkét félnek. A végén chat MVP és „elsőként eltalálta”.</li>
       </ul>
       <p class="st-warn">⚠️ A dalok a Deezer előnézeteiből szólnak. Streamen ez a felvétel (VOD) némítását vagy szerzői jogi (DMCA) figyelmeztetést okozhat – a saját felelősségedre.</p>
@@ -440,20 +445,22 @@
       <h2 tabindex="-1" autofocus>📖 Útmutató streamereknek</h2>
       <h3>Indítás 3 lépésben</h3>
       <ol class="st-guide">
-        <li><b>Végtelen</b> mód → <b>📺 Stream</b> gomb. Írd be a csatornád nevét (vagy másold be a twitch.tv linket), és válassz kategóriát, hosszt és szavazási időt.</li>
+        <li><b>Végtelen</b> mód → <b>📺 Stream</b> gomb. Írd be a csatornád nevét (vagy másold be a twitch.tv linket), és válassz kategóriát, hosszt, szavazási időt és tippelési módot:
+          <b>🪟 Beírós</b> (a címet külön tipp-ablakban írod be, javaslatokkal) vagy <b>🔢 Választós</b> (6 lehetőség, a számbillentyűvel választasz).</li>
         <li><b>Indítás</b>: a játék rácsatlakozik a chatedre, és kiírja, ha sikerült (🟢), ha nincs ilyen csatorna, vagy ha most nem vagy élő. Bejelentkezni nem kell, a játék csak olvassa a chatet, írni nem tud bele.</li>
-        <li>Minden dalnál: <b>lejátszod</b> a részletet → <b>beírod a tipped</b> (rejtve marad, a chat nem látja) → <b>lezárod</b> → a chat szavaz → a végén kiderül, ki találta el hányadikra.</li>
+        <li>Minden dalnál: <b>lejátszod</b> a részletet → <b>tippelsz</b> (a tipp-ablakban, vagy választósnál az 1–6 billentyűvel – a chat nem látja, mit) → a chat szavaz → a végén kiderül, ki találta el hányadikra.</li>
       </ol>
       <h3>Parancsok a chatnek</h3>
       <ul class="st-cmds">
         <li><code>!tipp dalcím</code><span>tipp a dalra (röviden: <code>!t</code>). Elírást is megért.</span></li>
+        <li><code>1</code>–<code>6</code><span>választós módban a lehetőség száma (<code>!tipp 3</code> is jó)</span></li>
         <li><code>!skip</code><span>kihagyás – hosszabb részlet jön</span></li>
         <li><code>1</code> <code>2</code> <code>3</code> <code>4</code><span>a bónuszkérdésre (év vagy album)</span></li>
       </ul>
       <p class="st-guide-note">Bárki szavazhat, nem csak a feliratkozók. Nézőnként egy szavazat számít (az utolsó), és a legtöbbet kapott tipp lesz a chaté.</p>
       <button type="button" class="btn btn-ghost" id="streamCopyRules">📋 Szabályok másolása a chatbe</button>
       <h3>🎥 OBS-tipp</h3>
-      <p class="st-guide-note">A játékot <b>Ablakrögzítés</b> (Window Capture) forrással vedd fel, a hangot <b>Alkalmazás hangrögzítéssel</b> (Application Audio Capture). A chatet tedd másik monitorra, vagy takard el, amíg tippelsz – a szavazatokat a játék úgyis kiírja.</p>
+      <p class="st-guide-note">A játékot <b>Ablakrögzítés</b> (Window Capture) forrással vedd fel, a hangot <b>Alkalmazás hangrögzítéssel</b> (Application Audio Capture). A <b>🪟 tipp-ablak</b> külön ablak: ha csak a játék ablakát veszed fel, nem kerül a streamre (teljes képernyős rögzítésnél tedd a másik monitorra). Választósnál az OBS-ben kapcsold ki az egérmutató rögzítését, és a billentyűzettel válassz. A chatet tedd másik monitorra, vagy takard el, amíg tippelsz – a szavazatokat a játék úgyis kiírja.</p>
       <h3>⚠️ Szerzői jog (DMCA)</h3>
       <p class="st-guide-note">A dalok a Deezer 30 mp-es előnézeteiből szólnak. Twitch-en ez a VOD némítását vagy DMCA-figyelmeztetést okozhat. Ha nem akarod kockáztatni: OBS-ben tedd a játék hangját olyan sávra, ami nem kerül a VOD-ba (<b>Twitch VOD Track</b>), vagy erre az adásra kapcsold ki a VOD mentését.</p>
       <h3>Jó tudni</h3>
@@ -506,8 +513,8 @@
 
   <audio id="audio" preload="auto" crossorigin="anonymous"></audio>
 
-  <script src="js/config.js?v=50"></script>
-  <script src="js/deezer.js?v=50"></script>
-  <script src="js/app.js?v=50"></script>
+  <script src="js/config.js?v=51"></script>
+  <script src="js/deezer.js?v=51"></script>
+  <script src="js/app.js?v=51"></script>
 </body>
 </html>
