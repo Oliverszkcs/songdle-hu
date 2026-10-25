@@ -182,27 +182,46 @@
   }
 
   // Az összes régi listát egyszerre átköltöztetjük (nem csak a most betöltött előadókét),
-  // és a régi, olvasható dal-azonosítós évkulcsokat is töröljük.
+  // A dalok eredeti megjelenési éve is a listában van (firstYear), ezért a régi, külön
+  // évkulcsokat (year.*) töröljük.
   try {
     for (const k of Object.keys(localStorage)) {
       if (k.startsWith(LS + "artist3.")) readPool(k.slice(LS.length));
-      else if (/^songdle\.year\.\d+$/.test(k)) localStorage.removeItem(k);
+      else if (k.startsWith(LS + "year.")) localStorage.removeItem(k);
     }
   } catch { /* nem elérhető */ }
 
+  const poolKey = (artist) => "artist3." + (artist.id || norm(artist.name));
   async function loadArtist(artist) {
-    const cacheKey = "artist3." + (artist.id || norm(artist.name));
+    const cacheKey = poolKey(artist);
     const cached = await readPool(cacheKey);
     if (cached && Date.now() - cached.ts < CFG.POOL_CACHE_HOURS * 3600e3) return cached.tracks;
     // Offline (vagy ha a Deezer nem válaszol) a régebbi lista is jó.
     if (cached && !navigator.onLine) return cached.tracks;
-    try { return await fetchArtist(artist, cacheKey); } catch (e) {
+    try { return await fetchArtist(artist, cacheKey, cached); } catch (e) {
       if (cached) return cached.tracks;
       throw e;
     }
   }
 
-  async function fetchArtist(artist, cacheKey) {
+  // Egy dal már kiderített eredeti évét a dallistájába írjuk (előadónként egymás után, hogy
+  // két egyszerre érkező év ne írja felül egymást).
+  const yearWrites = new Map();
+  function storeFirstYear(t, year) {
+    const artist = CFG.ARTISTS.find((a) => a.name === t.src);
+    if (!artist) return; // a meccshez külön betöltött dal: csak a memóriában marad
+    const key = poolKey(artist);
+    const job = (yearWrites.get(key) || Promise.resolve()).then(async () => {
+      const data = await readPool(key);
+      const hit = data && data.tracks.find((x) => x.id === t.id);
+      if (!hit || hit.firstYear === year) return;
+      hit.firstYear = year;
+      await writePool(key, data);
+    }).catch(() => {});
+    yearWrites.set(key, job);
+  }
+
+  async function fetchArtist(artist, cacheKey, old) {
     let id = artist.id;
     if (!id) id = await withRetry(() => Deezer.findArtistId(artist.name));
     let tracks = [];
@@ -211,6 +230,9 @@
       // Csak olyan dal, amelyen az előadó tényleg szerepel (fő előadó vagy közreműködő).
       const features = (t) => t.artist.id === id || (t.contributors || []).some((c) => c.id === id);
       tracks = raw.filter((t) => t.readable !== false && t.preview && !excludeRe.test(t.title) && features(t)).map(slimTrack);
+      // A frissített listában is megmaradnak a már kiderített évek.
+      const years = new Map(((old && old.tracks) || []).filter((t) => t.firstYear).map((t) => [t.id, t.firstYear]));
+      for (const t of tracks) if (years.has(t.id)) t.firstYear = years.get(t.id);
     }
     await writePool(cacheKey, { ts: Date.now(), tracks });
     return tracks;
@@ -285,10 +307,11 @@
   let reported = load("reported", []);
   const isReported = (id) => reported.some((r) => r.id === id);
 
-  function buildPool(tracks) {
+  // keepBlocked: párbajban és kihívásban a meccs dala akkor is kell, ha azóta kitiltottuk.
+  function buildPool(tracks, keepBlocked) {
     const byKey = new Map();
     for (const t of tracks) {
-      if (configBlocked.has(t.id)) continue;
+      if (configBlocked.has(t.id) && !keepBlocked) continue;
       if (AKA.has(t.artist)) { t.aka = t.artist; t.artist = shownName(t.artist); }
       if (t.feat) t.feat = t.feat.map(shownName).filter((n) => n !== t.artist);
       t.base = baseTitle(t.title);
@@ -881,7 +904,7 @@
           // Nehéz mód: visszafelé szól; a mentett körnél a régi beállítás marad.
           reverse: saved ? !!saved.reverse : mode === "endless" && hard,
           heard: !!(saved && saved.heard),
-          bonus: (saved && saved.bonus) || null,
+          bonus: unpackBonus(saved && saved.bonus),
           preview: clip.preview,
           md5: clip.md5 || t.md5, year: clip.year || "",
         };
@@ -963,7 +986,7 @@
     if (round.mode === "daily") {
       save(dailyKey(round.date, round.diff), {
         trackId: encId(round.track.id), attempts: round.attempts, done: round.done, won: round.won, points: round.points,
-        bonus: round.bonus || null,
+        bonus: packBonus(round.bonus),
       });
     } else if (!round.done) {
       save("round", { category, trackId: encId(round.track.id), attempts: round.attempts, reverse: round.reverse, heard: round.heard });
@@ -1094,15 +1117,13 @@
   // Egy dalhoz egyszerre csak egy kérés fut (a kör eleji előtöltés és a megoldás közös).
   const yearRequests = new Map();
   function originalYear(t, deezerYear) {
-    const cached = load("year." + encId(t.id), null);
-    if (cached) return Promise.resolve(cached);
+    if (t.firstYear) return Promise.resolve(t.firstYear);
     if (!yearRequests.has(t.id)) {
       yearRequests.set(t.id, lookupYear(t, deezerYear).finally(() => yearRequests.delete(t.id)));
     }
     return yearRequests.get(t.id);
   }
   async function lookupYear(t, deezerYear) {
-    const key = "year." + encId(t.id);
     const fallback = deezerYear && deezerYear !== "0000" ? deezerYear : null;
     try {
       const raw = t.title.replace(/\s*[([].*?[)\]]/g, "").replace(/\s+-\s+.*$/, "").trim() || t.title;
@@ -1130,7 +1151,11 @@
         if (yr > 1900 && yr < best) best = yr;
       }
       const result = Number.isFinite(best) ? String(best) : fallback;
-      if (result) save(key, result);
+      // A dallistában tároljuk (a memóriában és a gyorsítótárban is), nem külön kulcson.
+      if (result) {
+        t.firstYear = result;
+        storeFirstYear(t, result);
+      }
       return result;
     } catch {
       return fallback;
@@ -1225,6 +1250,14 @@
 
   // ---------- Bónuszkérdés: a megfejtés után az év vagy az album, 4 lehetőségből ----------
   const BONUS_PTS = 25;
+  // A napi mentésben a helyes válasz nem olvasható ki ránézésre (csak a sorszáma, kódolva).
+  const packBonus = (b) => b && { kind: b.kind, options: b.options, picked: b.picked || null, a: encId(b.options.indexOf(b.answer) + 1) };
+  function unpackBonus(b) {
+    if (!b || !Array.isArray(b.options)) return null;
+    if (b.answer) return b; // régi mentés
+    const answer = b.options[(decId(b.a) || 0) - 1];
+    return answer ? { kind: b.kind, options: b.options, picked: b.picked || undefined, answer } : null;
+  }
   const bonusEligible = (r) => r.won && r.mode !== "versus";
   const shuffle = (a) => {
     for (let i = a.length - 1; i > 0; i--) {
@@ -1744,7 +1777,19 @@
   async function reversedBuffer(r) {
     if (revCache && revCache.id === r.track.id) return revCache.buf;
     // A visszafelé lejátszáshoz a hangot a memóriába töltjük (nem mentjük el).
-    const data = await (await fetch(r.preview)).arrayBuffer();
+    const get = async () => {
+      const res = await fetch(r.preview);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.arrayBuffer();
+    };
+    let data;
+    try { data = await get(); } catch {
+      // Lejárt előnézet-link (sokáig nyitva hagyott dal): friss linket kérünk, és újra próbáljuk.
+      const full = await Deezer.track(r.track.id);
+      if (!full.preview) throw new Error("Nincs előnézet");
+      r.preview = full.preview;
+      data = await get();
+    }
     const buf = await actx.decodeAudioData(data);
     for (let c = 0; c < buf.numberOfChannels; c++) buf.getChannelData(c).reverse();
     revCache = { id: r.track.id, buf };
@@ -2271,8 +2316,8 @@
     let t = pool.find((p) => p.id === id);
     if (!t) {
       try {
-        const full = await Deezer.track(id);
-        t = buildPool([slimTrack(full)])[0];
+        const full = await withRetry(() => Deezer.track(id));
+        t = buildPool([slimTrack(full)], true)[0];
         pool.push(t);
       } catch { /* alább kezeljük */ }
     }
