@@ -1,6 +1,6 @@
 // Az alkalmazás saját fájljait tároljuk. A Deezer API és a borítók a hálózatról jönnek;
 // a legutóbbi hangrészleteket az app maga teszi el (songdle-clips-* tár), azt itt nem töröljük.
-const CACHE = "songdle-hu-v42";
+const CACHE = "songdle-hu-v43";
 const SHELL = [
   "./",
   "index.html",

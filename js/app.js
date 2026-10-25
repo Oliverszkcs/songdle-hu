@@ -3948,7 +3948,7 @@
   requestAnimationFrame(drawViz);
   // Kihívás-link (?k=dalok&p=pont&n=név) vagy párbaj-meghívó (?parbaj=KÓD).
   const params = new URLSearchParams(location.search);
-  const challengeIds = (params.get("k") || "").split("-").map((s) => parseInt(s, 36)).filter((n) => n > 0).slice(0, 10);
+  const challengeIds = (params.get("k") || "").split("-").map((s) => parseInt(s, 36)).filter((n) => n > 0).slice(0, Math.max(...BATTLE_LENGTHS));
   const battleCode = (params.get("parbaj") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
   if (challengeIds.length || battleCode) history.replaceState(null, "", location.pathname);
   if (!load("seenHelp", false) && !challengeIds.length && !battleCode) {
