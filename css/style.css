@@ -1703,3 +1703,31 @@ body[data-mode="stream"].gw-open #submitBtn { display: none; }
 /* Ha nincs Tipp gomb (választós / tipp-ablak), a Kihagyás kitölti a sort. */
 body[data-mode="stream"][data-stream-style="choice"] .controls .buttons,
 body[data-mode="stream"].gw-open .controls .buttons { grid-template-columns: 1fr; }
+
+/* Telefonon a kategória külön, teljes szélességű sort kap (így a hosszú név is kifér),
+   a Párbaj és a Stream alatta, egy alacsonyabb sorban osztozik. */
+@media (max-width: 520px) {
+  .categories.cat-bar { flex-wrap: wrap; row-gap: 6px; }
+  .cat-bar .cat-pill { flex: 1 1 100%; }
+  .cat-bar .chip.battle-chip { flex: 1 1 0; min-height: 38px; justify-content: center; }
+}
+
+/* Nagyon keskeny telefonok (pl. 320 px): kisebb fejléc-gombok és pontszámláló, hogy minden kiférjen. */
+@media (max-width: 350px) {
+  .topbar { padding-left: 10px; padding-right: 10px; }
+  .topbar-side { width: auto; gap: 6px; }
+  .icon-btn { width: 38px; height: 38px; border-radius: 12px; }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .logo { font-size: 1.2rem; gap: 6px; }
+  .logo-eq { display: none; }
+  .logo-hu { padding: 1px 6px; }
+  .points-pill { gap: 6px; padding: 0 10px 0 5px; height: 46px; }
+  .coin { width: 30px; height: 30px; }
+  .coin svg { width: 16px; height: 16px; }
+  .round-pts { min-width: 40px; padding: 0 7px 0 5px; }
+  .points-text b { font-size: 1.05rem; }
+  .segmented { height: 46px; }
+  .segmented button { gap: 4px; }
+  .seg-badge { min-width: 15px; height: 15px; padding: 0 4px; font-size: .6rem; }
+  .controls .btn { font-size: .88rem; white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+}

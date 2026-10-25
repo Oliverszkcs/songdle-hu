@@ -4,7 +4,7 @@
   // Ugyanaz a szám, mint az index.html data-v-je, a ?v= linkek és az sw.js CACHE-e: frissítéskor mindet emeld.
   // Ha egy frissítés után a CDN régi oldalt adna új szkripttel (vagy fordítva), a kettő nem illik össze,
   // és félbemaradna az indulás. Ilyenkor egyszer újratöltjük az oldalt.
-  const APP_V = "51";
+  const APP_V = "52";
   if (document.documentElement.dataset.v !== APP_V) {
     let reloaded = false;
     try { reloaded = sessionStorage.getItem("songdle.vReload") === APP_V; sessionStorage.setItem("songdle.vReload", APP_V); } catch { /* nincs tároló */ }
