@@ -46,8 +46,8 @@ A sorozat, a pontok és a statisztika a böngésző `localStorage`-ában tárol�
     (a meccs állása a lap bezárásáig megmarad).
   - Szigorú (pl. egyes mobil-) hálózatokon TURN-szerver nélkül előfordulhat, hogy nem jön létre a kapcsolat.
 
-Offline: a legutóbbi 30 dal hangja és az előadók dallistái a böngészőben maradnak (Cache Storage),
-így térerő nélkül is lehet játszani.
+A dalok hangja mindig a Deezerről szól (streamelve), a játék nem tárolja el. Az előadók
+dallistái a böngészőben maradnak (Cache Storage), így a dalok gyorsabban betöltődnek.
 
 ## Eszközök (`tools/`)
 

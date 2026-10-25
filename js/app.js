@@ -216,34 +216,11 @@
     return tracks;
   }
 
-  // Hangrészletek gyorsítótára: a legutóbbi CLIP_KEEP dal teljes előnézete a böngészőben marad,
-  // így gyenge térerőn (vagy offline) is lehet játszani. A következő dalt előre letöltjük.
-  const CLIP_CACHE = "songdle-clips-v1", CLIP_KEEP = 30;
-  const clipKey = (id) => new URL(`__clip/${encId(id)}`, location.href).href;
-  async function cachedClip(id) {
-    try {
-      const res = await (await caches.open(CLIP_CACHE)).match(clipKey(id));
-      if (!res) return null;
-      return { blob: await res.blob(), meta: JSON.parse(decodeURIComponent(res.headers.get("x-meta") || "%7B%7D")) };
-    } catch { return null; }
-  }
-  async function storeClip(id, blob, meta) {
-    try {
-      const c = await caches.open(CLIP_CACHE);
-      await c.put(clipKey(id), new Response(blob, {
-        headers: { "content-type": blob.type || "audio/mpeg", "x-meta": encodeURIComponent(JSON.stringify(meta)) },
-      }));
-      const keys = await c.keys();
-      await Promise.all(keys.slice(0, Math.max(0, keys.length - CLIP_KEEP)).map((k) => c.delete(k)));
-    } catch { /* nincs Cache API vagy betelt */ }
-  }
-  async function cachedClipIds() {
-    try {
-      return (await (await caches.open(CLIP_CACHE)).keys()).map((r) => decId(r.url.split("/").pop())).filter(Boolean);
-    } catch { return []; }
-  }
+  // A hangot csak streameljük a Deezerről, nem tároljuk. A korábbi verzió a legutóbbi dalok
+  // hangját a böngészőben tartotta (songdle-clips-v1): azt egyszer kitöröljük.
+  try { caches.delete("songdle-clips-v1").catch(() => {}); } catch { /* nincs Cache API */ }
 
-  // Egy dal hangja és adatai: a gyorsítótárból, vagy a Deezerről (és eltesszük).
+  // Egy dal adatai (előnézet-link, borító, év) a Deezerről; a kör eleji és az előtöltés közös kérése.
   const clipRequests = new Map();
   function loadClip(t) {
     if (!clipRequests.has(t.id)) {
@@ -252,25 +229,14 @@
     return clipRequests.get(t.id);
   }
   async function fetchClip(t) {
-    const hit = await cachedClip(t.id);
-    if (hit) return { ...hit.meta, blob: hit.blob };
     const full = await Deezer.track(t.id);
     if (!full.preview) throw new Error("Nincs előnézet");
-    const meta = {
+    return {
       preview: full.preview,
       md5: (full.album && full.album.md5_image) || t.md5,
       year: ((full.release_date || (full.album && full.album.release_date) || "").match(/^\d{4}/) || [""])[0],
       feat: full.contributors ? [...new Set(full.contributors.map((c) => c.name))] : null,
     };
-    try {
-      const res = await fetch(full.preview);
-      if (res.ok) {
-        const blob = await res.blob();
-        storeClip(t.id, blob, meta);
-        return { ...meta, blob };
-      }
-    } catch { /* streamelve játsszuk */ }
-    return meta;
   }
 
   const nameKey = (s) => norm(s).split(" ").sort().join(" ");
@@ -901,8 +867,8 @@
     setLoading(true, 1);
 
     for (let tries = 0; tries < 5 && !round; tries++) {
-      // Offline (vagy ha többször nem sikerül) a már letöltött dalok közül sorsolunk.
-      const t = track || ((!navigator.onLine || tries > 1) && await pickCachedTrack()) || takePrefetched() || pickTrack();
+      // Ha a dal nem töltődik be, a következő próbálkozás másik dalt sorsol.
+      const t = track || takePrefetched() || pickTrack();
       if (!fixed) track = null;
       setStatus("Dal betöltése…");
       try {
@@ -916,7 +882,7 @@
           reverse: saved ? !!saved.reverse : mode === "endless" && hard,
           heard: !!(saved && saved.heard),
           bonus: (saved && saved.bonus) || null,
-          preview: clip.preview, blob: clip.blob || null,
+          preview: clip.preview,
           md5: clip.md5 || t.md5, year: clip.year || "",
         };
         if (!t.feat.length && clip.feat) {
@@ -958,16 +924,13 @@
     el.playBtn.classList.add("pulse");
   }
 
-  // A letöltött hangot helyi (blob) címről játsszuk, különben a Deezer-linkről.
-  let blobUrl = "";
+  // A hang a Deezer előnézet-linkjéről szól (streamelve).
   function setAudioSource() {
-    if (blobUrl) URL.revokeObjectURL(blobUrl);
-    blobUrl = round.blob ? URL.createObjectURL(round.blob) : "";
-    el.audio.src = blobUrl || round.preview;
+    el.audio.src = round.preview;
     el.audio.load();
   }
 
-  // A következő dal előre: sorsolás és letöltés, amíg ezt játssza.
+  // A következő dal előre: sorsolás és az adatai (előnézet-link), amíg ezt játssza.
   let prefetched = null;
   function prefetchNext() {
     let t = null;
@@ -985,14 +948,6 @@
     prefetched = null;
     if (!p || mode !== "endless" || p.category !== category || !pool.includes(p.track)) return null;
     return isReported(p.track.id) || (round && round.track.id === p.track.id) ? null : p.track;
-  }
-  async function pickCachedTrack() {
-    const ids = new Set(await cachedClipIds());
-    const recent = new Set(load("recent", []).slice(0, 10));
-    const list = pool.filter((t) => ids.has(t.id) && !isReported(t.id));
-    const fresh = list.filter((t) => !recent.has(t.id));
-    const from = fresh.length ? fresh : list;
-    return from.length ? from[Math.floor(Math.random() * from.length)] : null;
   }
 
   function persistRound() {
@@ -1788,7 +1743,8 @@
   let revCache = null; // { id, buf } – csak az aktuális dal
   async function reversedBuffer(r) {
     if (revCache && revCache.id === r.track.id) return revCache.buf;
-    const data = r.blob ? await r.blob.arrayBuffer() : await (await fetch(r.preview)).arrayBuffer();
+    // A visszafelé lejátszáshoz a hangot a memóriába töltjük (nem mentjük el).
+    const data = await (await fetch(r.preview)).arrayBuffer();
     const buf = await actx.decodeAudioData(data);
     for (let c = 0; c < buf.numberOfChannels; c++) buf.getChannelData(c).reverse();
     revCache = { id: r.track.id, buf };
@@ -1824,7 +1780,7 @@
   });
   el.audio.addEventListener("playing", () => el.playBtn.classList.remove("loading"));
   el.audio.addEventListener("error", () => {
-    if (!round || !el.audio.getAttribute("src") || el.audio.src.startsWith("blob:")) return;
+    if (!round || !el.audio.getAttribute("src")) return;
     // Lejárt előnézet-link: frissítjük.
     Deezer.track(round.track.id).then((full) => {
       if (full.preview && full.preview !== round.preview) {
