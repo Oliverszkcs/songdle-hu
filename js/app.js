@@ -556,8 +556,14 @@
     el.modeDaily.setAttribute("aria-selected", String(mode === "daily"));
     el.modeArtist.setAttribute("aria-selected", String(mode === "artist"));
     document.body.dataset.mode = mode;
-    el.dailyBanner.hidden = mode !== "daily" && mode !== "versus";
-    if (mode === "versus") {
+    el.input.placeholder = mode === "stream" ? "Dalcím – rejtve, a chat nem látja…" : "Dal címe vagy előadó…";
+    el.dailyBanner.hidden = mode !== "daily" && mode !== "versus" && mode !== "stream";
+    if (mode === "stream") {
+      el.dailyBanner.textContent = "";
+      const b = document.createElement("b");
+      b.textContent = "#" + stream.channel;
+      el.dailyBanner.append("📺 Streamer vs Chat · ", b, `${stream.catLabel ? " · " + stream.catLabel : ""} · ${stream.len} dal`);
+    } else if (mode === "versus") {
       el.dailyBanner.textContent = "";
       const b = document.createElement("b");
       const one = versus.opps.length === 1;
@@ -573,6 +579,12 @@
 
   function updateNextButton() {
     el.nextBtn.disabled = false;
+    if (mode === "stream") {
+      el.nextBtn.textContent = stream.idx + 1 < stream.len ? "Következő dal →" : "🏁 Eredmény";
+      // A bónuszkérdés (és a chat szavazása) alatt még nem lehet továbblépni.
+      el.nextBtn.disabled = !stream.cur || stream.cur.phase !== "done";
+      return;
+    }
     if (mode === "versus") {
       if (!vsOver()) {
         const waiting = versus.waiting;
@@ -626,6 +638,18 @@
       el.categories.appendChild(b);
       return;
     }
+    if (mode === "stream") {
+      const b = document.createElement("button");
+      b.className = "chip";
+      b.textContent = "✕ Kilépés";
+      b.addEventListener("click", () => leaveStream());
+      const conn = document.createElement("span");
+      conn.className = "chip tw-conn";
+      conn.id = "twConn";
+      el.categories.append(b, conn);
+      renderTwConn();
+      return;
+    }
     // Végtelen módban egyetlen sáv: a választott kategória (koppintásra lap nyílik) és a párbaj.
     const pick = document.createElement("button");
     pick.className = "cat-pill";
@@ -641,6 +665,13 @@
     battle.textContent = "⚔️ Párbaj";
     battle.addEventListener("click", openBattle);
     el.categories.appendChild(battle);
+
+    const streamBtn = document.createElement("button");
+    streamBtn.className = "chip battle-chip stream-chip";
+    streamBtn.textContent = "📺 Stream";
+    streamBtn.setAttribute("aria-label", "Streamer vs Chat mód (Twitch)");
+    streamBtn.addEventListener("click", openStreamSetup);
+    el.categories.appendChild(streamBtn);
   }
 
   // Kategóriaválasztó lap: műfajok, évtizedek és a nehéz mód kapcsolója egy helyen.
@@ -764,6 +795,7 @@
   function changeMode(m) {
     if (m === mode) return;
     if (mode === "versus") closeVersus();
+    if (mode === "stream") closeStream();
     // A félbehagyott végtelen kör megmarad, visszaváltáskor folytatható.
     mode = m;
     save("mode", mode);
@@ -790,7 +822,7 @@
       return openArtistGame();
     }
 
-    const poolCategory = mode === "endless" ? category : "all";
+    const poolCategory = mode === "endless" ? category : mode === "stream" ? stream.cat : "all";
     setLoading(true, 0);
     setStatus("Dalok betöltése…");
     const tracks = await loadArtists(artistsFor(poolCategory), (d, n) => {
@@ -814,6 +846,7 @@
       return;
     }
     if (mode === "versus") return vsStartSong();
+    if (mode === "stream") return streamStartSong();
 
     if (mode === "daily") {
       const date = dateKey();
@@ -945,6 +978,7 @@
     setControls(true);
     setStatus(round.attempts.length ? "Folytasd, ahol abbahagytad!" : "Nyomd meg a lemezt, és figyelj!");
     el.playBtn.classList.add("pulse");
+    if (round.mode === "stream") streamSongReady();
   }
 
   // A hang a Deezer előnézet-linkjéről szól (streamelve).
@@ -957,8 +991,9 @@
   let prefetched = null;
   function prefetchNext() {
     let t = null;
-    if (round.mode === "versus") {
-      const id = versus.ids[versus.idx + 1];
+    if (round.mode === "versus" || round.mode === "stream") {
+      const m = round.mode === "versus" ? versus : stream;
+      const id = m.ids[m.idx + 1];
       t = id && pool.find((p) => p.id === id);
     } else if (round.mode === "endless") {
       t = pickTrack();
@@ -974,7 +1009,7 @@
   }
 
   function persistRound() {
-    if (!round) return;
+    if (!round || round.mode === "stream") return; // a streamer meccs nem mentődik
     if (round.mode === "versus") {
       // A párbaj az újratöltést is túléli: az épp játszott dal tippjei is megmaradnak.
       if (versus) {
@@ -995,10 +1030,14 @@
     }
   }
 
+  // Hányadik részletnél tart a kör. Streamer módban a két fél együtt halad (közös kör).
+  const usedTries = (r) => (r.mode !== "stream" ? r.attempts.length : stream && stream.cur ? stream.cur.stage : 0);
   function currentLength() {
     if (!round) return LENGTHS[0];
     if (round.done) return FULL_PREVIEW;
-    return lengthsOf(round)[Math.min(round.attempts.length, MAX_TRIES - 1)];
+    // Streamer módban a két fél együtt halad: a részlet hossza a közös körtől függ.
+    const n = usedTries(round);
+    return lengthsOf(round)[Math.min(n, MAX_TRIES - 1)];
   }
   const scaleLength = () => (round && round.done ? FULL_PREVIEW : MAX_LEN);
 
@@ -1299,23 +1338,29 @@
     el.bonusQ.textContent = "🎯 Bónuszkérdés…";
     el.bonusOpts.innerHTML = "";
     if (!r.bonus) {
-      // Az év a MusicBrainzről jön (a kör elején már elindult); legfeljebb pár másodpercet várunk rá.
-      const yr = await Promise.race([originalYear(r.track, r.year), new Promise((res) => setTimeout(() => res(null), 2500))]);
+      const b = await makeBonus(r);
       if (round !== r) return;
-      const y = parseInt(yr || (r.year !== "0000" ? r.year : ""), 10);
-      const kinds = [];
-      const years = y > 1900 ? yearChoices(y) : null;
-      if (years) kinds.push({ kind: "year", answer: String(y), options: years });
-      const albums = albumChoices(r.track);
-      if (albums) kinds.push({ kind: "album", answer: r.track.album, options: albums });
-      if (!kinds.length) {
+      if (!b) {
         el.bonus.hidden = true;
         return revealAlbum(r);
       }
-      r.bonus = kinds[Math.floor(Math.random() * kinds.length)];
+      r.bonus = b;
       persistRound();
     }
     renderBonus(r);
+  }
+
+  // A kérdés: az év vagy az album, ha van hozzá 4 értelmes lehetőség (különben null).
+  async function makeBonus(r) {
+    // Az év a MusicBrainzről jön (a kör elején már elindult); legfeljebb pár másodpercet várunk rá.
+    const yr = await Promise.race([originalYear(r.track, r.year), new Promise((res) => setTimeout(() => res(null), 2500))]);
+    const y = parseInt(yr || (r.year !== "0000" ? r.year : ""), 10);
+    const kinds = [];
+    const years = y > 1900 ? yearChoices(y) : null;
+    if (years) kinds.push({ kind: "year", answer: String(y), options: years });
+    const albums = albumChoices(r.track);
+    if (albums) kinds.push({ kind: "album", answer: r.track.album, options: albums });
+    return kinds.length ? kinds[Math.floor(Math.random() * kinds.length)] : null;
   }
 
   function renderBonus(r) {
@@ -1457,8 +1502,9 @@
     el.ringUnlocked.style.strokeDashoffset = round ? 100 - (currentLength() / total) * 100 : 100;
     el.ringProgress.style.strokeDashoffset = 100;
     if (round && !round.done) {
-      const remaining = MAX_TRIES - round.attempts.length;
-      const nextLen = lengthsOf(round)[round.attempts.length + 1];
+      const used = usedTries(round);
+      const remaining = MAX_TRIES - used;
+      const nextLen = lengthsOf(round)[used + 1];
       el.skipBtn.textContent = remaining === 1 ? "Feladom" : `Kihagyás +${nextLen - currentLength()} mp`;
     }
   }
@@ -1519,6 +1565,8 @@
       el.streakLine.innerHTML = st > 0
         ? `${flame} ${d.label} sorozat: <b>${st}</b> nap · legjobb: ${s.maxStreak}`
         : s.played ? `${d.label} legjobb sorozat: ${s.maxStreak} nap` : "Találd ki a mai dalt!";
+    } else if (mode === "stream") {
+      el.streakLine.textContent = "";
     } else if (mode === "versus") {
       el.streakLine.textContent = vsOppLine();
     } else {
@@ -1536,6 +1584,12 @@
       el.roundLabel.textContent = "ma";
       el.roundNum.textContent = st.done ? (st.gaveUp ? "0" : "+" + st.points) : adPointsFor(st.guesses.length + 1, st);
       el.roundPts.className = "round-pts" + (st.done ? (st.gaveUp ? " lost" : " won") : "");
+      return;
+    }
+    if (mode === "stream") {
+      el.roundNum.textContent = `${stream.me}:${stream.chat}`;
+      el.roundLabel.textContent = `dal ${Math.min(stream.idx + 1, stream.len)}/${stream.len}`;
+      el.roundPts.className = "round-pts";
       return;
     }
     if (mode === "versus") {
@@ -1733,6 +1787,11 @@
     el.playBtn.classList.remove("pulse");
     // Ha egyszer meghallgatta, a nehéz mód kapcsolása már csak a következő dalra hat.
     if (!round.done && !round.heard) { round.heard = true; persistRound(); }
+    // Streamer mód: csak a már lejátszott részlet után lehet tippet lezárni.
+    if (round.mode === "stream" && !round.done && stream.cur.heard !== stream.cur.stage) {
+      stream.cur.heard = stream.cur.stage;
+      streamControls();
+    }
     const token = ++playToken;
     el.playBtn.classList.add("loading");
     // Nehéz mód: visszafelé (Web Audio nélkül marad a sima lejátszás). A megfejtés után előre szól.
@@ -1968,11 +2027,12 @@
   // Minden beírt szónak szerepelnie kell a címben vagy valamelyik előadóban
   // (a közreműködőket is beleértve). Ha a keresés több előadót is érint,
   // a közös dalaik kerülnek előre.
-  function search(q) {
+  // all: a már tippelt dalokat is visszaadja (a chat szavazatainál).
+  function search(q, all) {
     const nq = norm(q);
     if (!nq) return [];
     const tokens = nq.split(" ");
-    const guessed = guessedKeys();
+    const guessed = all ? new Set() : guessedKeys();
     const hits = [];
     for (const t of pool) {
       if (guessed.has(t.key) || guessed.has("label:" + trackLabel(t))) continue;
@@ -2014,6 +2074,7 @@
   }
 
   function renderSuggestions() {
+    if (mode === "stream") return hideSuggestions();
     const q = el.input.value;
     suggestionItems = search(q);
     activeIndex = suggestionItems.length ? 0 : -1;
@@ -2108,26 +2169,34 @@
   function submit() {
     if (!round || round.done) return;
     let guess = selected;
-    if (!guess || el.input.value !== trackLabel(guess)) {
+    // Streamer módban a beírt szöveg rejtett, és ugyanúgy illesztjük, mint a chat tippjeit
+    // (a képernyőn a chat is látja, ezért nincs javaslatlista).
+    if (round.mode === "stream") guess = chatMatch(el.input.value);
+    else if (!guess || el.input.value !== trackLabel(guess)) {
       guess = search(el.input.value)[0] || null;
     }
     if (!guess) {
       retrigger(el.input, "shake");
-      setStatus("Válassz egy dalt a listából!", true);
+      setStatus(round.mode === "stream" ? "Nincs ilyen dal a listában – írd be másképp!" : "Válassz egy dalt a listából!", true);
       return;
     }
-    const answer = round.track;
-    // Azonos cím csak közös előadónál számít találatnak (pl. „feat.” nélküli változat);
-    // egy másik előadó azonos című dala nem.
-    const sharesArtist = guess.nArtists.some((a) => answer.nArtists.includes(a));
-    const right = guess.key === answer.key || (guess.base === answer.base && sharesArtist);
-    const near = !right && sharesArtist;
     selected = null;
     el.input.value = "";
     hideSuggestions();
     updateSubmit();
     updateClear();
-    registerAttempt({ type: right ? "right" : near ? "near" : "wrong", label: trackLabel(guess), key: guess.key });
+    const attempt = { type: judge(guess, round.track), label: trackLabel(guess), key: guess.key };
+    // Streamer mód: a tipp rejtve lezárul, az eredmény csak a chat szavazása után derül ki.
+    if (round.mode === "stream") return streamLock(attempt);
+    registerAttempt(attempt);
+  }
+
+  // Azonos cím csak közös előadónál számít találatnak (pl. „feat.” nélküli változat);
+  // egy másik előadó azonos című dala nem.
+  function judge(guess, answer) {
+    const sharesArtist = guess.nArtists.some((a) => answer.nArtists.includes(a));
+    if (guess.key === answer.key || (guess.base === answer.base && sharesArtist)) return "right";
+    return sharesArtist ? "near" : "wrong";
   }
 
   el.input.addEventListener("input", () => { selected = null; renderSuggestions(); updateSubmit(); updateClear(); });
@@ -2225,10 +2294,12 @@
   for (const b of [el.submitBtn, el.skipBtn]) b.addEventListener("mousedown", (e) => e.preventDefault());
   el.submitBtn.addEventListener("click", submit);
   el.skipBtn.addEventListener("click", () => {
-    if (round && !round.done) registerAttempt({ type: "skip" });
+    if (round && !round.done && round.mode === "stream") streamLock({ type: "skip" });
+    else if (round && !round.done) registerAttempt({ type: "skip" });
     el.input.blur();
   });
   el.nextBtn.addEventListener("click", () => {
+    if (mode === "stream") return streamNext();
     if (mode === "versus") return vsNext();
     if (mode !== "daily") return startRound();
     const next = nextUnplayedDiff();
@@ -3103,6 +3174,655 @@
     return true;
   }
 
+  // ---------- Streamer vs Chat (Twitch) ----------
+  // A streamer és a chat (egy játékosként) ugyanazt a dalt játssza, közös részlethosszal.
+  // Körönként a streamer rejtve lezárja a tippjét, utána a chat 20–30 másodpercig szavaz
+  // (!tipp dalcím / !skip); a legtöbb szavazatot kapott tipp a chaté. A pont a tippek számától
+  // függ, mint a játékban. Bárki szavazhat a chatből, nézőnként egy szavazat (az utolsó számít).
+  const STREAM_WINDOWS = [20, 25, 30];
+  const STREAM_BOTS = new Set(["nightbot", "streamelements", "moobot", "fossabot", "streamlabs", "wizebot", "sery_bot", "soundalerts", "botrixoficial", "kofistreambot"]);
+  // { channel, cat, catLabel, len, win, ids, idx, me, chat, cur, mvp: Map(néző → { name, pts, hits }), calls: [név], timer }
+  // cur (az aktuális dal): { stage, heard, phase: "play" | "vote" | "bonus" | "bvote" | "done", pending,
+  //   me / chat: { attempts, done, won }, votes: Map(néző → szavazat), lastTally, calledIt, rewarded, bonus, mePts, chatPts }
+  let stream = null;
+
+  const sd = {
+    dialog: $("streamDialog"), channel: $("streamChannel"), catBtn: $("streamCatBtn"),
+    len: $("streamLen"), win: $("streamWin"), status: $("streamStatus"), go: $("streamGoBtn"),
+  };
+  const st = {
+    me: $("stMe"), chat: $("stChat"), vote: $("stVote"), voteTitle: $("stVoteTitle"), voteHelp: $("stVoteHelp"),
+    voteTime: $("stVoteTime"), voteCount: $("stVoteCount"), closeVote: $("stCloseVote"), hint: $("stHint"),
+    meList: $("stMeList"), chatList: $("stChatList"), bars: $("stBars"), mvp: $("stMvp"), openVote: $("stOpenVote"),
+  };
+  const sdStatus = (msg, isError) => {
+    sd.status.textContent = msg || "";
+    sd.status.classList.toggle("error", !!isError);
+  };
+
+  // ----- Beállítás -----
+  const streamCatId = () => {
+    const id = load("streamCat", "all");
+    return allCats.some((c) => c.id === id) ? id : "all";
+  };
+  const streamLen = () => (BATTLE_LENGTHS.includes(load("streamLen", 10)) ? load("streamLen", 10) : 10);
+  const streamWin = () => (STREAM_WINDOWS.includes(load("streamWin", 25)) ? load("streamWin", 25) : 25);
+
+  function settingChips(box, list, current, label, key) {
+    box.innerHTML = "";
+    for (const n of list) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = label(n);
+      b.setAttribute("aria-pressed", String(n === current));
+      b.addEventListener("click", () => { save(key, n); renderStreamSetup(); });
+      box.appendChild(b);
+    }
+  }
+  function renderStreamSetup() {
+    const c = fillCatPill(sd.catBtn, streamCatId(), "Mit játszunk?");
+    sd.catBtn.setAttribute("aria-label", `Mit játszunk: ${c.label}. Váltás`);
+    settingChips(sd.len, BATTLE_LENGTHS, streamLen(), (n) => `${n} dal`, "streamLen");
+    settingChips(sd.win, STREAM_WINDOWS, streamWin(), (n) => `${n} mp`, "streamWin");
+  }
+  function openStreamSetup() {
+    sd.channel.value = load("streamChannel", "");
+    renderStreamSetup();
+    sdStatus("");
+    sd.dialog.showModal();
+  }
+  sd.catBtn.addEventListener("click", () => openCatSheet({
+    current: streamCatId(),
+    title: "Mit játszunk?",
+    withHard: false,
+    onPick: (id) => { save("streamCat", id); renderStreamSetup(); },
+  }));
+  function streamGo() {
+    // A csatorna neve vagy a teljes link (twitch.tv/nev) is jó.
+    const m = sd.channel.value.trim().toLowerCase().match(/^(?:https?:\/\/)?(?:www\.)?(?:twitch\.tv\/)?#?([a-z0-9_]{3,25})\/?$/);
+    if (!m) return sdStatus("Add meg a Twitch-csatornád nevét!", true);
+    save("streamChannel", m[1]);
+    sd.dialog.close();
+    startStream(m[1]);
+  }
+  sd.go.addEventListener("click", streamGo);
+  sd.channel.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); streamGo(); } });
+
+  function startStream(channel) {
+    if (mode === "versus") closeVersus();
+    if (stream) clearInterval(stream.timer);
+    const cat = streamCatId();
+    stream = {
+      channel, cat, catLabel: cat === "all" ? "" : catLabel(cat), len: streamLen(), win: streamWin(),
+      ids: null, idx: 0, me: 0, chat: 0, cur: null, mvp: new Map(), calls: [], timer: 0,
+    };
+    if (!tw || tw.channel !== channel) twConnect(channel);
+    mode = "stream";
+    renderMode();
+    renderCategories();
+    enterMode();
+    countEvent("stream-start");
+  }
+
+  function leaveStream() {
+    closeStream();
+    mode = load("mode", "endless");
+    renderMode();
+    renderCategories();
+    enterMode();
+  }
+  function closeStream() {
+    if (stream) clearInterval(stream.timer);
+    if (sr.dialog.open) sr.dialog.close();
+    twClose();
+    stream = null;
+  }
+
+  // ----- Dalok -----
+  function streamStartSong() {
+    if (!stream.ids) {
+      stream.ids = pickSet(pool, stream.len);
+      // Kis kategóriában kevesebb dal is lehet.
+      if (stream.ids.length < stream.len) { stream.len = stream.ids.length; renderMode(); }
+    }
+    const t = pool.find((p) => p.id === stream.ids[stream.idx]);
+    if (!t) return setStatus("Ebben a kategóriában most nincs elég dal. Válassz másikat!", true);
+    const side = () => ({ attempts: [], done: false, won: false });
+    stream.cur = {
+      stage: 0, heard: -1, phase: "play", pending: null, me: side(), chat: side(),
+      votes: new Map(), lastTally: null, calledIt: null, rewarded: new Set(), bonus: null, mePts: 0, chatPts: 0,
+    };
+    renderStream();
+    startRound(t);
+  }
+
+  function streamSongReady() {
+    streamControls();
+    renderStream();
+    setStatus("Játszd le a részletet, aztán zárd le a tipped (vagy hagyd ki)!");
+  }
+
+  // A beviteli mező és a gombok állapota: tippelni csak a részlet meghallgatása után lehet.
+  function streamControls() {
+    if (!stream || !stream.cur || !round || round.mode !== "stream") return;
+    const c = stream.cur;
+    const canLock = c.phase === "play" && !c.me.done && !c.pending && !round.done;
+    const heard = c.heard === c.stage;
+    el.controls.hidden = c.me.done || round.done;
+    el.input.disabled = !canLock;
+    el.skipBtn.disabled = !canLock || !heard;
+    el.playBtn.disabled = false;
+    updateSubmit();
+    st.openVote.hidden = !(c.phase === "play" && c.me.done && !c.chat.done && !round.done);
+    st.openVote.disabled = !heard;
+  }
+
+  // A streamer tippje rejtve lezárul; ezután a chat szavaz (ha még játszik).
+  function streamLock(attempt) {
+    const c = stream.cur;
+    if (c.phase !== "play" || c.me.done || c.pending) return;
+    if (c.heard !== c.stage) {
+      retrigger(el.input, "shake");
+      return setStatus("Előbb játszd le a részletet, hogy a chat is hallja!", true);
+    }
+    c.pending = attempt;
+    el.input.blur();
+    if (c.chat.done) return resolveStage(null);
+    openVote("song");
+  }
+  st.openVote.addEventListener("click", () => {
+    const c = stream && stream.cur;
+    if (c && c.phase === "play" && c.me.done && !c.chat.done && c.heard === c.stage) openVote("song");
+  });
+
+  // ----- Szavazás -----
+  function openVote(kind) {
+    const c = stream.cur;
+    c.phase = kind === "song" ? "vote" : "bvote";
+    c.votes = new Map();
+    c.voteEnd = Date.now() + stream.win * 1000;
+    clearInterval(stream.timer);
+    stream.timer = setInterval(voteTick, 250);
+    streamControls();
+    renderStream();
+    voteTick();
+    setStatus(kind === "song" ? "🔒 Lezártad a tipped. Most a chat szavaz!" : "🔒 Lezártad. Most a chat válaszol!");
+  }
+  function voteTick() {
+    const c = stream && stream.cur;
+    if (!c || (c.phase !== "vote" && c.phase !== "bvote")) return;
+    const left = Math.max(0, Math.ceil((c.voteEnd - Date.now()) / 1000));
+    st.voteTime.textContent = left;
+    st.voteCount.textContent = `${c.votes.size} szavazat`;
+    if (left <= 0) closeVote();
+  }
+  function closeVote() {
+    const c = stream.cur;
+    clearInterval(stream.timer);
+    if (c.phase === "vote") resolveStage(tallyVotes((v) => (v.skip ? "skip" : v.track.key)));
+    else if (c.phase === "bvote") resolveBonus(tallyVotes((v) => v.opt));
+  }
+  st.closeVote.addEventListener("click", () => { if (stream && stream.cur) closeVote(); });
+
+  // Szavazatok csoportosítva, a legtöbbtől; egyenlőségnél az nyer, akire előbb szavaztak.
+  function tallyVotes(keyOf) {
+    const groups = new Map();
+    for (const [uid, v] of stream.cur.votes) {
+      const k = keyOf(v);
+      if (!groups.has(k)) groups.set(k, { k, v, n: 0, first: v.ts, users: [] });
+      const g = groups.get(k);
+      g.n++;
+      g.first = Math.min(g.first, v.ts);
+      g.users.push(uid);
+    }
+    return { list: [...groups.values()].sort((a, b) => b.n - a.n || a.first - b.first), total: stream.cur.votes.size };
+  }
+
+  // Egy chatüzenet: szavazat a dalra (!tipp …, röviden !t; !skip) vagy a bónuszkérdésre (1–4).
+  function streamChat(user, text) {
+    const c = stream && stream.cur;
+    if (!c || STREAM_BOTS.has(user.login) || user.login === stream.channel) return;
+    const msg = text.trim();
+    let vote = null, m;
+    if (c.phase === "vote") {
+      if (/^!(skip|kihagy|passz)\b/i.test(msg)) vote = { skip: true };
+      else if ((m = msg.match(/^!(?:t|tipp|g|guess)\s+(.{2,100})$/i))) {
+        const t = chatMatch(m[1]);
+        if (!t) return;
+        vote = { track: t };
+        // Az első néző, aki eltalálta (akkor is, ha a többség mást választott).
+        if (!c.calledIt && judge(t, round.track) === "right") c.calledIt = user.name;
+      } else return;
+    } else if (c.phase === "bvote") {
+      if (!(m = msg.match(/^!?([1-4])$/))) return;
+      vote = { opt: +m[1] - 1 };
+    } else return;
+    vote.ts = Date.now();
+    vote.name = user.name;
+    c.votes.set(user.id, vote);
+    voteTick();
+  }
+
+  // A chat szövege a dallistában: a játék keresője, elírásnál a címhez legközelebbi dal.
+  function chatMatch(text) {
+    const hit = search(text, true)[0];
+    if (hit) return hit;
+    const q = norm(text);
+    if (q.length < 4) return null;
+    let best = null, bestD = Math.floor(q.length / 6) + 2;
+    for (const t of pool) {
+      if (Math.abs(t.nTitle.length - q.length) >= bestD) continue;
+      const d = editDistance(q, t.nTitle, bestD);
+      if (d < bestD) { best = t; bestD = d; }
+    }
+    return best;
+  }
+  function editDistance(a, b, cap) {
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      let rowMin = i;
+      for (let j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        rowMin = Math.min(rowMin, cur[j]);
+      }
+      if (rowMin >= cap) return cap;
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+
+  // ----- Kör vége: mindkét fél tippje kiderül -----
+  const sideDone = (s, a) => {
+    if (a.type === "right") { s.done = true; s.won = true; } else if (s.attempts.length >= MAX_TRIES) s.done = true;
+  };
+  function resolveStage(tally) {
+    const c = stream.cur, ans = round.track;
+    if (c.pending && !c.me.done) {
+      c.me.attempts.push(c.pending);
+      sideDone(c.me, c.pending);
+    }
+    c.pending = null;
+    if (tally) {
+      const top = tally.list[0];
+      const a = !top || top.k === "skip" ? { type: "skip" }
+        : { type: judge(top.v.track, ans), label: trackLabel(top.v.track), key: top.v.track.key };
+      a.share = top ? Math.round((top.n / tally.total) * 100) : 0;
+      a.votes = tally.total;
+      c.chat.attempts.push(a);
+      sideDone(c.chat, a);
+      c.lastTally = { stage: c.stage, ...tally };
+      // MVP: aki a helyes dalra szavazott, dalonként egyszer megkapja a kör pontját (korábban több).
+      for (const g of tally.list) {
+        if (!g.v.track || judge(g.v.track, ans) !== "right") continue;
+        for (const uid of g.users) {
+          if (c.rewarded.has(uid)) continue;
+          c.rewarded.add(uid);
+          const p = stream.mvp.get(uid) || { name: c.votes.get(uid).name, pts: 0, hits: 0 };
+          p.pts += POINTS[c.stage];
+          p.hits++;
+          stream.mvp.set(uid, p);
+        }
+      }
+    }
+    if (c.me.done && c.chat.done) return streamEndSong();
+    c.stage++;
+    c.phase = "play";
+    stopAudio();
+    renderAll(true);
+    retrigger(el.clipLen, "bump");
+    el.playBtn.classList.add("pulse");
+    streamControls();
+    renderStream();
+    setStatus(`Most már ${currentLength()} mp-et hallhattok. Játszd le újra!`);
+  }
+
+  async function streamEndSong() {
+    const c = stream.cur, r = round;
+    c.phase = "bonus";
+    r.done = true;
+    r.won = c.me.won;
+    const pts = (s) => (s.won ? POINTS[s.attempts.length - 1] : 0);
+    c.mePts = pts(c.me);
+    c.chatPts = pts(c.chat);
+    stream.me += c.mePts;
+    stream.chat += c.chatPts;
+    if (c.calledIt) stream.calls.push(c.calledIt);
+    stopAudio();
+    buildWave(false);
+    renderAll(true);
+    showDone(true);
+    hideAlbum();
+    renderStreamReveal();
+    renderStream();
+    streamControls();
+    updateNextButton();
+    if (c.mePts || c.chatPts) confetti();
+    setStatus("Koppints a lemezre a teljes előnézethez.");
+    // Bónuszkérdés: a dalt eltaláló fél(ek) +25 pontért; a streamer itt is előbb zár le.
+    const b = c.me.won || c.chat.won ? await makeBonus(r) : null;
+    if (!stream || stream.cur !== c) return;
+    if (!b) return streamDone();
+    c.bonus = { ...b, me: null, chat: null, resolved: false };
+    if (c.me.won) {
+      renderStreamBonus();
+      setStatus("🎯 Bónusz: válaszolj, utána a chat jön!");
+    } else openVote("bonus");
+    renderStreamBonus();
+  }
+
+  function streamPickBonus(i) {
+    const c = stream.cur;
+    if (!c.bonus || c.bonus.resolved || c.bonus.me !== null || c.phase !== "bonus") return;
+    c.bonus.me = i;
+    if (c.chat.won) openVote("bonus");
+    else resolveBonus(null);
+    renderStreamBonus();
+  }
+
+  function resolveBonus(tally) {
+    const c = stream.cur, b = c.bonus, right = b.options.indexOf(b.answer);
+    if (tally) {
+      b.chat = tally.list.length ? tally.list[0].k : null;
+      b.tally = tally;
+    }
+    b.resolved = true;
+    if (c.me.won && b.me === right) { c.mePts += BONUS_PTS; stream.me += BONUS_PTS; }
+    if (c.chat.won && b.chat === right) { c.chatPts += BONUS_PTS; stream.chat += BONUS_PTS; }
+    renderStreamBonus();
+    streamDone();
+  }
+
+  function streamDone() {
+    const c = stream.cur;
+    c.phase = "done";
+    clearInterval(stream.timer);
+    revealAlbum(round);
+    renderStreamReveal();
+    renderStream();
+    renderRoundPoints();
+    streamControls();
+    updateNextButton();
+    setStatus(stream.idx + 1 < stream.ids.length ? "Jöhet a következő dal!" : "Vége a meccsnek – nézzük az eredményt!");
+  }
+
+  function streamNext() {
+    const c = stream && stream.cur;
+    if (!c || c.phase !== "done") return;
+    if (stream.idx + 1 >= stream.ids.length) return openStreamResult();
+    stream.idx++;
+    streamStartSong();
+  }
+
+  // ----- Megjelenítés -----
+  const sideText = (s, won) => (won ? `${s.attempts.length}. tippre` : "nem találta");
+  function renderStreamReveal() {
+    const c = stream.cur, t = round.track;
+    el.revealResult.textContent = `🎬 Streamer: ${sideText(c.me, c.me.won)} · 💬 Chat: ${sideText(c.chat, c.chat.won)}`;
+    el.revealResult.classList.toggle("lost", !c.me.won && !c.chat.won);
+    el.revealTitle.textContent = t.title;
+    el.revealArtist.textContent = artistLine(t);
+    el.revealEmoji.textContent = `🎬 ${emojiRow(c.me)}  💬 ${emojiRow(c.chat)}`;
+    el.revealPoints.textContent = `🎬 +${c.mePts} · 💬 +${c.chatPts}`;
+    el.revealSet.hidden = !c.calledIt;
+    el.revealSet.textContent = c.calledIt ? `🎯 Elsőként eltalálta: ${c.calledIt}` : "";
+    el.reveal.hidden = false;
+    retrigger(el.reveal, "in");
+    renderReportBtn();
+  }
+
+  function renderStreamBonus() {
+    const c = stream.cur, b = c.bonus;
+    if (!b) return;
+    el.bonus.hidden = false;
+    el.bonus.classList.remove("pending");
+    const right = b.options.indexOf(b.answer);
+    const q = b.kind === "year" ? "melyik évben jelent meg?" : "melyik albumon van?";
+    if (b.resolved) {
+      const res = (won, pick) => (!won ? "–" : pick === right ? `✓ +${BONUS_PTS}` : "✗");
+      el.bonusQ.textContent = `🎯 Bónusz · 🎬 ${res(c.me.won, b.me)} · 💬 ${res(c.chat.won, b.chat)}`;
+    } else {
+      el.bonusQ.textContent = `🎯 Bónuszkérdés (+${BONUS_PTS} pont): ${q}`
+        + (c.phase === "bonus" && c.me.won && b.me === null ? " – a streamer válaszol" : c.phase === "bvote" ? " – a chat szavaz (1–4)" : "");
+    }
+    el.bonusOpts.innerHTML = "";
+    el.bonusOpts.classList.toggle("albums", b.kind === "album");
+    b.options.forEach((o, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "chip";
+      btn.textContent = `${i + 1}. ${o}`;
+      const open = c.phase === "bonus" && c.me.won && b.me === null;
+      btn.disabled = !open;
+      if (open) btn.addEventListener("click", () => streamPickBonus(i));
+      if (b.resolved) {
+        if (i === right) btn.classList.add("right");
+        else if (i === b.me || i === b.chat) btn.classList.add("wrong");
+        const tags = [b.me === i && "🎬", b.chat === i && "💬"].filter(Boolean).join("");
+        if (tags) btn.textContent += " " + tags;
+      }
+      el.bonusOpts.appendChild(btn);
+    });
+    renderStream();
+  }
+
+  // A tábla: a két fél tippjei körönként. A helyes tipp a dal végéig rejtve marad.
+  function renderStream() {
+    if (!stream) return;
+    const c = stream.cur;
+    st.me.textContent = stream.me;
+    st.chat.textContent = stream.chat;
+    renderRoundPoints();
+    if (!c) return;
+    const over = c.phase === "bonus" || c.phase === "bvote" || c.phase === "done";
+    const fill = (list, side, isMe) => {
+      list.innerHTML = "";
+      for (let i = 0; i <= Math.min(c.stage, MAX_TRIES - 1); i++) {
+        const a = side.attempts[i];
+        if (!a && (side.done || over)) break;
+        const li = document.createElement("li");
+        const mark = document.createElement("span");
+        mark.className = "mark";
+        const label = document.createElement("span");
+        label.className = "label";
+        if (a) {
+          li.className = a.type;
+          mark.textContent = { right: "✓", wrong: "✗", near: "~", skip: "»" }[a.type];
+          if (a.type === "right" && !over) label.textContent = "Megvan! (titok a dal végéig)";
+          else if (a.type === "skip") label.textContent = isMe ? "Kihagyva" : a.votes ? `Kihagyás · ${a.share}%` : "Nem szavazott senki";
+          else label.textContent = a.label + (isMe ? "" : ` · ${a.share}%`);
+        } else {
+          li.className = "pending";
+          mark.textContent = "…";
+          label.textContent = isMe
+            ? (c.pending ? "🔒 Lezárva" : "Gondolkodik…")
+            : (c.phase === "vote" ? "🗳️ Szavaz…" : "Vár a streamerre…");
+        }
+        li.append(mark, label);
+        list.appendChild(li);
+      }
+    };
+    fill(st.meList, c.me, true);
+    fill(st.chatList, c.chat, false);
+
+    // Szavazás közben csak a szavazatok száma látszik, a tippek nem.
+    const voting = c.phase === "vote" || c.phase === "bvote";
+    st.vote.hidden = !voting;
+    if (voting) {
+      st.voteTitle.textContent = c.phase === "vote" ? "💬 Chat, szavazz!" : "💬 Chat, bónusz!";
+      st.voteHelp.innerHTML = c.phase === "vote"
+        ? "Írd a chatbe: <b>!tipp dalcím</b> · kihagyás: <b>!skip</b>"
+        : "Írd a chatbe: <b>1</b>, <b>2</b>, <b>3</b> vagy <b>4</b>";
+    }
+    st.hint.hidden = !(c.phase === "play" && !c.me.done && !c.pending);
+
+    renderStreamBars();
+    renderStreamMvp();
+  }
+
+  // Az utolsó szavazás 3 legnépszerűbb tippje. A dal közben a helyes tipp neve rejtve marad.
+  function renderStreamBars() {
+    const c = stream.cur;
+    const b = c.bonus;
+    const bonusTally = b && b.resolved && b.tally;
+    const t = bonusTally || c.lastTally;
+    st.bars.hidden = !t || !t.total;
+    if (st.bars.hidden) return;
+    const over = c.phase === "bonus" || c.phase === "bvote" || c.phase === "done";
+    st.bars.innerHTML = "";
+    const head = document.createElement("p");
+    head.className = "st-bars-head";
+    const top = t.list[0];
+    head.textContent = bonusTally
+      ? `Bónusz szavazás · ${t.total} szavazat`
+      : `Chat szavazás (${t.stage + 1}. kör) · ${t.total} szavazat · egyetértés ${Math.round((top.n / t.total) * 100)}%`;
+    st.bars.appendChild(head);
+    for (const g of t.list.slice(0, 3)) {
+      const pct = Math.round((g.n / t.total) * 100);
+      const row = document.createElement("div");
+      row.className = "st-bar";
+      const fillEl = document.createElement("i");
+      fillEl.style.width = pct + "%";
+      const label = document.createElement("span");
+      if (bonusTally) label.textContent = `${g.k + 1}. ${b.options[g.k]}`;
+      else if (g.k === "skip") label.textContent = "⏭ Kihagyás";
+      else if (!over && judge(g.v.track, round.track) === "right") label.textContent = "??? (titok a dal végéig)";
+      else label.textContent = trackLabel(g.v.track);
+      const n = document.createElement("b");
+      n.textContent = `${pct}%`;
+      row.append(fillEl, label, n);
+      st.bars.appendChild(row);
+    }
+  }
+
+  const mvpList = () => [...stream.mvp.values()].sort((a, b) => b.pts - a.pts || b.hits - a.hits);
+  function renderStreamMvp() {
+    const top = mvpList().slice(0, 3);
+    st.mvp.hidden = !top.length;
+    st.mvp.textContent = top.length ? "🏅 " + top.map((p) => `${p.name} ${p.pts}`).join(" · ") : "";
+  }
+
+  // ----- Eredmény -----
+  const sr = {
+    dialog: $("streamResultDialog"), verdict: $("srVerdict"), score: $("srScore"), mvp: $("srMvp"), calls: $("srCalls"),
+  };
+  function openStreamResult() {
+    if (document.querySelector("dialog[open]")) return;
+    const win = stream.me > stream.chat ? "me" : stream.chat > stream.me ? "chat" : null;
+    sr.verdict.textContent = win === "me" ? "🏆 A streamer nyert!" : win === "chat" ? "🏆 A chat nyert!" : "🤝 Döntetlen";
+    sr.verdict.classList.toggle("win", !!win);
+    sr.score.textContent = `🎬 Streamer ${stream.me} – ${stream.chat} Chat 💬`;
+    sr.mvp.innerHTML = "";
+    const list = mvpList().slice(0, 5);
+    list.forEach((p, i) => {
+      const li = document.createElement("li");
+      const place = document.createElement("span");
+      place.className = "place";
+      place.textContent = i === 0 ? "🏅" : `${i + 1}.`;
+      const nm = document.createElement("span");
+      nm.className = "nm";
+      nm.textContent = `${p.name} · ${p.hits} találat`;
+      const sc = document.createElement("b");
+      sc.textContent = p.pts;
+      li.append(place, nm, sc);
+      sr.mvp.appendChild(li);
+    });
+    if (!list.length) {
+      const li = document.createElement("li");
+      li.textContent = "Ebben a meccsben senki sem találta el a dalt a chatből.";
+      sr.mvp.appendChild(li);
+    }
+    // Ki volt a leggyakrabban elsőként helyes („called it”).
+    const calls = new Map();
+    for (const n of stream.calls) calls.set(n, (calls.get(n) || 0) + 1);
+    const best = [...calls].sort((a, b) => b[1] - a[1]).slice(0, 3);
+    sr.calls.textContent = best.length ? "🎯 Elsőként találta el: " + best.map(([n, k]) => `${n} ×${k}`).join(", ") : "";
+    sr.dialog.showModal();
+    if (win) setTimeout(confetti, 300);
+    countEvent(`stream-done-${win || "draw"}`);
+  }
+  $("srAgainBtn").addEventListener("click", () => { sr.dialog.close(); startStream(stream.channel); });
+  $("srLeaveBtn").addEventListener("click", () => { sr.dialog.close(); leaveStream(); });
+
+  // ----- Twitch chat (névtelen olvasás, bejelentkezés nélkül) -----
+  let tw = null; // { channel, ws, state: "connecting" | "ok" | "down", retry, timer }
+  function twConnect(channel) {
+    twClose();
+    tw = { channel, ws: null, state: "connecting", retry: 0, timer: 0 };
+    twOpen(tw);
+    renderTwConn();
+  }
+  function twOpen(me) {
+    let ws;
+    try { ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443"); } catch { return twRetry(me); }
+    me.ws = ws;
+    ws.onopen = () => {
+      ws.send("CAP REQ :twitch.tv/tags");
+      ws.send("PASS SCHMOOPIIE");
+      ws.send("NICK justinfan" + (10000 + Math.floor(Math.random() * 80000)));
+      ws.send("JOIN #" + me.channel);
+    };
+    ws.onmessage = (e) => {
+      if (tw !== me) return;
+      for (const line of String(e.data).split("\r\n")) if (line) twLine(me, line);
+    };
+    ws.onclose = () => {
+      if (tw !== me) return;
+      me.state = "down";
+      renderTwConn();
+      twRetry(me);
+    };
+  }
+  function twRetry(me) {
+    clearTimeout(me.timer);
+    me.timer = setTimeout(() => { if (tw === me) twOpen(me); }, Math.min(30000, 2000 * 2 ** me.retry++));
+  }
+  function twLine(me, line) {
+    if (line.startsWith("PING")) return me.ws.send("PONG" + line.slice(4));
+    const tags = {};
+    let rest = line;
+    if (rest[0] === "@") {
+      const i = rest.indexOf(" ");
+      for (const kv of rest.slice(1, i).split(";")) {
+        const j = kv.indexOf("=");
+        tags[kv.slice(0, j)] = kv.slice(j + 1);
+      }
+      rest = rest.slice(i + 1);
+    }
+    const m = rest.match(/^:([^! ]+)\S* ([A-Z0-9]+) ?(.*)$/);
+    if (!m) return;
+    const [, prefix, cmd, params] = m;
+    if (cmd === "JOIN" && prefix.startsWith("justinfan")) {
+      me.state = "ok";
+      me.retry = 0;
+      renderTwConn();
+    } else if (cmd === "RECONNECT") {
+      me.ws.close();
+    } else if (cmd === "PRIVMSG") {
+      const i = params.indexOf(" :");
+      if (i < 0) return;
+      const text = params.slice(i + 2);
+      if (text.startsWith("\u0001")) return; // /me üzenet
+      const login = prefix.toLowerCase();
+      const name = (tags["display-name"] || "").replace(/\\s/g, " ").trim() || login;
+      streamChat({ id: tags["user-id"] || login, login, name }, text);
+    }
+  }
+  function twClose() {
+    if (!tw) return;
+    const me = tw;
+    tw = null;
+    clearTimeout(me.timer);
+    try { if (me.ws) me.ws.close(); } catch { /* már zárva */ }
+  }
+  function renderTwConn() {
+    const c = $("twConn");
+    if (!c || !tw) return;
+    c.textContent = tw.state === "ok" ? `🟢 #${tw.channel}` : tw.state === "connecting" ? "🟠 Csatlakozás a chathez…" : "🔴 A chat nem elérhető";
+    c.classList.toggle("down", tw.state === "down");
+  }
+
   // ---------- Látogatottság (GoatCounter, ha be van állítva) ----------
   function countEvent(name) {
     try {
@@ -3277,6 +3997,7 @@
   function sendReport(t, reason) {
     if (!CFG.REPORT_ENDPOINT) return;
     const modeText = round.mode === "daily" ? "napi dal" : round.mode === "versus" ? versus.kind
+      : round.mode === "stream" ? "streamer vs chat"
       : `végtelen · ${catLabel(category)}`;
     fetch(CFG.REPORT_ENDPOINT, {
       method: "POST",

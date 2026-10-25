@@ -1567,3 +1567,74 @@ input[role="switch"]:focus-visible { outline: 2px solid var(--accent); outline-o
 .battle-players li { padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, .07); font-size: .85rem; font-weight: 700; }
 .battle-players li.host::before { content: "👑 "; }
 .battle-players li.me { outline: 1px solid rgba(30, 215, 96, .5); }
+
+/* ---------- Streamer vs Chat ---------- */
+.stream-panel { display: none; }
+body[data-mode="stream"] .stream-panel { display: grid; gap: 10px; }
+body[data-mode="stream"] .guesses:not(.st-list),
+body[data-mode="stream"] .tries,
+body[data-mode="stream"] .streak-line,
+body[data-mode="stream"] #shareBtn { display: none; }
+/* A streamer beírt tippje a képernyőn (és így a streamen) is rejtve marad. */
+body[data-mode="stream"] #guessInput { -webkit-text-security: disc; text-security: disc; }
+.stream-chip { border-color: rgba(145, 70, 255, .45) !important; background: rgba(145, 70, 255, .14) !important; }
+.tw-conn { color: var(--text); cursor: default; display: inline-flex; align-items: center; }
+.tw-conn.down { color: var(--wrong); border-color: rgba(255, 84, 112, .4); }
+
+.st-score { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.st-side { display: grid; justify-items: center; min-width: 96px; padding: 6px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+.st-side small { color: var(--muted); font-weight: 700; font-size: .78rem; }
+.st-side b { font-size: 1.9rem; font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.st-side.chat { border-color: rgba(145, 70, 255, .45); background: rgba(145, 70, 255, .1); }
+.st-colon { font-size: 1.6rem; font-weight: 900; color: var(--muted); }
+
+.st-vote { text-align: center; padding: 12px 14px; border-radius: 18px; border: 1px solid rgba(145, 70, 255, .5); animation: rise .4s var(--ease-out); }
+.st-vote p { margin: 0; }
+.st-vote-title { font-size: 1.3rem; font-weight: 900; }
+.st-vote-help { margin-top: 4px !important; font-size: 1.05rem; }
+.st-vote-help b { color: #c9a8ff; font-weight: 900; }
+.st-vote-time { margin: 6px 0 8px !important; color: var(--muted); font-weight: 700; }
+.st-vote-time b { font-size: 2.2rem; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; }
+.st-vote-time small { margin: 0 2px; }
+.st-hint { margin: 0; text-align: center; color: var(--muted); font-size: .85rem; }
+
+.st-board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.st-col { margin: 0 0 6px; font-weight: 800; font-size: .85rem; color: var(--muted); text-align: center; }
+.st-list li { min-height: 40px; padding: 6px 9px; gap: 7px; font-size: .84rem; }
+.st-list li .mark { width: 20px; height: 20px; font-size: .75rem; }
+.st-list li .label { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+.st-list li.pending { color: var(--muted); border-style: dashed; }
+.st-list li.pending .mark { background: var(--surface-2); }
+
+.st-bars { display: grid; gap: 6px; padding: 10px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+.st-bars-head { margin: 0 0 2px; font-size: .8rem; font-weight: 700; color: var(--muted); }
+.st-bar { position: relative; display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px; border-radius: 10px; overflow: hidden; background: rgba(255, 255, 255, .04); font-size: .85rem; }
+.st-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, rgba(145, 70, 255, .45), rgba(145, 70, 255, .2)); border-radius: 10px; transition: width .6s var(--ease-out); }
+.st-bar span, .st-bar b { position: relative; }
+.st-bar span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.st-bar b { flex: none; font-variant-numeric: tabular-nums; }
+.st-mvp { margin: 0; text-align: center; font-size: .85rem; font-weight: 700; color: rgba(255, 220, 150, .85); }
+
+.st-setlabel { margin: 4px 0 0 !important; font-size: .82rem; font-weight: 700; }
+.st-rules { margin: 10px 0; padding-left: 18px; display: grid; gap: 6px; font-size: .88rem; color: var(--muted); }
+.st-rules b { color: var(--text); }
+.st-warn { font-size: .8rem; color: rgba(255, 220, 150, .85) !important; }
+.sr-score { margin: -8px 0 12px; font-size: 1.1rem; font-weight: 800; }
+.segmented[data-mode="stream"] .seg-indicator { opacity: 0; }
+/* Telefonon kisebb lemez, hogy a szavazás és a tábla is látszódjon görgetés nélkül. */
+body[data-mode="stream"] { --disc: clamp(96px, calc(38dvh - 150px), 180px); }
+/* Széles ablakban (OBS-felvétel) két oszlop: balra a lemez, jobbra az állás, a szavazás és a tábla. */
+@media (min-width: 900px) {
+  body[data-mode="stream"] { --disc: clamp(160px, calc(100dvh - 520px), 300px); }
+  body[data-mode="stream"] .game {
+    max-width: 1060px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 32px;
+    align-items: start;
+  }
+  body[data-mode="stream"] .game > * { grid-column: 1; }
+  body[data-mode="stream"] .game > .stream-panel { grid-column: 2; grid-row: 1 / span 12; }
+  .st-side b { font-size: 2.4rem; }
+  .st-list li { font-size: .95rem; }
+}

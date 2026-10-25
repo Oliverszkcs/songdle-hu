@@ -45,6 +45,17 @@ A sorozat, a pontok és a statisztika a böngésző `localStorage`-ában tárol�
   - Ha valaki újratölti az oldalt vagy átvált egy másik appra, ugyanabba a meccsbe tér vissza
     (a meccs állása a lap bezárásáig megmarad).
   - Szigorú (pl. egyes mobil-) hálózatokon TURN-szerver nélkül előfordulhat, hogy nem jön létre a kapcsolat.
+- **📺 Streamer vs Chat**: a Végtelen mód „📺 Stream” gombjával. A streamer megadja a Twitch-csatornáját,
+  kategóriát, hosszt (5, 10 vagy 15 dal) és a szavazási időt (20, 25 vagy 30 mp).
+  - Minden dalnál a streamer lejátssza a részletet, és rejtve beírja a tippjét (a mező maszkolt, nincs
+    javaslatlista), ezzel lezárja. Utána nyílik a chat szavazása: `!tipp dalcím` (vagy `!t`), kihagyás `!skip`.
+    Mindenki szavazhat, nem csak a feliratkozók; nézőnként az utolsó szavazat számít.
+  - A chat egy játékosként tippel: a legtöbb szavazatot kapott dal a tippje. A pont a tippek számán múlik
+    (100 / 80 / 60 / 40 / 25 / 10), nem az időn. A végén bónuszkérdés (`!1`–`!4`), +25 pont.
+  - Oszlopok mutatják a chat 3 legnépszerűbb tippjét (a helyes cím a dal végéig rejtve). MVP: aki a nyertes
+    tippre szavazott, megkapja a kör pontját; „Elsőként találta el”: aki először írta a helyes címet.
+  - A chatet névtelenül olvassuk (Twitch IRC WebSocket, bejelentkezés nélkül). Becsületbeli szabály: a streamer
+    ne nézze a chatet, amíg nem zárta le a tippjét. A meccs újratöltéskor elvész.
 
 A dalok hangja mindig a Deezerről szól (streamelve), a játék nem tárolja el. Az előadók
 dallistái a böngészőben maradnak (Cache Storage), így a dalok gyorsabban betöltődnek.
