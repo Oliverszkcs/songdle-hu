@@ -194,6 +194,7 @@ window.SONGDLE_CONFIG = {
   // a Dallista → „Jelentett” → „Lista másolása” gombbal lehet ide bemásolni.
   BLOCKED_TRACKS: [
     // { id: 123456, note: "Cím – Előadó: duplikált" },
+    { id: 4012948221, note: "NU MĂ LASĂ – Tóth Andi: román nyelvű" },
     // A Deezer néhány előadónál egy azonos nevű külföldi előadó dalait is ugyanarra az oldalra teszi:
     { id: 3856813311, note: "Pass the Plate – nem a magyar Desh (Deezer összevont oldal, kiadó: Chillhop Music)" },
     { id: 2931361521, note: "Wherever You Are – nem a magyar Desh (Deezer összevont oldal, kiadó: Chillhop Music)" },

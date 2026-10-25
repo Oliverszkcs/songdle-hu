@@ -1,7 +1,7 @@
 {
   "name": "Songdle HU",
   "short_name": "Songdle HU",
-  "description": "Magyar dalfelismerős játék végtelen móddal.",
+  "description": "Ingyenes magyar dalfelismerős játék: napi dal, napi előadó, végtelen mód és párbaj.",
   "lang": "hu",
   "start_url": "./",
   "scope": "./",

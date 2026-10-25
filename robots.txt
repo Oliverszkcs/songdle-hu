@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://songdle.hu/sitemap.xml
