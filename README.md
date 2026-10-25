@@ -56,6 +56,10 @@ A sorozat, a pontok és a statisztika a böngésző `localStorage`-ában tárol�
     tippre szavazott, megkapja a kör pontját; „Elsőként találta el”: aki először írta a helyes címet.
   - A chatet névtelenül olvassuk (Twitch IRC WebSocket, bejelentkezés nélkül). Becsületbeli szabály: a streamer
     ne nézze a chatet, amíg nem zárta le a tippjét. A meccs újratöltéskor elvész.
+  - Indítás előtt a játék megvárja, hogy a Twitch visszaigazolja a csatornát (`ROOMSTATE`). Ha nincs ilyen csatorna
+    vagy nem érhető el a chat, a beállítás nyitva marad, és kiírja a hibát. Ha a csatorna nem élő (a nyilvános
+    [decapi.me](https://decapi.me) szerint), figyelmeztet, és csak második kattintásra indul.
+  - „📖 Útmutató streamereknek” (a beállításból és a súgóból): parancsok, chatbe másolható szabályok, OBS- és DMCA-tipp.
 
 A dalok hangja mindig a Deezerről szól (streamelve), a játék nem tárolja el. Az előadók
 dallistái a böngészőben maradnak (Cache Storage), így a dalok gyorsabban betöltődnek.
@@ -108,7 +112,9 @@ npx serve .
 
 (A service worker miatt `http://localhost`-on vagy HTTPS-en futtasd, ne `file://`-ként.)
 
-Ha módosítasz az alkalmazás fájljain, emeld meg a `CACHE` verziót az `sw.js`-ben.
+Ha módosítasz az alkalmazás fájljain, futtasd a `node tools/bump-version.mjs` parancsot. Ez egyszerre emeli az `sw.js`
+`CACHE`-ét, az `index.html` `data-v`-jét és `?v=` linkjeit, valamint az `app.js` `APP_V`-jét. Ha ezek eltérnek, a böngésző
+régi és új fájlokat keverhet (az app ilyenkor egyszer magától újratölt).
 
 ## Licenc
 

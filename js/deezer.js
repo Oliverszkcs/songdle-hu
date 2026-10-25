@@ -30,6 +30,8 @@
       const timer = setTimeout(() => {
         if (done) return;
         cleanup();
+        // A már elindult kérés a script eltávolítása után is lefut: egy üres hívás fogadja, ne legyen hiba.
+        window[cb] = () => { delete window[cb]; };
         reject(new Error("Időtúllépés: " + path));
       }, timeoutMs);
 

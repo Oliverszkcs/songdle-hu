@@ -1582,7 +1582,7 @@ body[data-mode="stream"] #guessInput { -webkit-text-security: disc; text-securit
 .tw-conn.down { color: var(--wrong); border-color: rgba(255, 84, 112, .4); }
 
 .st-score { display: flex; align-items: center; justify-content: center; gap: 14px; }
-.st-side { display: grid; justify-items: center; min-width: 96px; padding: 6px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+.st-side { display: grid; justify-items: center; box-sizing: border-box; width: 124px; padding: 6px 10px; border-radius: 16px; border: 1px solid rgba(30, 215, 96, .45); background: rgba(30, 215, 96, .08); }
 .st-side small { color: var(--muted); font-weight: 700; font-size: .78rem; }
 .st-side b { font-size: 1.9rem; font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .st-side.chat { border-color: rgba(145, 70, 255, .45); background: rgba(145, 70, 255, .1); }
@@ -1599,10 +1599,14 @@ body[data-mode="stream"] #guessInput { -webkit-text-security: disc; text-securit
 .st-hint { margin: 0; text-align: center; color: var(--muted); font-size: .85rem; }
 
 .st-board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
-.st-col { margin: 0 0 6px; font-weight: 800; font-size: .85rem; color: var(--muted); text-align: center; }
-.st-list li { min-height: 40px; padding: 6px 9px; gap: 7px; font-size: .84rem; }
+.st-col { margin: 0 0 6px; font-weight: 800; font-size: .85rem; color: rgba(110, 231, 150, .9); text-align: center; }
+.st-board > div:last-child .st-col { color: #c9a8ff; }
+/* Mindkét oszlopban ugyanolyan magas sorok, hogy a két fél körei egymás mellett legyenek. */
+.st-list li { box-sizing: border-box; height: 50px; min-height: 0; padding: 0 9px; gap: 7px; font-size: .84rem; }
 .st-list li .mark { width: 20px; height: 20px; font-size: .75rem; }
-.st-list li .label { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+.st-list li .label { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.st-list li.blank { border-color: transparent; background: rgba(255, 255, 255, .02); box-shadow: none; }
+.st-list li.blank .mark { background: none; }
 .st-list li.pending { color: var(--muted); border-style: dashed; }
 .st-list li.pending .mark { background: var(--surface-2); }
 
@@ -1638,3 +1642,20 @@ body[data-mode="stream"] { --disc: clamp(96px, calc(38dvh - 150px), 180px); }
   .st-side b { font-size: 2.4rem; }
   .st-list li { font-size: .95rem; }
 }
+
+/* Streamer-útmutató */
+.st-guide-link {
+  display: inline-block; margin: 2px 0 8px; padding: 0; border: 0; background: none;
+  color: #c9a7ff; font: inherit; font-size: .86rem; font-weight: 700; text-decoration: underline; cursor: pointer;
+}
+.help .st-guide-link { margin: 4px 0 0; }
+.st-guide { margin: 6px 0 10px; padding-left: 20px; display: grid; gap: 8px; font-size: .9rem; color: var(--muted); }
+.st-guide b, .st-guide-note b { color: var(--text); }
+.st-guide-note { font-size: .88rem; color: var(--muted); margin: 6px 0 10px; }
+.st-cmds { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 6px; font-size: .88rem; color: var(--muted); }
+.st-cmds li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.st-cmds code, .st-guide-note code {
+  background: rgba(145, 70, 255, .18); color: var(--text); border-radius: 6px; padding: 2px 7px; font-size: .86rem;
+}
+#streamGuideDialog h3 { margin: 14px 0 4px; font-size: .95rem; }
+#streamCopyRules { width: 100%; margin-bottom: 4px; }

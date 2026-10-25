@@ -1,6 +1,16 @@
 (function () {
   "use strict";
 
+  // Ugyanaz a szám, mint az index.html data-v-je, a ?v= linkek és az sw.js CACHE-e: frissítéskor mindet emeld.
+  // Ha egy frissítés után a CDN régi oldalt adna új szkripttel (vagy fordítva), a kettő nem illik össze,
+  // és félbemaradna az indulás. Ilyenkor egyszer újratöltjük az oldalt.
+  const APP_V = "50";
+  if (document.documentElement.dataset.v !== APP_V) {
+    let reloaded = false;
+    try { reloaded = sessionStorage.getItem("songdle.vReload") === APP_V; sessionStorage.setItem("songdle.vReload", APP_V); } catch { /* nincs tároló */ }
+    if (!reloaded) { location.reload(); return; }
+  }
+
   const CFG = window.SONGDLE_CONFIG;
   const LENGTHS = CFG.CLIP_LENGTHS;
   const MAX_TRIES = LENGTHS.length;
@@ -557,6 +567,9 @@
     el.modeArtist.setAttribute("aria-selected", String(mode === "artist"));
     document.body.dataset.mode = mode;
     el.input.placeholder = mode === "stream" ? "Dalcím – rejtve, a chat nem látja…" : "Dal címe vagy előadó…";
+    // Ahol a CSS-es maszk nem működik, jelszómezővel rejtjük el a streamer tippjét.
+    const cssMask = window.CSS && CSS.supports && CSS.supports("-webkit-text-security", "disc");
+    el.input.type = mode === "stream" && !cssMask ? "password" : "text";
     el.dailyBanner.hidden = mode !== "daily" && mode !== "versus" && mode !== "stream";
     if (mode === "stream") {
       el.dailyBanner.textContent = "";
@@ -3229,6 +3242,7 @@
   function openStreamSetup() {
     sd.channel.value = load("streamChannel", "");
     renderStreamSetup();
+    resetStreamGo();
     sdStatus("");
     sd.dialog.showModal();
   }
@@ -3238,16 +3252,86 @@
     withHard: false,
     onPick: (id) => { save("streamCat", id); renderStreamSetup(); },
   }));
-  function streamGo() {
+  // Élő-e most a csatorna (decapi.me, nyilvános). true / false, vagy null, ha nem derül ki.
+  async function twitchLive(channel) {
+    try {
+      const ctrl = new AbortController();
+      setTimeout(() => ctrl.abort(), 4000);
+      const r = await fetch(`https://decapi.me/twitch/uptime/${channel}`, { signal: ctrl.signal });
+      const text = (await r.text()).toLowerCase();
+      if (!r.ok) return null;
+      if (text.includes("offline")) return false;
+      return /\d+\s*(second|minute|hour|day)/.test(text) ? true : null;
+    } catch {
+      return null;
+    }
+  }
+
+  let sdOffline = ""; // ennek a csatornának már szóltunk, hogy offline: a második kattintás elindítja
+  function resetStreamGo() {
+    sdOffline = "";
+    sd.go.disabled = false;
+    sd.go.textContent = "Indítás";
+  }
+  async function streamGo() {
+    if (sd.go.disabled) return;
     // A csatorna neve vagy a teljes link (twitch.tv/nev) is jó.
     const m = sd.channel.value.trim().toLowerCase().match(/^(?:https?:\/\/)?(?:www\.)?(?:twitch\.tv\/)?#?([a-z0-9_]{3,25})\/?$/);
-    if (!m) return sdStatus("Add meg a Twitch-csatornád nevét!", true);
-    save("streamChannel", m[1]);
+    if (!m) return sdStatus("Add meg a Twitch-csatornád nevét (pl. csatornanev vagy twitch.tv/csatornanev)!", true);
+    const channel = m[1];
+    save("streamChannel", channel);
+    if (sdOffline === channel && tw && tw.channel === channel && tw.state === "ok") return streamLaunch(channel);
+    resetStreamGo();
+    sd.go.disabled = true;
+    sd.go.textContent = "Csatlakozás…";
+    sdStatus(`🟠 Csatlakozás a #${channel} chathez…`);
+    const live = twitchLive(channel);
+    if (!tw || tw.channel !== channel || tw.state !== "ok") twConnect(channel);
+    const state = await twWait(tw, TW_JOIN_MS + 4000);
+    // Közben bezárta az ablakot vagy másik csatornát írt be.
+    if (!sd.dialog.open || !tw || tw.channel !== channel) return;
+    resetStreamGo();
+    if (state === "missing") {
+      twClose();
+      return sdStatus(`❌ Nincs ilyen Twitch-csatorna: #${channel}. Ellenőrizd a nevet!`, true);
+    }
+    if (state !== "ok") {
+      twClose();
+      return sdStatus("❌ Nem sikerült elérni a Twitch chatet. Ellenőrizd a netet, és próbáld újra!", true);
+    }
+    if ((await live) === false) {
+      if (!sd.dialog.open) return;
+      sdOffline = channel;
+      sd.go.textContent = "Indítás így is";
+      return sdStatus(`🟢 Megvan a #${channel} chat, de a csatorna most nem élő. A chat csak adás közben tud szavazni.`);
+    }
+    streamLaunch(channel);
+  }
+  function streamLaunch(channel) {
     sd.dialog.close();
-    startStream(m[1]);
+    startStream(channel);
+    toast(`🟢 Csatlakozva a #${channel} chathez!`);
   }
   sd.go.addEventListener("click", streamGo);
   sd.channel.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); streamGo(); } });
+  sd.channel.addEventListener("input", () => { if (!sd.go.disabled) { resetStreamGo(); sdStatus(""); } });
+  // Útmutató: a beállításból és a súgóból is nyílik (a másik ablak fölött).
+  const guideDialog = $("streamGuideDialog");
+  for (const b of document.querySelectorAll("[data-stream-guide]")) {
+    b.addEventListener("click", () => {
+      guideDialog.showModal();
+      guideDialog.querySelector("form").scrollTop = 0;
+      countEvent("stream-guide");
+    });
+  }
+  $("streamCopyRules").addEventListener("click", async () => {
+    const text = "🎵 Songdle – a chat a streamer ellen játszik! Szavazáskor írd: !tipp dalcím (vagy !skip a kihagyáshoz), "
+      + "bónusznál: 1, 2, 3 vagy 4. A legtöbb szavazatot kapott tipp a chaté. Aki a jó dalra szavaz, MVP-pontot kap! songdle.hu";
+    toast(await copyText(text) ? "Másolva – illeszd be a chatbe! 📋" : "Nem sikerült másolni.");
+  });
+
+  // Mégse: ha nem indult meccs, a félbehagyott chatkapcsolatot is bontjuk.
+  sd.dialog.addEventListener("close", () => { if (!stream) twClose(); resetStreamGo(); });
 
   function startStream(channel) {
     if (mode === "versus") closeVersus();
@@ -3406,9 +3490,12 @@
 
   // A chat szövege a dallistában: a játék keresője, elírásnál a címhez legközelebbi dal.
   function chatMatch(text) {
-    const hit = search(text, true)[0];
-    if (hit) return hit;
     const q = norm(text);
+    const hits = search(text, true);
+    // A pontosan így hívott dal előnyt kap („Képzeld el” ne a „Képzeld el és megkapod!” legyen).
+    const isExact = (t) => t.nTitle === q || norm(t.base) === q;
+    const exact = hits.find(isExact) || pool.find(isExact);
+    if (exact || hits[0]) return exact || hits[0];
     if (q.length < 4) return null;
     let best = null, bestD = Math.floor(q.length / 6) + 2;
     for (const t of pool) {
@@ -3639,12 +3726,23 @@
             ? (c.pending ? "🔒 Lezárva" : "Gondolkodik…")
             : (c.phase === "vote" ? "🗳️ Szavaz…" : "Vár a streamerre…");
         }
+        label.title = label.textContent;
         li.append(mark, label);
         list.appendChild(li);
       }
     };
     fill(st.meList, c.me, true);
     fill(st.chatList, c.chat, false);
+    // Az előbb végző fél oszlopát üres sorokkal pótoljuk, hogy a körök egy vonalban maradjanak.
+    const rows = Math.max(st.meList.children.length, st.chatList.children.length);
+    for (const list of [st.meList, st.chatList]) {
+      while (list.children.length < rows) {
+        const li = document.createElement("li");
+        li.className = "blank";
+        li.setAttribute("aria-hidden", "true");
+        list.appendChild(li);
+      }
+    }
 
     // Szavazás közben csak a szavazatok száma látszik, a tippek nem.
     const voting = c.phase === "vote" || c.phase === "bvote";
@@ -3742,35 +3840,68 @@
     if (win) setTimeout(confetti, 300);
     countEvent(`stream-done-${win || "draw"}`);
   }
-  $("srAgainBtn").addEventListener("click", () => { sr.dialog.close(); startStream(stream.channel); });
+  $("srAgainBtn").addEventListener("click", () => {
+    sr.dialog.close();
+    const channel = stream.channel;
+    if (tw && tw.channel === channel && tw.state === "ok") return startStream(channel);
+    // Megszakadt a chat: csak újra-csatlakozás (és visszaigazolás) után indulhat a meccs.
+    leaveStream();
+    openStreamSetup();
+    sdStatus("🔴 Megszakadt a kapcsolat a chattel – nyomd meg az Indítást az újracsatlakozáshoz.", true);
+  });
   $("srLeaveBtn").addEventListener("click", () => { sr.dialog.close(); leaveStream(); });
 
   // ----- Twitch chat (névtelen olvasás, bejelentkezés nélkül) -----
-  let tw = null; // { channel, ws, state: "connecting" | "ok" | "down", retry, timer }
+  // state: "connecting" | "ok" (a Twitch visszaigazolta a csatornát) | "down" (nincs kapcsolat) | "missing" (nincs ilyen csatorna)
+  let tw = null; // { channel, ws, state, retry, timer, joinTimer, waiters }
+  const TW_JOIN_MS = 7000;
   function twConnect(channel) {
     twClose();
-    tw = { channel, ws: null, state: "connecting", retry: 0, timer: 0 };
+    tw = { channel, ws: null, state: "connecting", retry: 0, timer: 0, joinTimer: 0, waiters: [] };
     twOpen(tw);
     renderTwConn();
+  }
+  function twSetState(me, state) {
+    me.state = state;
+    if (state !== "connecting") {
+      for (const w of me.waiters.splice(0)) w(state);
+    }
+    renderTwConn();
+  }
+  // Megvárja, hogy kiderüljön, él-e a kapcsolat (vagy hogy nincs ilyen csatorna).
+  function twWait(me, ms) {
+    if (me.state === "ok" || me.state === "missing") return Promise.resolve(me.state);
+    return new Promise((resolve) => {
+      const t = setTimeout(() => resolve(me.state === "connecting" ? "down" : me.state), ms);
+      me.waiters.push((state) => { clearTimeout(t); resolve(state); });
+    });
   }
   function twOpen(me) {
     let ws;
     try { ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443"); } catch { return twRetry(me); }
     me.ws = ws;
     ws.onopen = () => {
-      ws.send("CAP REQ :twitch.tv/tags");
+      // A twitch.tv/commands miatt létező csatornánál ROOMSTATE jön; ha nem jön, nincs ilyen csatorna.
+      ws.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
       ws.send("PASS SCHMOOPIIE");
       ws.send("NICK justinfan" + (10000 + Math.floor(Math.random() * 80000)));
       ws.send("JOIN #" + me.channel);
+      clearTimeout(me.joinTimer);
+      me.joinTimer = setTimeout(() => {
+        if (tw !== me || me.state === "ok") return;
+        // Egyszer már megvolt a csatorna: csak lassú az újracsatlakozás, újrapróbáljuk.
+        if (me.seen) ws.close();
+        else { twSetState(me, "missing"); twStop(me); }
+      }, TW_JOIN_MS);
     };
     ws.onmessage = (e) => {
       if (tw !== me) return;
       for (const line of String(e.data).split("\r\n")) if (line) twLine(me, line);
     };
     ws.onclose = () => {
-      if (tw !== me) return;
-      me.state = "down";
-      renderTwConn();
+      if (tw !== me || me.state === "missing") return;
+      clearTimeout(me.joinTimer);
+      twSetState(me, "down");
       twRetry(me);
     };
   }
@@ -3793,10 +3924,14 @@
     const m = rest.match(/^:([^! ]+)\S* ([A-Z0-9]+) ?(.*)$/);
     if (!m) return;
     const [, prefix, cmd, params] = m;
-    if (cmd === "JOIN" && prefix.startsWith("justinfan")) {
-      me.state = "ok";
+    if (cmd === "ROOMSTATE") {
+      clearTimeout(me.joinTimer);
       me.retry = 0;
-      renderTwConn();
+      me.seen = true;
+      if (me.state !== "ok") twSetState(me, "ok");
+    } else if (cmd === "NOTICE" && /suspended|banned/.test(tags["msg-id"] || "")) {
+      twSetState(me, "missing");
+      twStop(me);
     } else if (cmd === "RECONNECT") {
       me.ws.close();
     } else if (cmd === "PRIVMSG") {
@@ -3809,18 +3944,24 @@
       streamChat({ id: tags["user-id"] || login, login, name }, text);
     }
   }
+  function twStop(me) {
+    clearTimeout(me.timer);
+    clearTimeout(me.joinTimer);
+    try { if (me.ws) me.ws.close(); } catch { /* már zárva */ }
+  }
   function twClose() {
     if (!tw) return;
     const me = tw;
     tw = null;
-    clearTimeout(me.timer);
-    try { if (me.ws) me.ws.close(); } catch { /* már zárva */ }
+    twStop(me);
+    for (const w of me.waiters.splice(0)) w("down");
   }
   function renderTwConn() {
     const c = $("twConn");
     if (!c || !tw) return;
-    c.textContent = tw.state === "ok" ? `🟢 #${tw.channel}` : tw.state === "connecting" ? "🟠 Csatlakozás a chathez…" : "🔴 A chat nem elérhető";
-    c.classList.toggle("down", tw.state === "down");
+    c.textContent = tw.state === "ok" ? `🟢 #${tw.channel}` : tw.state === "connecting" ? "🟠 Csatlakozás a chathez…"
+      : tw.state === "missing" ? `🔴 Nincs ilyen csatorna: #${tw.channel}` : "🔴 A chat nem elérhető – újracsatlakozás…";
+    c.classList.toggle("down", tw.state === "down" || tw.state === "missing");
   }
 
   // ---------- Látogatottság (GoatCounter, ha be van állítva) ----------
