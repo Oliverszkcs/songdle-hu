@@ -75,12 +75,24 @@
     d.setUTCDate(d.getUTCDate() + days);
     return d.toISOString().slice(0, 10);
   }
+  // Budapest eltérése az UTC-től az adott pillanatban (ms), nyári időszámítással együtt.
+  const tzFmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TZ, year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", minute: "numeric", second: "numeric", hourCycle: "h23",
+  });
+  function tzOffset(t) {
+    const p = Object.fromEntries(tzFmt.formatToParts(new Date(t)).map((x) => [x.type, +x.value || 0]));
+    return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(t / 1000) * 1000;
+  }
+  // A következő budapesti éjfélig hátralévő idő. Az óraátállítás napján az a nap 23 vagy 25 órás,
+  // ezért az éjfél pillanatát a holnapi eltéréssel számoljuk, nem a mai órából.
   function msToNextDay() {
-    const now = new Date();
-    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
-      timeZone: TZ, hour: "numeric", minute: "numeric", second: "numeric", hourCycle: "h23",
-    }).formatToParts(now).map((p) => [p.type, +p.value || 0]));
-    return ((24 - parts.hour) * 3600 - parts.minute * 60 - parts.second) * 1000 - now.getMilliseconds();
+    const now = Date.now();
+    const [y, m, d] = shiftDate(dateKey(), 1).split("-").map(Number);
+    const local = Date.UTC(y, m - 1, d);
+    let t = local - tzOffset(now);
+    t = local - tzOffset(t);
+    return t - now;
   }
   const prettyDate = (key) =>
     new Date(key + "T12:00:00Z").toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
