@@ -51,7 +51,13 @@
     } catch { return fallback; }
   }
   function save(key, value) {
-    try { localStorage.setItem(LS + key, JSON.stringify(value)); } catch { /* tele vagy tiltott */ }
+    try { localStorage.setItem(LS + key, JSON.stringify(value)); } catch (e) {
+      // Betelt tárhely: egyszer szólunk, különben a sorozat és a napi eredmény csendben elveszne.
+      if (e && e.name === "QuotaExceededError" && !save.warned) {
+        save.warned = true;
+        setTimeout(() => toast("A böngésző tárhelye megtelt, az eredményeid most nem mentődnek."), 0);
+      }
+    }
   }
 
   // ---------- Szöveg ----------
@@ -112,6 +118,17 @@
     };
   }
 
+  // A dal azonosítója mentésben, gyorsítótárban és kihívás-linkben nem olvasható ki ránézésre.
+  // Ez csak a kíváncsi szemnek nehezíti a csalást: a böngésző hálózati forgalmából
+  // egy elszánt játékos így is megtudhatja a dalt (szerver nélkül ez nem védhető ki).
+  const ID_MUL = 7919, ID_ADD = 1234567;
+  const encId = (id) => [...((id + ID_ADD) * ID_MUL).toString(36)].reverse().join("");
+  function decId(v) {
+    if (typeof v === "number") return v; // régi mentés
+    const n = parseInt([...String(v || "")].reverse().join(""), 36) / ID_MUL - ID_ADD;
+    return Number.isInteger(n) && n > 0 ? n : null;
+  }
+
   // ---------- Dalkészlet ----------
   const excludeRe = new RegExp(CFG.EXCLUDE_TITLE_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i");
 
@@ -164,6 +181,15 @@
     }
   }
 
+  // Az összes régi listát egyszerre átköltöztetjük (nem csak a most betöltött előadókét),
+  // és a régi, olvasható dal-azonosítós évkulcsokat is töröljük.
+  try {
+    for (const k of Object.keys(localStorage)) {
+      if (k.startsWith(LS + "artist3.")) readPool(k.slice(LS.length));
+      else if (/^songdle\.year\.\d+$/.test(k)) localStorage.removeItem(k);
+    }
+  } catch { /* nem elérhető */ }
+
   async function loadArtist(artist) {
     const cacheKey = "artist3." + (artist.id || norm(artist.name));
     const cached = await readPool(cacheKey);
@@ -193,7 +219,7 @@
   // Hangrészletek gyorsítótára: a legutóbbi CLIP_KEEP dal teljes előnézete a böngészőben marad,
   // így gyenge térerőn (vagy offline) is lehet játszani. A következő dalt előre letöltjük.
   const CLIP_CACHE = "songdle-clips-v1", CLIP_KEEP = 30;
-  const clipKey = (id) => new URL(`__clip/${id}`, location.href).href;
+  const clipKey = (id) => new URL(`__clip/${encId(id)}`, location.href).href;
   async function cachedClip(id) {
     try {
       const res = await (await caches.open(CLIP_CACHE)).match(clipKey(id));
@@ -213,7 +239,7 @@
   }
   async function cachedClipIds() {
     try {
-      return (await (await caches.open(CLIP_CACHE)).keys()).map((r) => +r.url.split("/").pop());
+      return (await (await caches.open(CLIP_CACHE)).keys()).map((r) => decId(r.url.split("/").pop())).filter(Boolean);
     } catch { return []; }
   }
 
@@ -804,17 +830,17 @@
       const date = dateKey();
       const saved = load(dailyKey(date, dailyDiff), null);
       // Ha ma már elkezdte, ugyanaz a dal marad akkor is, ha közben frissült a dallista.
-      const track = (saved && pool.find((p) => p.id === saved.trackId)) || pickDailyTrack(date, diffById(dailyDiff));
+      const track = (saved && pool.find((p) => p.id === decId(saved.trackId))) || pickDailyTrack(date, diffById(dailyDiff));
       if (!track) {
         setLoading(false);
         return setStatus("Nem sikerült betölteni a mai dalt. Próbáld újra később.", true);
       }
-      return startRound(track, saved && saved.trackId === track.id ? saved : null);
+      return startRound(track, saved && decId(saved.trackId) === track.id ? saved : null);
     }
 
     const saved = load("round", null);
     if (saved && saved.category === category) {
-      const t = pool.find((p) => p.id === saved.trackId);
+      const t = pool.find((p) => p.id === decId(saved.trackId));
       if (t) return startRound(t, saved);
     }
     startRound();
@@ -981,11 +1007,11 @@
     }
     if (round.mode === "daily") {
       save(dailyKey(round.date, round.diff), {
-        trackId: round.track.id, attempts: round.attempts, done: round.done, won: round.won, points: round.points,
+        trackId: encId(round.track.id), attempts: round.attempts, done: round.done, won: round.won, points: round.points,
         bonus: round.bonus || null,
       });
     } else if (!round.done) {
-      save("round", { category, trackId: round.track.id, attempts: round.attempts, reverse: round.reverse, heard: round.heard });
+      save("round", { category, trackId: encId(round.track.id), attempts: round.attempts, reverse: round.reverse, heard: round.heard });
     } else {
       save("round", null);
     }
@@ -1113,7 +1139,7 @@
   // Egy dalhoz egyszerre csak egy kérés fut (a kör eleji előtöltés és a megoldás közös).
   const yearRequests = new Map();
   function originalYear(t, deezerYear) {
-    const cached = load("year." + t.id, null);
+    const cached = load("year." + encId(t.id), null);
     if (cached) return Promise.resolve(cached);
     if (!yearRequests.has(t.id)) {
       yearRequests.set(t.id, lookupYear(t, deezerYear).finally(() => yearRequests.delete(t.id)));
@@ -1121,7 +1147,7 @@
     return yearRequests.get(t.id);
   }
   async function lookupYear(t, deezerYear) {
-    const key = "year." + t.id;
+    const key = "year." + encId(t.id);
     const fallback = deezerYear && deezerYear !== "0000" ? deezerYear : null;
     try {
       const raw = t.title.replace(/\s*[([].*?[)\]]/g, "").replace(/\s+-\s+.*$/, "").trim() || t.title;
@@ -2149,7 +2175,7 @@
   const homeUrl = () => location.origin + location.pathname;
   // Kihívás-link: a kör dalai (36-os számrendszerben), a pontszám és a név.
   function challengeUrl(ids, score) {
-    const p = new URLSearchParams({ k: ids.map((id) => id.toString(36)).join("-"), p: score });
+    const p = new URLSearchParams({ c: ids.map(encId).join("-"), p: score });
     const nick = load("nick", "");
     if (nick) p.set("n", nick);
     return homeUrl() + "?" + p;
@@ -2520,7 +2546,7 @@
     if (!versus || versus.kind !== "battle" || !room) return;
     try {
       sessionStorage.setItem(BATTLE_KEY, JSON.stringify({
-        code: room.code, pid: room.pid, host: peerHost, ids: versus.ids, cat: versus.cat,
+        code: room.code, pid: room.pid, host: peerHost, ids: versus.ids.map(encId), cat: versus.cat,
         idx: versus.idx, results: versus.results, cur: versus.cur || null,
         opps: versus.opps.map((o) => ({ id: o.id, name: o.name, results: o.results, gone: !!o.gone })),
       }));
@@ -2964,9 +2990,12 @@
   function cleanResults(list) {
     if (!Array.isArray(list)) return [];
     return list.slice(0, Math.max(...BATTLE_LENGTHS)).map((r) => (r && typeof r === "object"
-      ? { won: !!r.won, pts: Math.max(0, Math.min(100, +r.pts || 0)), tries: Math.max(0, Math.min(MAX_TRIES, +r.tries || 0)) }
+      ? cleanResult(!!r.won, Math.max(0, Math.min(MAX_TRIES, Math.floor(+r.tries) || 0)))
       : null));
   }
+
+  // A pontot a tippek számából számoljuk újra, így a küldött pontszám nem írható át.
+  const cleanResult = (won, tries) => (won && tries ? { won: true, pts: POINTS[tries - 1], tries } : { won: false, pts: 0, tries });
 
   function applyProgress(from, m) {
     if (!versus || versus.kind !== "battle") return;
@@ -3059,7 +3088,7 @@
     if (!s || !Array.isArray(s.ids) || !s.ids.length || typeof s.code !== "string") return false;
     peerHost = !!s.host;
     room = { code: s.code, pid: s.pid };
-    startVersus("battle", s.ids, (s.opps || []).map((o) => ({ ...o, results: cleanResults(o.results) })), s.cat || "", s);
+    startVersus("battle", s.ids.map(decId).filter(Boolean), (s.opps || []).map((o) => ({ ...o, results: cleanResults(o.results) })), s.cat || "", s);
     if (peerHost) {
       battleHost(0, s.code);
       // Akik fél percen belül nem jönnek vissza, kiesnek (különben örökké várnánk rájuk).
@@ -3951,9 +3980,11 @@
   renderAll();
   sizeViz();
   requestAnimationFrame(drawViz);
-  // Kihívás-link (?k=dalok&p=pont&n=név) vagy párbaj-meghívó (?parbaj=KÓD).
+  // Kihívás-link (?c=dalok&p=pont&n=név, régen ?k=) vagy párbaj-meghívó (?parbaj=KÓD).
   const params = new URLSearchParams(location.search);
-  const challengeIds = (params.get("k") || "").split("-").map((s) => parseInt(s, 36)).filter((n) => n > 0).slice(0, Math.max(...BATTLE_LENGTHS));
+  // c: új (nem olvasható) formátum; k: a régi linkek (36-os számrendszerű azonosítók).
+  const challengeIds = (params.get("c") ? params.get("c").split("-").map(decId) : (params.get("k") || "").split("-").map((s) => parseInt(s, 36)))
+    .filter((n) => n > 0).slice(0, Math.max(...BATTLE_LENGTHS));
   const battleCode = (params.get("parbaj") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
   if (challengeIds.length || battleCode) history.replaceState(null, "", location.pathname);
   if (!load("seenHelp", false) && !challengeIds.length && !battleCode) {
@@ -3963,7 +3994,9 @@
   if (challengeIds.length) {
     clearBattle();
     const name = (params.get("n") || "").slice(0, 16) || "Egy barátod";
-    startVersus("challenge", challengeIds, [{ id: "c", name, score: Math.max(0, parseInt(params.get("p"), 10) || 0) }]);
+    // Dalonként legfeljebb 100 pont szerezhető: a link átírt, lehetetlen pontszámát levágjuk.
+    const score = Math.min(challengeIds.length * POINTS[0], Math.max(0, parseInt(params.get("p"), 10) || 0));
+    startVersus("challenge", challengeIds, [{ id: "c", name, score }]);
     countEvent("challenge-opened");
   } else if (!battleCode && resumeBattle()) {
     // félbehagyott párbaj folytatása

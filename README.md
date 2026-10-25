@@ -30,9 +30,10 @@ A sorozat, a pontok és a statisztika a böngésző `localStorage`-ában tárol�
 - **Előadó**: napi előadó-találós, 8 mezővel (típus, nem, műfaj, státusz, születés/alakulás, debüt,
   Spotify-hallgatók, Eurovízió). 4 rossz tipp után kérhető a „Hallgass bele” és a „💡 Egy dala”
   súgó (ez utóbbi −40 pont). Ugyanaz az előadó 30 napon belül nem jön újra.
-- **🎯 Kihívás**: egy befejezett kör megosztásakor a szövegben egy link van (`?k=…&p=…&n=…`),
+- **🎯 Kihívás**: egy befejezett kör megosztásakor a szövegben egy link van (`?c=…&p=…&n=…`; a régi `?k=` linkek is működnek),
   amivel a barátod ugyanazt az 5 dalt kapja, és látja, hány pontot kell megvernie. A link a
-  bónusz nélküli pontot viszi (sorozatbónusz és nehéz-szorzó nélkül), mert a barát is csak annyit szerezhet.
+  bónusz nélküli pontot viszi (sorozatbónusz és nehéz-szorzó nélkül), mert a barát is csak annyit szerezhet. A dalok
+  azonosítója nem olvasható ki a linkből, és a lehetetlen (dalonként 100-nál több) pontszámot levágjuk.
 - **⚔️ Párbaj**: 2–6 játékos élőben, ugyanazokkal a dalokkal. A szobát nyitó a váróteremben választ
   kategóriát (műfaj vagy évtized) és hosszt (5, 10 vagy 15 dal), és ő indítja a meccset. A következő
   dal akkor jön, ha mindenki végzett; a végén helyezések, a visszavágó pedig akkor indul, ha mindenki kéri.
