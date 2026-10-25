@@ -1074,6 +1074,8 @@
     s.dist[won ? tries - 1 : MAX_TRIES]++;
     if (round.mode === "daily") save("dailyStats2", dailyStatsAll);
     else save("stats", s);
+    // Hány napi dalt fejeznek be naponta (szintenként, nyert vagy nem).
+    if (round.mode === "daily") countEvent(`daily-${round.diff}-${won ? "won" : "lost"}`);
 
     round.points = scoreFor(won, tries, s.streak, multOf(round));
     points += round.points.total;
@@ -1087,6 +1089,7 @@
         game.record = score > bestGame && score > 0;
         game.prevBest = bestGame;
         if (game.record) { bestGame = score; save("bestGame", bestGame); }
+        countEvent("endless-round-done");
       }
       save("game", game);
     }
@@ -3786,6 +3789,7 @@
       adStats.lastWin = date;
       adStats.maxStreak = Math.max(adStats.maxStreak, adStats.streak);
       save("artistStats", adStats);
+      countEvent("artist-won");
       vibrate([30, 40, 30]);
       setTimeout(() => { confetti(); animatePoints(); }, 700);
     } else {
@@ -3865,6 +3869,7 @@
     adStats.streak = 0;
     save("artistStats", adStats);
     save(adKey(date), st);
+    countEvent("artist-gaveup");
     vibrate(120);
     adRender(false).then(() => el.scroll.scrollTo({ top: 0, behavior: "smooth" }));
     updateDailyBadge();
