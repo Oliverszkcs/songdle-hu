@@ -1,6 +1,6 @@
 // Az alkalmazás saját fájljait tároljuk. A Deezer API és a borítók a hálózatról jönnek;
 // a hangot a játék csak streameli, nem tárolja.
-const CACHE = "songdle-hu-v57";
+const CACHE = "songdle-hu-v59";
 const SHELL = [
   "./",
   "index.html",
@@ -9,7 +9,28 @@ const SHELL = [
   "fonts/outfit-latin-ext.woff2",
   "js/config.js",
   "js/deezer.js",
-  "js/app.js",
+  "js/app/main.js",
+  "js/app/core.js",
+  "js/app/pool.js",
+  "js/app/state.js",
+  "js/app/tint.js",
+  "js/app/modes.js",
+  "js/app/round.js",
+  "js/app/bonus.js",
+  "js/app/render.js",
+  "js/app/audio.js",
+  "js/app/autocomplete.js",
+  "js/app/controls.js",
+  "js/app/versus.js",
+  "js/app/peer.js",
+  "js/app/stream.js",
+  "js/app/guesswindow.js",
+  "js/app/twitch.js",
+  "js/app/analytics.js",
+  "js/app/stats.js",
+  "js/app/report.js",
+  "js/app/library.js",
+  "js/app/artist.js",
   "data/years.json",
   "manifest.json",
   "favicon.ico",
@@ -39,10 +60,11 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// A tárolóban használt kulcs: oldalbetöltésnél „./”, az alkalmazás fájljainál maga a kérés, minden másnál semmi.
+// A tárolóban használt kulcs: a játék oldalánál „./”, az alkalmazás fájljainál maga a kérés, minden másnál semmi.
+// Más megnyitott oldal (pl. robots.txt) nem kerülhet a „./” helyére, különben offline azt kapná a játékos.
 const SCOPE = new URL("./", self.location).pathname;
 function cacheKey(req, url) {
-  if (req.mode === "navigate") return "./";
+  if (req.mode === "navigate") return url.pathname === SCOPE || url.pathname === SCOPE + "index.html" ? "./" : null;
   const path = url.pathname.startsWith(SCOPE) ? url.pathname.slice(SCOPE.length) : "";
   return SHELL.includes(path) ? req : null;
 }

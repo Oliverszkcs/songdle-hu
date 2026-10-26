@@ -6,7 +6,7 @@ napi dal, napi előadó-találós, kihívás-link és élő párbaj akár 6 ját
 - Tiszta HTML/CSS/JS, nincs build lépés – GitHub Pages-en fut. Szerver csak a dal-jelentésekhez
   kell (egy Cloudflare Worker, lásd lent).
 - A dalok 30 mp-es előnézetei a [Deezer](https://www.deezer.com) nyilvános API-jából jönnek
-  (JSONP-n keresztül, így nem kell CORS proxy). Hangfájlt nem tárolunk.
+  (a Cloudflare Workeren keresztül, ha az nem elérhető, JSONP-vel). Hangfájlt nem tárolunk.
 - Telepíthető (PWA): „Hozzáadás a kezdőképernyőhöz”.
 
 ## Játék
@@ -119,8 +119,26 @@ npx serve .
 (A service worker miatt `http://localhost`-on vagy HTTPS-en futtasd, ne `file://`-ként.)
 
 Ha módosítasz az alkalmazás fájljain, futtasd a `node tools/bump-version.mjs` parancsot. Ez egyszerre emeli az `sw.js`
-`CACHE`-ét, az `index.html` `data-v`-jét és `?v=` linkjeit, valamint az `app.js` `APP_V`-jét. Ha ezek eltérnek, a böngésző
-régi és új fájlokat keverhet (az app ilyenkor egyszer magától újratölt).
+`CACHE`-ét, az `index.html` `data-v`-jét és `?v=` linkjeit, a modulok importjainak `?v=`-jét, valamint a `main.js`
+`APP_V`-jét. Ha ezek eltérnek, a böngésző régi és új fájlokat keverhet (az app ilyenkor egyszer magától újratölt).
+
+### A kód felépítése
+
+A játék ES-modulokból áll (`js/app/`, építési lépés nélkül). A `main.js` az indító: betölti a modulokat, és
+sorban meghívja mindegyik `init()`-jét (ezekben vannak a betöltéskori lépések, pl. az eseménykezelők).
+
+| Modul | Mit csinál |
+|---|---|
+| `core.js` | beállítások, tárolás (localStorage), szöveg- és dátumsegédek, DOM-elemek, értesítés; semmit nem importál |
+| `pool.js`, `state.js` | dalkészlet és dallista-gyorsítótár; a játék közös állapota (mód, kör, pontok…) |
+| `modes.js`, `round.js`, `bonus.js` | módváltás és kategóriák; egy kör menete; bónuszkérdés |
+| `render.js`, `tint.js`, `audio.js` | megjelenítés; háttérszín a borítóból; lejátszás, vizualizáció, hangerő |
+| `autocomplete.js`, `controls.js` | tippmező és javaslatok; megosztás, gombok és billentyűk |
+| `versus.js`, `peer.js` | párbaj- és kihívásmotor; PeerJS-kapcsolat (szobát nyitó és vendég) |
+| `stream.js`, `guesswindow.js`, `twitch.js` | Streamer vs Chat mód; tipp-ablak; Twitch-chat és eredmény |
+| `stats.js`, `report.js`, `library.js`, `artist.js`, `analytics.js` | statisztika; dal jelentése; dallista és súgó; napi előadó; látogatottság |
+
+Egy modul más modul változóját csak a hozzá tartozó `setX()` függvénnyel írhatja (az importált változó csak olvasható).
 
 ## Licenc
 
