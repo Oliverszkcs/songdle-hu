@@ -1,6 +1,6 @@
 # Songdle HU
 
-Magyar dalfelismerős játék (Heardle-stílusban): végtelen mód kategóriákkal és évtizedekkel,
+Magyar dalfelismerős játék: végtelen mód kategóriákkal és évtizedekkel,
 napi dal, napi előadó-találós, kihívás-link és élő párbaj akár 6 játékossal. Élesben: [songdle.hu](https://songdle.hu)
 
 - Tiszta HTML/CSS/JS, nincs build lépés – GitHub Pages-en fut. Szerver csak a dal-jelentésekhez
