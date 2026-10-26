@@ -1,7 +1,10 @@
 <!doctype html>
-<html lang="hu" data-v="53">
+<html lang="hu" data-v="56">
 <head>
   <meta charset="utf-8">
+  <!-- Csak a felsorolt helyekről tölthet be bármit az oldal. Új külső szolgáltatásnál ide is fel kell venni.
+       (Meta tagben a frame-ancestors és a report-uri nem működik; ahhoz valódi HTTP-fejléc kellene.) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://api.deezer.com https://gc.zgo.at; style-src 'self'; font-src 'self'; img-src 'self' data: https://*.dzcdn.net https://api.deezer.com https://oliverszkcs.goatcounter.com; media-src https://*.dzcdn.net; connect-src 'self' https://*.dzcdn.net https://musicbrainz.org https://decapi.me wss://irc-ws.chat.twitch.tv https://songdle-report.oliverszkcs.workers.dev https://oliverszkcs.goatcounter.com https://0.peerjs.com wss://0.peerjs.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Songdle HU – magyar dalfelismerős zenei játék</title>
   <meta name="description" content="Felismered a dalt 1 másodpercből? Ingyenes magyar zenei kvíz a kedvenc előadóiddal: napi dal, napi előadó, végtelen mód és párbaj a barátaiddal.">
@@ -53,10 +56,8 @@
   <link rel="icon" href="icons/icon-96.png" type="image/png" sizes="96x96">
   <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=53">
+  <link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css?v=56">
 </head>
 <body>
   <div class="bg" aria-hidden="true">
@@ -140,7 +141,7 @@
           </div>
           <div class="ad-search" id="adSearch">
             <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM16 16l5 5"/></svg>
-            <input id="adInput" type="text" placeholder="Írj be egy előadót…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Előadó tippelése" aria-controls="adSuggestions">
+            <input id="adInput" type="text" placeholder="Írj be egy előadót…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Előadó tippelése" role="combobox" aria-autocomplete="list" aria-controls="adSuggestions" aria-expanded="false">
             <ul class="suggestions ad-suggestions" id="adSuggestions" role="listbox" hidden></ul>
           </div>
           <div class="ad-tools">
@@ -203,6 +204,7 @@
           <div class="reveal-meta">
             <span class="reveal-emoji" id="revealEmoji" aria-hidden="true"></span>
             <span class="reveal-points" id="revealPoints"></span>
+            <a class="dz-credit" id="dzLink" target="_blank" rel="noopener" aria-label="A dal a Deezeren">Deezer</a>
             <button class="report-btn" id="reportBtn" type="button">
               <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 21V4m0 0h11l-2 4 2 4H5"/></svg>
               <span>Jelentés</span>
@@ -270,7 +272,7 @@
             <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM16 16l5 5"/></svg>
             <input id="guessInput" type="text" inputmode="search" enterkeyhint="go" autocomplete="off" autocorrect="off"
                    autocapitalize="off" spellcheck="false" placeholder="Dal címe vagy előadó…" aria-label="Tipp"
-                   aria-autocomplete="list" aria-controls="suggestions" disabled>
+                   role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" disabled>
             <button class="clear-btn" id="clearBtn" aria-label="Törlés" hidden>×</button>
             <ul class="suggestions glass" id="suggestions" role="listbox" hidden></ul>
           </div>
@@ -336,6 +338,7 @@
         <li><span class="help-ico">🎤</span><span><b>Előadó:</b> a harmadik fülön naponta egy előadót kell kitalálni. Minden tipp 8 mezőt mutat (típus, nem, műfaj, státusz, születés/alakulás, debüt, Spotify havi hallgatók, Eurovízió): zöld = egyezik, sárga = közel, ▲▼ = merre van a megfejtés. Bármelyik mezőre koppintva elmagyarázza. 4 tipp után belehallgathatsz egy dalába, 5 után feladhatod.</span></li>
       </ul>
       <p class="hint-keys">Billentyűzeten: <kbd>Szóköz</kbd> lejátszás, <kbd>Enter</kbd> tipp / következő dal.</p>
+      <p class="hint-keys"><button type="button" class="st-guide-link" data-privacy>🔒 Adatvédelem</button></p>
       <button class="btn btn-primary" value="close">Kezdjük!</button>
     </form>
   </dialog>
@@ -418,6 +421,7 @@
         <button type="button" class="btn btn-primary" id="battleGoBtn" disabled>Indítás</button>
       </div>
       <p class="battle-status" id="battleStatus" role="status" aria-live="polite"></p>
+      <p class="st-guide-note">A párbajban a gépek közvetlenül kapcsolódnak, így a szoba tagjai láthatják egymás IP-címét. <button type="button" class="st-guide-link" data-privacy>Részletek</button></p>
       <button class="btn btn-ghost" value="cancel">Mégse</button>
     </form>
   </dialog>
@@ -511,6 +515,28 @@
     </form>
   </dialog>
 
+  <dialog id="privacyDialog" class="dialog dialog-tall">
+    <form method="dialog">
+      <h2 tabindex="-1" autofocus>🔒 Adatvédelem</h2>
+      <p class="st-guide-note">Röviden: nincs regisztráció, nincs süti, és semmit nem gyűjtünk, ami alapján azonosítani lehetne téged. Itt látod, játék közben milyen adat hova kerül.</p>
+      <h3>A böngésződben</h3>
+      <p class="st-guide-note">Az eredményeid, a sorozataid, a beállításaid és a beceneved csak a böngésződben vannak (localStorage). Nem küldjük el őket sehova, és a böngésző adatainak törlésével eltűnnek.</p>
+      <h3>Látogatottság</h3>
+      <p class="st-guide-note">A GoatCounter sütik nélkül, összesítve számolja, hányan nyitják meg az oldalt, és melyik játékmódot használják. Egyéni látogatót nem követ.</p>
+      <h3>Dalok és borítók</h3>
+      <p class="st-guide-note">A hangrészletek és a borítók a Deezertől jönnek. A dalok adatait egy Cloudflare-en futó saját közvetítőn keresztül kérjük le (mi nem mentjük el a kéréseket, csak a Deezer válaszait tároljuk rövid ideig), a megjelenés évét a MusicBrainz adatbázisából kérdezzük le. Ahogy minden betöltött tartalomnál, ezek a szolgáltatók is látják az IP-címedet. Az oldalt a GitHub Pages szolgálja ki.</p>
+      <h3>Párbaj</h3>
+      <p class="st-guide-note">A párbajban a gépek közvetlenül kapcsolódnak egymáshoz (WebRTC), ezért a szoba többi tagja technikailag láthatja az IP-címedet. Az összekötésben a PeerJS nyilvános szervere segít. A többiek a becenevedet és a pontjaidat látják. A szoba kódját csak olyanoknak add meg, akikben megbízol.</p>
+      <h3>Stream mód</h3>
+      <p class="st-guide-note">A játék bejelentkezés nélkül olvassa a megadott Twitch-csatorna chatjét, és a decapi.me-től kérdezi le, élő-e a csatorna. A nézők neve csak a meccs alatt, a te gépeden jelenik meg.</p>
+      <h3>Dal jelentése</h3>
+      <p class="st-guide-note">Ha jelentesz egy dalt, a dal azonosítója, az ok és a játékmód egy Cloudflare-en futó szolgáltatáson keresztül nyilvános GitHub-hibajegybe kerül. A nevedet és az IP-címedet nem tesszük bele, a Cloudflare viszont IP-cím alapján korlátozza a jelentések számát, hogy ne lehessen visszaélni vele.</p>
+      <h3>Kapcsolat</h3>
+      <p class="st-guide-note">Kérdéssel vagy kéréssel a <a href="https://github.com/Oliverszkcs/songdle-hu/issues" target="_blank" rel="noopener">GitHub-oldalon</a> tudsz írni.</p>
+      <button class="btn btn-primary" value="close">Rendben</button>
+    </form>
+  </dialog>
+
   <dialog id="confirmDialog" class="dialog">
     <form method="dialog">
       <h2>Kategóriaváltás</h2>
@@ -524,8 +550,8 @@
 
   <audio id="audio" preload="auto" crossorigin="anonymous"></audio>
 
-  <script src="js/config.js?v=53"></script>
-  <script src="js/deezer.js?v=53"></script>
-  <script src="js/app.js?v=53"></script>
+  <script src="js/config.js?v=56"></script>
+  <script src="js/deezer.js?v=56"></script>
+  <script src="js/app.js?v=56"></script>
 </body>
 </html>

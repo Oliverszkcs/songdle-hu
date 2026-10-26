@@ -1,3 +1,22 @@
+/* Outfit (változó betűtípus, 400–900), saját tárhelyről: így a látogató IP-címe nem jut el a Google-hoz.
+   Licenc: fonts/OFL.txt. */
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("../fonts/outfit-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("../fonts/outfit-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* Az árnyalat-változók regisztrálva vannak, így a háttér színe finoman átúszik. */
 @property --t1 { syntax: "<color>"; inherits: true; initial-value: #1ed760; }
 @property --t2 { syntax: "<color>"; inherits: true; initial-value: #2bb3ff; }
@@ -1037,6 +1056,12 @@ kbd {
   transition: color .2s, background .2s, border-color .2s;
 }
 .report-btn:hover { color: var(--text); border-color: var(--border-strong); }
+/* A hangminták forrása: kicsi, halvány hivatkozás a dal Deezer-oldalára. */
+.dz-credit {
+  display: inline-flex; align-items: center; min-height: 32px;
+  color: var(--muted); font-size: .7rem; font-weight: 600; text-decoration: none; opacity: .75;
+}
+.dz-credit:hover, .dz-credit:focus-visible { opacity: 1; color: var(--text); }
 .report-btn.reported { color: var(--near); border-color: rgba(255, 197, 71, .4); background: rgba(255, 197, 71, .1); }
 .report-song { color: var(--text) !important; font-weight: 700; margin: -6px 0 6px; }
 .report-reasons { display: grid; gap: 8px; margin-top: 12px; }
@@ -1657,7 +1682,7 @@ body[data-mode="stream"] { --disc: clamp(96px, calc(38dvh - 150px), 180px); }
 .st-cmds code, .st-guide-note code {
   background: rgba(145, 70, 255, .18); color: var(--text); border-radius: 6px; padding: 2px 7px; font-size: .86rem;
 }
-#streamGuideDialog h3 { margin: 14px 0 4px; font-size: .95rem; }
+#streamGuideDialog h3, #privacyDialog h3 { margin: 14px 0 4px; font-size: .95rem; }
 #streamCopyRules { width: 100%; margin-bottom: 4px; }
 
 /* Streamer vs Chat: tippelés módja */

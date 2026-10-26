@@ -4,7 +4,7 @@
   // Ugyanaz a szám, mint az index.html data-v-je, a ?v= linkek és az sw.js CACHE-e: frissítéskor mindet emeld.
   // Ha egy frissítés után a CDN régi oldalt adna új szkripttel (vagy fordítva), a kettő nem illik össze,
   // és félbemaradna az indulás. Ilyenkor egyszer újratöltjük az oldalt.
-  const APP_V = "53";
+  const APP_V = "56";
   if (document.documentElement.dataset.v !== APP_V) {
     let reloaded = false;
     try { reloaded = sessionStorage.getItem("songdle.vReload") === APP_V; sessionStorage.setItem("songdle.vReload", APP_V); } catch { /* nincs tároló */ }
@@ -54,6 +54,8 @@
   };
 
   // ---------- Tárolás ----------
+  // A tárolóból jövő szám HTML-be csak így kerül: egy átírt (szöveges) érték nem futhat le kódként.
+  const num = (v) => Number(v) || 0;
   function load(key, fallback) {
     try {
       const v = localStorage.getItem(LS + key);
@@ -1214,6 +1216,12 @@
     }
   }
 
+  // A hangminta forrása (Deezer): a felfedés alatt a dal Deezer-oldalára mutat.
+  function setDeezerLink(t) {
+    const a = $("dzLink");
+    a.href = `https://www.deezer.com/track/${Number(t.id) || ""}`;
+  }
+
   function showReveal(autoplay) {
     const t = round.track;
     setControls(false);
@@ -1227,6 +1235,7 @@
     el.revealResult.classList.toggle("lost", !round.won);
     el.revealTitle.textContent = t.title;
     el.revealArtist.textContent = artistLine(t);
+    setDeezerLink(t);
     // Nyerés után bónuszkérdés jöhet (év vagy album): addig az album, az év és a borító rejtve marad.
     if (bonusEligible(round) && !(round.bonus && round.bonus.picked)) {
       hideAlbum();
@@ -1245,8 +1254,8 @@
     } else if (setOver) {
       const score = gameScore();
       el.revealSet.innerHTML = game.record
-        ? `🏁 Kör vége: <b>${score}</b> pont · <span class="rec">🏆 Új rekord!</span>`
-        : `🏁 Kör vége: <b>${score}</b> pont · rekord: ${bestGame}`;
+        ? `🏁 Kör vége: <b>${num(score)}</b> pont · <span class="rec">🏆 Új rekord!</span>`
+        : `🏁 Kör vége: <b>${num(score)}</b> pont · rekord: ${num(bestGame)}`;
       if (game.record && autoplay) setTimeout(confetti, 700);
     }
     el.reveal.hidden = false;
@@ -1576,16 +1585,16 @@
     if (mode === "daily") {
       const st = dailyStreakNow(), s = dailyStats(), d = diffById(dailyDiff);
       el.streakLine.innerHTML = st > 0
-        ? `${flame} ${d.label} sorozat: <b>${st}</b> nap · legjobb: ${s.maxStreak}`
-        : s.played ? `${d.label} legjobb sorozat: ${s.maxStreak} nap` : "Találd ki a mai dalt!";
+        ? `${flame} ${d.label} sorozat: <b>${num(st)}</b> nap · legjobb: ${num(s.maxStreak)}`
+        : s.played ? `${d.label} legjobb sorozat: ${num(s.maxStreak)} nap` : "Találd ki a mai dalt!";
     } else if (mode === "stream") {
       el.streakLine.textContent = "";
     } else if (mode === "versus") {
       el.streakLine.textContent = vsOppLine();
     } else {
       el.streakLine.innerHTML = stats.streak > 0
-        ? `${flame} Sorozat: <b>${stats.streak}</b> · legjobb: ${stats.maxStreak}`
-        : stats.played ? `Legjobb sorozat: ${stats.maxStreak}` : "";
+        ? `${flame} Sorozat: <b>${num(stats.streak)}</b> · legjobb: ${num(stats.maxStreak)}`
+        : stats.played ? `Legjobb sorozat: ${num(stats.maxStreak)}` : "";
     }
   }
 
@@ -2133,6 +2142,7 @@
     });
     const wasHidden = el.suggestions.hidden;
     el.suggestions.hidden = false;
+    comboSync(el.input, el.suggestions, activeIndex);
     if (wasHidden) retrigger(el.suggestions, "open");
     fitSuggestions();
     el.suggestions.scrollTop = 0;
@@ -2157,11 +2167,23 @@
     el.suggestions.hidden = true;
     suggestionItems = [];
     activeIndex = -1;
+    comboSync(el.input, el.suggestions, -1);
+  }
+
+  // Combobox: a képernyőolvasó tudja, nyitva van-e a lista, és bemondja a kiemelt javaslatot.
+  function comboSync(input, list, i) {
+    input.setAttribute("aria-expanded", String(!list.hidden));
+    const li = !list.hidden && i >= 0 ? list.children[i] : null;
+    if (li) {
+      li.id = li.id || `${list.id}-${i}`;
+      input.setAttribute("aria-activedescendant", li.id);
+    } else input.removeAttribute("aria-activedescendant");
   }
 
   function highlight(i) {
     activeIndex = i;
     [...el.suggestions.children].forEach((li, j) => li.setAttribute("aria-selected", String(j === i)));
+    comboSync(el.input, el.suggestions, i);
     const li = el.suggestions.children[i];
     // Csak a listát görgetjük (a scrollIntoView az oldalt is mozgathatja).
     if (li) {
@@ -2326,7 +2348,8 @@
 
   document.addEventListener("keydown", (e) => {
     if (mode === "artist" || document.querySelector("dialog[open]") || e.target === el.input || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === " " && !el.playBtn.disabled) {
+    // Fókuszban lévő gombon, linken vagy mezőn a Szóköz azt kezeli (különben billentyűzetről nem lehetne megnyomni).
+    if (e.key === " " && !el.playBtn.disabled && !e.target.closest("button, a, input, select, textarea, [role=tab], [tabindex]")) {
       e.preventDefault();
       playClip();
     } else if (e.key === "Enter" && round && round.done && e.target.tagName !== "BUTTON") {
@@ -2341,7 +2364,8 @@
   // a vendégek csak vele beszélnek (WebRTC, PeerJS), ő továbbítja az állást mindenkinek.
   // A következő dal akkor jön, ha mindenki végzett az előzővel.
   const PEER_PREFIX = "songdlehu-";
-  const PEER_LIB = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+  // Saját tárhelyről (a unpkg-s 1.5.4 változatlan másolata), így egy feltört CDN nem futtathat kódot az oldalon.
+  const PEER_LIB = "js/vendor/peerjs-1.5.4.min.js";
   const MAX_PLAYERS = 6;
   const BATTLE_LENGTHS = [5, 10, 15];
   const HOST_ID = "host";
@@ -2631,9 +2655,9 @@
     if (!versus || versus.kind !== "battle" || !room) return;
     try {
       sessionStorage.setItem(BATTLE_KEY, JSON.stringify({
-        code: room.code, pid: room.pid, host: peerHost, ids: versus.ids.map(encId), cat: versus.cat,
+        code: room.code, pid: room.pid, key: room.key, host: peerHost, ids: versus.ids.map(encId), cat: versus.cat,
         idx: versus.idx, results: versus.results, cur: versus.cur || null,
-        opps: versus.opps.map((o) => ({ id: o.id, name: o.name, results: o.results, gone: !!o.gone })),
+        opps: versus.opps.map((o) => ({ id: o.id, name: o.name, results: o.results, gone: !!o.gone, key: o.key })),
       }));
     } catch { /* nem elérhető */ }
   }
@@ -2855,8 +2879,11 @@
     if (!g || g.conn !== c) return;
     g.seen = Date.now();
     if (m.type === "progress") {
-      applyProgress(id, m);
-      broadcast({ ...m, from: id }, id);
+      // Csak az ismert mezőket adjuk tovább, így egy vendég nem küldhet a többieknek akármekkora vagy idegen adatot.
+      const tries = (v) => Math.max(0, Math.min(MAX_TRIES, Math.floor(+v) || 0));
+      const p = { type: "progress", idx: Math.floor(+m.idx), attempts: tries(m.attempts), done: !!m.done, won: !!m.won, tries: tries(m.tries) };
+      applyProgress(id, p);
+      broadcast({ ...p, from: id }, id);
     } else if (m.type === "rematch") {
       broadcast({ type: "rematch", from: id }, id);
       applyRematch(id);
@@ -2875,9 +2902,16 @@
     if (versus && !known) return reject("running");
     if (!versus && !guests.has(id) && guests.size >= MAX_PLAYERS - 1) return reject("full");
     const old = guests.get(id);
+    // A játékos-azonosítót mindenki látja (lobby, állás), ezért a visszatérőnek a csak neki küldött kulcsot
+    // is tudnia kell: így más nem veheti át a helyét és az eredményeit.
+    const owner = old || known;
+    if (owner && owner.key && m.key !== owner.key) return reject("taken");
     if (old && old.conn !== c) { try { old.conn.close(); } catch { /* már zárva */ } }
     c.pid = id;
-    guests.set(id, { conn: c, name, seen: Date.now() });
+    const key = (owner && owner.key) || crypto.getRandomValues(new Uint32Array(2)).join("-");
+    guests.set(id, { conn: c, name, seen: Date.now(), key });
+    if (known) known.key = key;
+    send(c, { type: "welcome", key });
     if (known) {
       // Visszatért játékos: a saját eredményei a mérvadók, majd mindenki megkapja a teljes állást.
       known.gone = false;
@@ -2940,7 +2974,8 @@
       if (players.length < 2) return battleStatus("Nincs kivel játszani – várj, amíg valaki csatlakozik.", true);
       broadcast({ type: "start", ids, cat, players });
       if (bt.dialog.open) bt.dialog.close("started");
-      startVersus("battle", ids, players.filter((p) => p.id !== HOST_ID), cat);
+      // A kulcsok csak nálunk maradnak (a „start” üzenetben nincsenek benne).
+      startVersus("battle", ids, players.filter((p) => p.id !== HOST_ID).map((p) => ({ ...p, key: guests.get(p.id) && guests.get(p.id).key })), cat);
     } finally {
       hostStartMatch.busy = false;
     }
@@ -2962,7 +2997,7 @@
     battleStatus("Csatlakozás…");
     try { await loadPeerLib(); } catch { return battleStatus("Nem sikerült betölteni a párbajt. Van internet?", true); }
     peerHost = false;
-    room = { code, pid: (resume && resume.pid) || newPlayerId() };
+    room = { code, pid: (resume && resume.pid) || newPlayerId(), key: resume && resume.key };
     const me = new window.Peer();
     peer = me;
     watchPeerOpen(me);
@@ -2974,7 +3009,7 @@
       hostSeen = Date.now();
       c.on("open", () => {
         hostSeen = Date.now();
-        send(c, { type: "hello", name: nick(), pid: room.pid, results: versus && versus.kind === "battle" ? versus.results : null });
+        send(c, { type: "hello", name: nick(), pid: room.pid, key: room.key, results: versus && versus.kind === "battle" ? versus.results : null });
       });
       c.on("data", (m) => {
         if (hostConn !== c) return;
@@ -3024,9 +3059,13 @@
       room.cat = String(m.cat || "").slice(0, 30);
       room.len = +m.len || VS_SONGS;
       if (bt.dialog.open) renderLobby();
-    } else if (m.type === "full" || m.type === "running") {
+    } else if (m.type === "welcome") {
+      room.key = String(m.key || "").slice(0, 40);
+      saveBattle();
+    } else if (m.type === "full" || m.type === "running" || m.type === "taken") {
       room.closed = true;
-      battleStatus(m.type === "full" ? "Ez a szoba már tele van." : "Ebben a szobában már megy a meccs.", true);
+      battleStatus(m.type === "full" ? "Ez a szoba már tele van." : m.type === "taken" ? "Ezzel az azonosítóval már bent van valaki a szobában."
+        : "Ebben a szobában már megy a meccs.", true);
     } else if ((m.type === "start" || m.type === "sync") && Array.isArray(m.ids) && Array.isArray(m.players)) {
       const ids = m.ids.map(Number).filter((n) => n > 0).slice(0, Math.max(...BATTLE_LENGTHS));
       const cat = String(m.cat || "").slice(0, 30);
@@ -3183,7 +3222,7 @@
         broadcastSync();
         vsRefresh();
       }, 30000);
-    } else battleJoin({ code: s.code, pid: s.pid });
+    } else battleJoin({ code: s.code, pid: s.pid, key: s.key });
     return true;
   }
 
@@ -3333,6 +3372,14 @@
       guideDialog.showModal();
       guideDialog.querySelector("form").scrollTop = 0;
       countEvent("stream-guide");
+    });
+  }
+  // Adatvédelem: a súgóból és a párbajból is nyílik (a másik ablak fölött).
+  const privacyDialog = $("privacyDialog");
+  for (const b of document.querySelectorAll("[data-privacy]")) {
+    b.addEventListener("click", () => {
+      privacyDialog.showModal();
+      privacyDialog.querySelector("form").scrollTop = 0;
     });
   }
   $("streamCopyRules").addEventListener("click", async () => {
@@ -3729,6 +3776,7 @@
     el.revealResult.classList.toggle("lost", !c.me.won && !c.chat.won);
     el.revealTitle.textContent = t.title;
     el.revealArtist.textContent = artistLine(t);
+    setDeezerLink(t);
     el.revealEmoji.textContent = `🎬 ${emojiRow(c.me)}  💬 ${emojiRow(c.chat)}`;
     el.revealPoints.textContent = `🎬 +${c.mePts} · 💬 +${c.chatPts}`;
     el.revealSet.hidden = !c.calledIt;
@@ -3933,7 +3981,7 @@
       <p class="gw-status" id="gwStatus"></p>
       <button type="button" class="btn btn-ghost" id="gwPlay">▶ Részlet lejátszása</button>
       <div class="guess-box gw-box">
-        <input id="gwInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Dal címe vagy előadó…" aria-label="Tipp">
+        <input id="gwInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Dal címe vagy előadó…" aria-label="Tipp" role="combobox" aria-autocomplete="list" aria-controls="gwSugg" aria-expanded="false">
         <ul class="suggestions glass" id="gwSugg" role="listbox" hidden></ul>
       </div>
       <div class="buttons"><button type="button" class="btn btn-ghost" id="gwSkip">Kihagyás</button><button type="button" class="btn btn-primary" id="gwLock">🔒 Lezárás</button></div>
@@ -4008,6 +4056,7 @@
       li.addEventListener("click", () => gwChoose(t));
       g.sugg.appendChild(li);
     });
+    comboSync(g.input, g.sugg, g.idx);
   }
   function gwChoose(t) {
     gw.sel = t;
@@ -4223,7 +4272,9 @@
       const text = params.slice(i + 2);
       if (text.startsWith("\u0001")) return; // /me üzenet
       const login = prefix.toLowerCase();
-      const name = (tags["display-name"] || "").replace(/\\s/g, " ").trim() || login;
+      // IRC-címke kódolása: \s szóköz, \: pontosvessző, \\ visszaper, \r \n sortörés (itt szóköz).
+      const unescape = (v) => v.replace(/\\(.?)/g, (_, c) => ({ s: " ", ":": ";", "\\": "\\", r: " ", n: " " })[c] ?? c);
+      const name = unescape(tags["display-name"] || "").trim() || login;
       streamChat({ id: tags["user-id"] || login, login, name }, text);
     }
   }
@@ -4256,7 +4307,10 @@
   if (CFG.GOATCOUNTER) {
     const s = document.createElement("script");
     s.async = true;
-    s.src = "https://gc.zgo.at/count.js";
+    // Rögzített változat ellenőrző összeggel: ha a fájl a szerveren megváltozna, a böngésző nem futtatja.
+    s.src = "https://gc.zgo.at/count.v5.js";
+    s.integrity = "sha384-atnOLvQb9t+jTSipvd75X2yginT4PjVbqDdlJAmxMm+wYElFmeR6EmLP5bYeoRVQ";
+    s.crossOrigin = "anonymous";
     s.dataset.goatcounter = `https://${CFG.GOATCOUNTER}.goatcounter.com/count`;
     document.head.appendChild(s);
   }
@@ -4988,6 +5042,7 @@
     adItems.forEach((a, i) => {
       const li = document.createElement("li");
       li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", String(i === adActive));
       if (i === adActive) li.classList.add("active");
       const text = document.createElement("span");
       text.className = "s-text";
@@ -5004,8 +5059,9 @@
       ad.sugg.appendChild(li);
     });
     ad.sugg.hidden = !adItems.length;
+    comboSync(ad.input, ad.sugg, adActive);
   }
-  function adHideSugg() { ad.sugg.hidden = true; adItems = []; }
+  function adHideSugg() { ad.sugg.hidden = true; adItems = []; comboSync(ad.input, ad.sugg, -1); }
   ad.input.addEventListener("input", adRenderSugg);
   ad.input.addEventListener("blur", () => setTimeout(adHideSugg, 150));
   ad.input.addEventListener("keydown", (e) => {
@@ -5013,7 +5069,11 @@
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       adActive = (adActive + (e.key === "ArrowDown" ? 1 : -1) + adItems.length) % adItems.length;
-      [...ad.sugg.children].forEach((li, i) => li.classList.toggle("active", i === adActive));
+      [...ad.sugg.children].forEach((li, i) => {
+        li.classList.toggle("active", i === adActive);
+        li.setAttribute("aria-selected", String(i === adActive));
+      });
+      comboSync(ad.input, ad.sugg, adActive);
     } else if (e.key === "Enter" && adActive >= 0) {
       e.preventDefault();
       adGuess(adItems[adActive]);

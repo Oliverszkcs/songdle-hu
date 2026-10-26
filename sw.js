@@ -1,10 +1,12 @@
 // Az alkalmazás saját fájljait tároljuk. A Deezer API és a borítók a hálózatról jönnek;
 // a hangot a játék csak streameli, nem tárolja.
-const CACHE = "songdle-hu-v53";
+const CACHE = "songdle-hu-v56";
 const SHELL = [
   "./",
   "index.html",
   "css/style.css",
+  "fonts/outfit-latin.woff2",
+  "fonts/outfit-latin-ext.woff2",
   "js/config.js",
   "js/deezer.js",
   "js/app.js",
@@ -37,6 +39,14 @@ self.addEventListener("activate", (e) => {
   );
 });
 
+// A tárolóban használt kulcs: oldalbetöltésnél „./”, az alkalmazás fájljainál maga a kérés, minden másnál semmi.
+const SCOPE = new URL("./", self.location).pathname;
+function cacheKey(req, url) {
+  if (req.mode === "navigate") return "./";
+  const path = url.pathname.startsWith(SCOPE) ? url.pathname.slice(SCOPE.length) : "";
+  return SHELL.includes(path) ? req : null;
+}
+
 // Hálózat először (így a frissítések azonnal megjelennek), offline esetén gyorsítótár.
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
@@ -47,12 +57,17 @@ self.addEventListener("fetch", (e) => {
     // (Navigációs kérésből nem lehet új kérést készíteni, ezért ott a címet adjuk át.)
     fetch(e.request.mode === "navigate" ? e.request.url : e.request, { cache: "no-cache" })
       .then((res) => {
-        if (res.ok) {
+        // Csak az alkalmazás saját fájljait tesszük el (a ?c=…, ?parbaj=… linkeket egyetlen „./” alatt),
+        // így a tároló nem telik meg minden megnyitott kihívással.
+        const key = cacheKey(e.request, url);
+        if (res.ok && key) {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+          caches.open(CACHE).then((c) => c.put(key, copy)).catch(() => {});
         }
         return res;
       })
-      .catch(() => caches.match(e.request, { ignoreSearch: true }).then((r) => r || caches.match("index.html")))
+      // Offline: oldalbetöltésre a mentett oldal, minden másra a mentett fájl vagy hiba (nem HTML egy JSON helyett).
+      .catch(() => caches.match(cacheKey(e.request, url) || e.request, { ignoreSearch: true })
+        .then((r) => r || (e.request.mode === "navigate" ? caches.match("index.html") : Response.error())))
   );
 });
