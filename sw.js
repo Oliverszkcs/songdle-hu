@@ -1,6 +1,6 @@
 // Az alkalmazás saját fájljait tároljuk. A Deezer API és a borítók a hálózatról jönnek;
 // a hangot a játék csak streameli, nem tárolja.
-const CACHE = "songdle-hu-v52";
+const CACHE = "songdle-hu-v53";
 const SHELL = [
   "./",
   "index.html",
@@ -10,6 +10,7 @@ const SHELL = [
   "js/app.js",
   "data/years.json",
   "manifest.json",
+  "favicon.ico",
   "icons/icon.svg",
   "icons/icon-192.png",
   "icons/icon-512.png",
