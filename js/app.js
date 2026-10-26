@@ -4,7 +4,7 @@
   // Ugyanaz a szám, mint az index.html data-v-je, a ?v= linkek és az sw.js CACHE-e: frissítéskor mindet emeld.
   // Ha egy frissítés után a CDN régi oldalt adna új szkripttel (vagy fordítva), a kettő nem illik össze,
   // és félbemaradna az indulás. Ilyenkor egyszer újratöltjük az oldalt.
-  const APP_V = "56";
+  const APP_V = "57";
   if (document.documentElement.dataset.v !== APP_V) {
     let reloaded = false;
     try { reloaded = sessionStorage.getItem("songdle.vReload") === APP_V; sessionStorage.setItem("songdle.vReload", APP_V); } catch { /* nincs tároló */ }
@@ -4748,9 +4748,9 @@
   const adPointsFor = (n, st) => Math.max(AD_MIN_POINTS, AD_POINTS(n) - (st.titleHint ? AD_TITLE_COST : 0));
   const tagLabel = (id) => (CFG.CATEGORIES.find((c) => c.id === id) || { label: id }).label;
   const ad = {
-    input: $("adInput"), sugg: $("adSuggestions"), list: $("adGuesses"), empty: $("adEmpty"),
-    meta: $("adMeta"), win: $("adWin"), hint: $("adHintBtn"), giveUp: $("adGiveUpBtn"), search: $("adSearch"), help: $("adHelp"),
-    titleBtn: $("adTitleBtn"), titleHint: $("adTitleHint"),
+    input: $("artistInput"), sugg: $("artistSuggestions"), list: $("artistGuesses"), empty: $("artistEmpty"),
+    meta: $("artistMeta"), win: $("artistWin"), hint: $("artistHintBtn"), giveUp: $("artistGiveUpBtn"), search: $("artistSearch"), help: $("artistHelp"),
+    titleBtn: $("artistTitleBtn"), titleHint: $("artistTitleHint"),
   };
   let adStats = load("artistStats", { played: 0, streak: 0, maxStreak: 0, lastWin: null, guesses: 0 });
 
@@ -4890,9 +4890,9 @@
   async function adRenderRow(g, ans, animate) {
     const gi = await adFetch(g);
     const li = document.createElement("li");
-    li.className = "ad-row" + (g.id === ans.id ? " win" : "");
+    li.className = "artist-row" + (g.id === ans.id ? " win" : "");
     const head = document.createElement("div");
-    head.className = "ad-name";
+    head.className = "artist-name";
     const img = document.createElement("img");
     img.alt = "";
     if (gi.pic) img.src = gi.pic;
@@ -4900,12 +4900,12 @@
     name.textContent = g.name;
     head.append(img, name);
     const tiles = document.createElement("div");
-    tiles.className = "ad-tiles";
+    tiles.className = "artist-tiles";
     adCompare(g, ans, g.listeners, ans.listeners).forEach((c, i) => {
       // Koppintásra elmagyarázza, mit jelent a mező.
       const t = document.createElement("button");
       t.type = "button";
-      t.className = "ad-tile " + c.cls;
+      t.className = "artist-tile " + c.cls;
       t.setAttribute("aria-label", c.why);
       t.title = c.why;
       const lab = document.createElement("small");
@@ -4958,18 +4958,18 @@
     if (!st.done) return;
     ad.win.innerHTML = "";
     const title = document.createElement("p");
-    title.className = "ad-win-title";
+    title.className = "artist-win-title";
     title.textContent = st.gaveUp ? `Feladva ${st.guesses.length} tipp után`
       : st.guesses.length === 1 ? "Elsőre! 🤯" : `Eltaláltad ${st.guesses.length} tippből! 🎉`;
     ad.win.classList.toggle("lost", !!st.gaveUp);
     const nameEl = document.createElement("p");
-    nameEl.className = "ad-win-name";
+    nameEl.className = "artist-win-name";
     nameEl.textContent = ans.name;
     const pts = document.createElement("p");
-    pts.className = "ad-win-points";
+    pts.className = "artist-win-points";
     pts.textContent = st.gaveUp ? "0 pont · a sorozat nullázódott" : `+${st.points} pont`;
     const next = document.createElement("p");
-    next.className = "ad-win-next";
+    next.className = "artist-win-next";
     const h = Math.floor(msToNextDay() / 3600e3), m = Math.floor(msToNextDay() / 60e3) % 60;
     next.textContent = `Új előadó ${h} óra ${m} perc múlva · sorozat: ${adStats.streak}`;
     const share = document.createElement("button");
@@ -4981,7 +4981,7 @@
     // Feladás után megmutatjuk a megfejtés mind a 8 adatát.
     if (st.gaveUp) {
       const box = document.createElement("ol");
-      box.className = "ad-guesses ad-answer";
+      box.className = "artist-guesses artist-answer";
       ad.win.insertBefore(box, pts);
       adRenderRow(ans, ans, false).then((li) => box.appendChild(li));
     }

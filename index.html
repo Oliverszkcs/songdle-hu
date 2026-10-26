@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hu" data-v="56">
+<html lang="hu" data-v="57">
 <head>
   <meta charset="utf-8">
   <!-- Csak a felsorolt helyekről tölthet be bármit az oldal. Új külső szolgáltatásnál ide is fel kell venni.
@@ -57,7 +57,7 @@
   <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=56">
+  <link rel="stylesheet" href="css/style.css?v=57">
 </head>
 <body>
   <div class="bg" aria-hidden="true">
@@ -134,29 +134,29 @@
 
     <main class="scroll" id="scroll">
       <section class="artist-view" id="artistView" hidden>
-        <div class="ad-top">
-          <div class="ad-title">
+        <div class="artist-top">
+          <div class="artist-title">
             <h2>Napi előadó</h2>
-            <p id="adMeta"></p>
+            <p id="artistMeta"></p>
           </div>
-          <div class="ad-search" id="adSearch">
+          <div class="artist-search" id="artistSearch">
             <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM16 16l5 5"/></svg>
-            <input id="adInput" type="text" placeholder="Írj be egy előadót…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Előadó tippelése" role="combobox" aria-autocomplete="list" aria-controls="adSuggestions" aria-expanded="false">
-            <ul class="suggestions ad-suggestions" id="adSuggestions" role="listbox" hidden></ul>
+            <input id="artistInput" type="text" placeholder="Írj be egy előadót…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Előadó tippelése" role="combobox" aria-autocomplete="list" aria-controls="artistSuggestions" aria-expanded="false">
+            <ul class="suggestions artist-suggestions" id="artistSuggestions" role="listbox" hidden></ul>
           </div>
-          <div class="ad-tools">
-            <button class="chip" id="adHintBtn" type="button" disabled></button>
-            <button class="chip" id="adTitleBtn" type="button" disabled></button>
-            <button class="chip ad-giveup" id="adGiveUpBtn" type="button" hidden>🏳️ Feladom</button>
+          <div class="artist-tools">
+            <button class="chip" id="artistHintBtn" type="button" disabled></button>
+            <button class="chip" id="artistTitleBtn" type="button" disabled></button>
+            <button class="chip artist-giveup" id="artistGiveUpBtn" type="button" hidden>🏳️ Feladom</button>
           </div>
         </div>
-        <p class="ad-title-hint" id="adTitleHint" hidden></p>
-        <div class="ad-win" id="adWin" hidden></div>
-        <ol class="ad-guesses" id="adGuesses"></ol>
-        <p class="ad-empty" id="adEmpty">Találd ki a mai magyar előadót! Minden tipp után látod, miben hasonlít a megfejtésre.</p>
-        <details class="ad-help" id="adHelp">
+        <p class="artist-title-hint" id="artistTitleHint" hidden></p>
+        <div class="artist-win" id="artistWin" hidden></div>
+        <ol class="artist-guesses" id="artistGuesses"></ol>
+        <p class="artist-empty" id="artistEmpty">Találd ki a mai magyar előadót! Minden tipp után látod, miben hasonlít a megfejtésre.</p>
+        <details class="artist-help" id="artistHelp">
           <summary>Hogyan működik?</summary>
-          <p class="ad-help-key"><i class="hit"></i><b>Zöld</b> – egyezik &nbsp; <i class="near"></i><b>Sárga</b> – közel &nbsp; <i></i><b>Szürke</b> – nem talált</p>
+          <p class="artist-help-key"><i class="hit"></i><b>Zöld</b> – egyezik &nbsp; <i class="near"></i><b>Sárga</b> – közel &nbsp; <i></i><b>Szürke</b> – nem talált</p>
           <dl>
             <dt>Típus</dt><dd>Szóló, duó vagy zenekar.</dd>
             <dt>Nem</dt><dd>Férfi, nő vagy vegyes.</dd>
@@ -550,8 +550,8 @@
 
   <audio id="audio" preload="auto" crossorigin="anonymous"></audio>
 
-  <script src="js/config.js?v=56"></script>
-  <script src="js/deezer.js?v=56"></script>
-  <script src="js/app.js?v=56"></script>
+  <script src="js/config.js?v=57"></script>
+  <script src="js/deezer.js?v=57"></script>
+  <script src="js/app.js?v=57"></script>
 </body>
 </html>
