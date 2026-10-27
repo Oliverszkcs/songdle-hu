@@ -1,8 +1,8 @@
-import { reducedMotion, el, load, save, fmt } from "./core.js?v=59";
-import { round, setStatus } from "./state.js?v=59";
-import { persistRound, currentLength, scaleLength } from "./round.js?v=59";
-import { renderWaveState } from "./render.js?v=59";
-import { stream, streamControls } from "./stream.js?v=59";
+import { reducedMotion, el, load, save, fmt } from "./core.js?v=60";
+import { round, setStatus } from "./state.js?v=60";
+import { persistRound, currentLength, scaleLength } from "./round.js?v=60";
+import { renderWaveState } from "./render.js?v=60";
+import { stream, streamControls } from "./stream.js?v=60";
 
 // ---------- Hang (Web Audio: hangerő + vizualizáció) ----------
 export let actx = null, gainNode = null, analyser = null, freq = null;
@@ -89,6 +89,8 @@ export async function playClip() {
 
 // Lejátszás közben: gomb állapota, gyűrű, idő és hullámforma; a részlet végén megáll.
 function startTicker(token, elapsed, ended) {
+  // Egy korábbi sikertelen próbálkozás hibaüzenete ne maradjon kint, ha most már szól.
+  if (el.status.classList.contains("error")) setStatus("");
   el.playBtn.classList.remove("loading");
   el.playBtn.classList.add("playing");
   document.body.classList.add("playing");

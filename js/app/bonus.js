@@ -1,10 +1,10 @@
-import { DEFAULT_TINT, el, save, norm, dateKey, msToNextDay, encId, decId } from "./core.js?v=59";
-import { mode, pool, round, points, vibrate, setPoints } from "./state.js?v=59";
-import { setTint } from "./tint.js?v=59";
-import { enterMode } from "./modes.js?v=59";
-import { persistRound, originalYear, revealAlbum } from "./round.js?v=59";
-import { animatePoints, floatPoints } from "./render.js?v=59";
-import { countEvent } from "./analytics.js?v=59";
+import { DEFAULT_TINT, el, save, norm, dateKey, msToNextDay, encId, decId } from "./core.js?v=60";
+import { mode, pool, round, points, vibrate, setPoints } from "./state.js?v=60";
+import { setTint } from "./tint.js?v=60";
+import { enterMode } from "./modes.js?v=60";
+import { persistRound, originalYear, revealAlbum } from "./round.js?v=60";
+import { animatePoints, floatPoints } from "./render.js?v=60";
+import { countEvent } from "./analytics.js?v=60";
 
 // ---------- Bónuszkérdés: a megfejtés után az év vagy az album, 4 lehetőségből ----------
 export const BONUS_PTS = 25;

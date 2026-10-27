@@ -354,9 +354,6 @@ body.playing .logo-eq i { animation-play-state: running; }
   .seg-indicator { top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); }
   .mode-row { gap: 8px; padding-left: 10px; padding-right: 10px; }
 }
-@media (max-width: 345px) {
-  .segmented button { font-size: .72rem; }
-}
 
 .daily-banner {
   flex: none;
@@ -1752,7 +1749,11 @@ body[data-mode="stream"].gw-open .controls .buttons { grid-template-columns: 1fr
   .round-pts { min-width: 40px; padding: 0 7px 0 5px; }
   .points-text b { font-size: 1.05rem; }
   .segmented { height: 46px; }
-  .segmented button { gap: 4px; }
+  /* (A 520 px-es szabály után kell, különben az felülírná a betűméretet.) */
+  .segmented button { gap: 4px; font-size: .76rem; }
   .seg-badge { min-width: 15px; height: 15px; padding: 0 4px; font-size: .6rem; }
+  /* A napi jelvény is csak pötty, különben a három fül összeér. */
+  #dailyBadge { min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; }
+  .mode-row { gap: 6px; }
   .controls .btn { font-size: .88rem; white-space: nowrap; padding-left: 8px; padding-right: 8px; }
 }

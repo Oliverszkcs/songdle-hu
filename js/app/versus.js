@@ -1,15 +1,15 @@
-import { LS, $, el, load, encId } from "./core.js?v=59";
-import { slimTrack, withRetry, isLive, isReported, buildPool, weightedPick } from "./pool.js?v=59";
+import { LS, $, el, load, encId } from "./core.js?v=60";
+import { slimTrack, withRetry, isLive, isReported, buildPool, weightedPick } from "./pool.js?v=60";
 import {
   mode, pool, versus, vsScore, oppScore, oppFinished, vsOver, vsOppOver, setStatus, setMode, setVersus,
-} from "./state.js?v=59";
-import { renderMode, updateNextButton, renderCategories, enterMode } from "./modes.js?v=59";
-import { artistsOf, startRound } from "./round.js?v=59";
-import { confetti } from "./render.js?v=59";
-import { stopAudio } from "./audio.js?v=59";
-import { homeUrl, challengeUrl, shareText } from "./controls.js?v=59";
-import { peerHost, hostConn, room, sendOut, peerClose, vsRematch, setRoom } from "./peer.js?v=59";
-import { countEvent } from "./analytics.js?v=59";
+} from "./state.js?v=60";
+import { renderMode, updateNextButton, renderCategories, enterMode } from "./modes.js?v=60";
+import { artistsOf, startRound } from "./round.js?v=60";
+import { confetti } from "./render.js?v=60";
+import { stopAudio } from "./audio.js?v=60";
+import { homeUrl, challengeUrl, shareText } from "./controls.js?v=60";
+import { peerHost, hostConn, room, sendOut, peerClose, vsRematch, setRoom } from "./peer.js?v=60";
+import { countEvent } from "./analytics.js?v=60";
 
 // ---------- Párbaj és kihívás ----------
 // Közös meccs-motor: mindenki ugyanazokat a dalokat kapja, dalonként a tippek száma

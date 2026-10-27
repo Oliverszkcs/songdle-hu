@@ -1,4 +1,4 @@
-import { DEFAULT_TINT } from "./core.js?v=59";
+import { DEFAULT_TINT } from "./core.js?v=60";
 
 // ---------- Háttérszín a borítóból ----------
 export function setTint(colors) {

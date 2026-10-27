@@ -1,23 +1,23 @@
 import {
   CFG, SET_SIZE, DIFFS, diffById, reducedMotion, $, el, load, save, dateKey, prettyDate, decId, toast,
-} from "./core.js?v=59";
+} from "./core.js?v=60";
 import {
   loadArtists, buildPool, assignWeights, DECADES, decadeOf, allCats, artistsFor, loadYears, pickDailyTrack,
-} from "./pool.js?v=59";
+} from "./pool.js?v=60";
 import {
   mode, category, hard, HARD_MULT_TEXT, pool, round, loadToken, dailyDiff, game, gameScore, gameDone, versus,
   vsOver, vsOppOver, dailyKey, dailyResult, nextUnplayedDiff, setStatus, confirmDialog, setLoading, setHard,
   setDailyDiff, setGame, setCategory, setMode, setLoadToken, setRound, setPool,
-} from "./state.js?v=59";
-import { startRound, persistRound, finishRound } from "./round.js?v=59";
-import { resetStage, showDone, stopCountdown } from "./bonus.js?v=59";
-import { renderAll, buildWave, setControls } from "./render.js?v=59";
-import { stopAudio } from "./audio.js?v=59";
-import { vsStartSong, leaveVersus, closeVersus } from "./versus.js?v=59";
-import { openBattle } from "./peer.js?v=59";
-import { stream, openStreamSetup, leaveStream, closeStream, streamStartSong } from "./stream.js?v=59";
-import { renderTwConn } from "./twitch.js?v=59";
-import { adDone, openArtistGame, adLeave } from "./artist.js?v=59";
+} from "./state.js?v=60";
+import { startRound, persistRound, finishRound } from "./round.js?v=60";
+import { resetStage, showDone, stopCountdown } from "./bonus.js?v=60";
+import { renderAll, buildWave, setControls } from "./render.js?v=60";
+import { stopAudio } from "./audio.js?v=60";
+import { vsStartSong, leaveVersus, closeVersus } from "./versus.js?v=60";
+import { openBattle } from "./peer.js?v=60";
+import { stream, openStreamSetup, leaveStream, closeStream, streamStartSong } from "./stream.js?v=60";
+import { renderTwConn } from "./twitch.js?v=60";
+import { adDone, openArtistGame, adLeave } from "./artist.js?v=60";
 
 // ---------- Mód és kategória ----------
 export function renderMode() {

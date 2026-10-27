@@ -1,15 +1,15 @@
 import {
   CFG, $, el, load, save, norm, dateKey, shiftDate, msToNextDay, prettyDate, hashString, toast,
-} from "./core.js?v=59";
-import { excludeRe, withRetry, isLive, configBlocked } from "./pool.js?v=59";
-import { points, vibrate, setPoints } from "./state.js?v=59";
-import { updateDailyBadge } from "./modes.js?v=59";
-import { renderRoundPoints, animatePoints, confetti } from "./render.js?v=59";
-import { actx, gainNode, ensureAudioGraph, libAudio, stopAudio, applyVolume } from "./audio.js?v=59";
-import { highlighted, comboSync } from "./autocomplete.js?v=59";
-import { homeUrl, shareText } from "./controls.js?v=59";
-import { countEvent } from "./analytics.js?v=59";
-import { libSrcNode, libStop, setLibSrcNode } from "./library.js?v=59";
+} from "./core.js?v=60";
+import { excludeRe, withRetry, isLive, configBlocked } from "./pool.js?v=60";
+import { points, vibrate, setPoints } from "./state.js?v=60";
+import { updateDailyBadge } from "./modes.js?v=60";
+import { renderRoundPoints, animatePoints, confetti } from "./render.js?v=60";
+import { actx, gainNode, ensureAudioGraph, libAudio, stopAudio, applyVolume } from "./audio.js?v=60";
+import { highlighted, comboSync } from "./autocomplete.js?v=60";
+import { homeUrl, shareText } from "./controls.js?v=60";
+import { countEvent } from "./analytics.js?v=60";
+import { libSrcNode, libStop, setLibSrcNode } from "./library.js?v=60";
 
 // ---------- Napi előadó ----------
 // Találós a Napi módban: minden tippnél megmutatjuk, mennyire hasonlít a tippelt

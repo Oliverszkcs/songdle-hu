@@ -1,29 +1,29 @@
 import {
   CFG, LENGTHS, MAX_TRIES, MAX_LEN, FULL_PREVIEW, POINTS, STREAK_BONUS, STREAK_BONUS_MAX, reducedMotion, $, el,
   num, load, save, norm, coverUrl, artistLine, dateKey, shiftDate, encId, retrigger,
-} from "./core.js?v=59";
-import { storeFirstYear, loadClip, shownName, isReported, weightedPick } from "./pool.js?v=59";
+} from "./core.js?v=60";
+import { storeFirstYear, loadClip, shownName, isReported, weightedPick } from "./pool.js?v=60";
 import {
   mode, category, hard, lengthsOf, multOf, pool, round, loadToken, stats, dailyDiff, dailyStatsAll, dailyStats,
   points, game, bestGame, gameScore, gameDone, versus, vsOver, dailyKey, setStatus, vibrate, setLoading,
   setGame, setRound, setSelected, setPoints, setBestGame,
-} from "./state.js?v=59";
-import { setTint, coverColors } from "./tint.js?v=59";
-import { updateNextButton, renderCategories } from "./modes.js?v=59";
+} from "./state.js?v=60";
+import { setTint, coverColors } from "./tint.js?v=60";
+import { updateNextButton, renderCategories } from "./modes.js?v=60";
 import {
   packBonus, unpackBonus, bonusEligible, prepareBonus, renderBonus, renderRevealPoints, resetStage, showDone,
   startCountdown, stopCountdown,
-} from "./bonus.js?v=59";
+} from "./bonus.js?v=60";
 import {
   renderAll, buildWave, animatePoints, floatPoints, setControls, updateClear, confetti,
-} from "./render.js?v=59";
-import { stopAudio, playClip } from "./audio.js?v=59";
-import { hideSuggestions } from "./autocomplete.js?v=59";
-import { vsWaitingFor, names, renderVsSummary, saveBattle } from "./versus.js?v=59";
-import { vsSendProgress } from "./peer.js?v=59";
-import { stream, streamSongReady } from "./stream.js?v=59";
-import { countEvent } from "./analytics.js?v=59";
-import { renderReportBtn } from "./report.js?v=59";
+} from "./render.js?v=60";
+import { stopAudio, playClip } from "./audio.js?v=60";
+import { hideSuggestions } from "./autocomplete.js?v=60";
+import { vsWaitingFor, names, renderVsSummary, saveBattle } from "./versus.js?v=60";
+import { vsSendProgress } from "./peer.js?v=60";
+import { stream, streamSongReady } from "./stream.js?v=60";
+import { countEvent } from "./analytics.js?v=60";
+import { renderReportBtn } from "./report.js?v=60";
 
 // ---------- Kör ----------
 // Előadó-rotáció: előbb előadót sorsolunk (a sokdalos előadók ne nyomják el a

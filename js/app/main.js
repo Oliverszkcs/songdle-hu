@@ -1,32 +1,32 @@
-import { POINTS, load, save, decId } from "./core.js?v=59";
-import { renderMode, renderCategories, enterMode } from "./modes.js?v=59";
-import { renderAll, buildWave, renderPoints } from "./render.js?v=59";
-import { sizeViz, drawViz, applyVolume } from "./audio.js?v=59";
-import { startVersus, clearBattle } from "./versus.js?v=59";
-import { BATTLE_LENGTHS, openBattle, resumeBattle } from "./peer.js?v=59";
-import { countEvent } from "./analytics.js?v=59";
-import { openHelp } from "./library.js?v=59";
-import { init as poolInit } from "./pool.js?v=59";
-import { init as stateInit } from "./state.js?v=59";
-import { init as modesInit } from "./modes.js?v=59";
-import { init as renderInit } from "./render.js?v=59";
-import { init as audioInit } from "./audio.js?v=59";
-import { init as autocompleteInit } from "./autocomplete.js?v=59";
-import { init as controlsInit } from "./controls.js?v=59";
-import { init as versusInit } from "./versus.js?v=59";
-import { init as peerInit } from "./peer.js?v=59";
-import { init as streamInit } from "./stream.js?v=59";
-import { init as guesswindowInit } from "./guesswindow.js?v=59";
-import { init as twitchInit } from "./twitch.js?v=59";
-import { init as analyticsInit } from "./analytics.js?v=59";
-import { init as statsInit } from "./stats.js?v=59";
-import { init as reportInit } from "./report.js?v=59";
-import { init as libraryInit } from "./library.js?v=59";
-import { init as artistInit } from "./artist.js?v=59";
+import { POINTS, load, save, decId } from "./core.js?v=60";
+import { renderMode, renderCategories, enterMode } from "./modes.js?v=60";
+import { renderAll, buildWave, renderPoints } from "./render.js?v=60";
+import { sizeViz, drawViz, applyVolume } from "./audio.js?v=60";
+import { startVersus, clearBattle } from "./versus.js?v=60";
+import { BATTLE_LENGTHS, openBattle, resumeBattle } from "./peer.js?v=60";
+import { countEvent } from "./analytics.js?v=60";
+import { openHelp } from "./library.js?v=60";
+import { init as poolInit } from "./pool.js?v=60";
+import { init as stateInit } from "./state.js?v=60";
+import { init as modesInit } from "./modes.js?v=60";
+import { init as renderInit } from "./render.js?v=60";
+import { init as audioInit } from "./audio.js?v=60";
+import { init as autocompleteInit } from "./autocomplete.js?v=60";
+import { init as controlsInit } from "./controls.js?v=60";
+import { init as versusInit } from "./versus.js?v=60";
+import { init as peerInit } from "./peer.js?v=60";
+import { init as streamInit } from "./stream.js?v=60";
+import { init as guesswindowInit } from "./guesswindow.js?v=60";
+import { init as twitchInit } from "./twitch.js?v=60";
+import { init as analyticsInit } from "./analytics.js?v=60";
+import { init as statsInit } from "./stats.js?v=60";
+import { init as reportInit } from "./report.js?v=60";
+import { init as libraryInit } from "./library.js?v=60";
+import { init as artistInit } from "./artist.js?v=60";
 
 // Ugyanaz a szám, mint az index.html data-v-je, a ?v= linkek (a modulok importjaiban is) és az sw.js
 // CACHE-e: frissítéskor mindet emeld (node tools/bump-version.mjs).
-const APP_V = "59";
+const APP_V = "60";
 
 // ---------- Indítás ----------
 function start() {

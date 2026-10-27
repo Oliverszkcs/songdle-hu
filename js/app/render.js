@@ -1,15 +1,15 @@
 import {
   MAX_TRIES, MAX_LEN, SET_SIZE, diffById, WAVE_BARS, reducedMotion, el, num, fmt, shiftDate, mulberry32,
   retrigger,
-} from "./core.js?v=59";
+} from "./core.js?v=60";
 import {
   mode, lengthsOf, multOf, round, stats, dailyDiff, dailyStats, points, game, bestGame, gameScore, gameDone,
   shownPoints, versus, vsScore, dailyStreakNow, setShownPoints,
-} from "./state.js?v=59";
-import { usedTries, currentLength, scaleLength, scoreFor } from "./round.js?v=59";
-import { renderVsBar, vsOppLine } from "./versus.js?v=59";
-import { stream } from "./stream.js?v=59";
-import { adPointsFor, adState } from "./artist.js?v=59";
+} from "./state.js?v=60";
+import { usedTries, currentLength, scaleLength, scoreFor } from "./round.js?v=60";
+import { renderVsBar, vsOppLine } from "./versus.js?v=60";
+import { stream } from "./stream.js?v=60";
+import { adPointsFor, adState } from "./artist.js?v=60";
 
 // ---------- Megjelenítés ----------
 export function renderAll(animate) {

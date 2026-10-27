@@ -1,5 +1,5 @@
-import { CFG, LS, load, save, norm, baseTitle, artistLine, hashString } from "./core.js?v=59";
-import { pool } from "./state.js?v=59";
+import { CFG, LS, load, save, norm, baseTitle, artistLine, hashString } from "./core.js?v=60";
+import { pool } from "./state.js?v=60";
 
 // ---------- Dalkészlet ----------
 export const excludeRe = new RegExp(CFG.EXCLUDE_TITLE_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i");
