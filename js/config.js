@@ -487,6 +487,21 @@ window.SONGDLE_CONFIG = {
   // megjelenés éve, vagy null, ha nincs megbízható év (a dal ekkor egyik évtizedben sem szerepel).
   // A tools/build-years.mjs és a játék is figyeli.
   YEAR_OVERRIDES: [
+    // Karthago: a Deezeren csak a 2020-as/2022-es újrafelvételek vannak meg a 80-as évekbeli
+    // klasszikusokból (pl. Requiem, Szülői ház), ezért ezek egyik évtizedben sem szerepelnek.
+    { artist: "Karthago", title: "Requiem", year: null },
+    { artist: "Karthago", title: "Zene nélkül", year: null },
+    { artist: "Karthago", title: "Hazám", year: null },
+    { artist: "Karthago", title: "Éjszakák és nappalok", year: null },
+    { artist: "Karthago", title: "Most élsz", year: null },
+    { artist: "Karthago", title: "Ez majdnem szerelem volt", year: null },
+    { artist: "Karthago", title: "Otthonom a nagyvilág", year: null },
+    { artist: "Karthago", title: "Szülői ház", year: null },
+    { artist: "Karthago", title: "Ott állsz az út végén", year: null },
+    { artist: "Karthago", title: "Minden szónál többet ér", year: null },
+    { artist: "Karthago", title: "Elmegyek", year: null },
+    { artist: "Karthago", title: "Azért vannak a jóbarátok", year: null },
+    { artist: "Karthago", title: "Emlékezz rám", year: null },
     // Szandi: a Deezeren a 2014-es „Szandi 25” újrafelvételei; a Tinédzser l'amour 1990-es (Wikipédia),
     // a többinél nincs megbízható eredeti év.
     { artist: "Szandi", title: "Tinédzser L'Amour (Deejay Sampler Dance Mix)", year: 1990 },

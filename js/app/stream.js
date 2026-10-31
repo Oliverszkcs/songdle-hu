@@ -1,20 +1,20 @@
-import { MAX_TRIES, POINTS, $, el, load, save, norm, artistLine, trackLabel, retrigger, toast } from "./core.js?v=61";
-import { allCats, catLabel } from "./pool.js?v=61";
-import { mode, pool, round, setStatus, setMode } from "./state.js?v=61";
+import { MAX_TRIES, POINTS, $, el, load, save, norm, artistLine, trackLabel, retrigger, toast } from "./core.js?v=62";
+import { allCats, catLabel } from "./pool.js?v=62";
+import { mode, pool, round, setStatus, setMode } from "./state.js?v=62";
 import {
   renderMode, updateNextButton, renderCategories, fillCatPill, openCatSheet, enterMode,
-} from "./modes.js?v=61";
-import { startRound, currentLength, emojiRow, setDeezerLink, revealAlbum, hideAlbum } from "./round.js?v=61";
-import { BONUS_PTS, shuffle, makeBonus, showDone } from "./bonus.js?v=61";
-import { renderAll, buildWave, renderRoundPoints, updateSubmit, confetti } from "./render.js?v=61";
-import { stopAudio } from "./audio.js?v=61";
-import { search, judge, copyText } from "./autocomplete.js?v=61";
-import { pickSet, closeVersus } from "./versus.js?v=61";
-import { BATTLE_LENGTHS } from "./peer.js?v=61";
-import { gw, closeGuessWindow, renderGuessWindow, renderStreamMvp } from "./guesswindow.js?v=61";
-import { sr, openStreamResult, tw, TW_JOIN_MS, twConnect, twWait, twClose } from "./twitch.js?v=61";
-import { countEvent } from "./analytics.js?v=61";
-import { renderReportBtn } from "./report.js?v=61";
+} from "./modes.js?v=62";
+import { startRound, currentLength, emojiRow, setDeezerLink, revealAlbum, hideAlbum } from "./round.js?v=62";
+import { BONUS_PTS, shuffle, makeBonus, showDone } from "./bonus.js?v=62";
+import { renderAll, buildWave, renderRoundPoints, updateSubmit, confetti } from "./render.js?v=62";
+import { stopAudio } from "./audio.js?v=62";
+import { search, judge, copyText } from "./autocomplete.js?v=62";
+import { pickSet, closeVersus } from "./versus.js?v=62";
+import { BATTLE_LENGTHS } from "./peer.js?v=62";
+import { gw, closeGuessWindow, renderGuessWindow, renderStreamMvp } from "./guesswindow.js?v=62";
+import { sr, openStreamResult, tw, TW_JOIN_MS, twConnect, twWait, twClose } from "./twitch.js?v=62";
+import { countEvent } from "./analytics.js?v=62";
+import { renderReportBtn } from "./report.js?v=62";
 
 // ---------- Streamer vs Chat (Twitch) ----------
 // A streamer és a chat (egy játékosként) ugyanazt a dalt játssza, közös részlethosszal.

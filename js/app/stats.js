@@ -1,6 +1,6 @@
-import { MAX_TRIES, DIFFS, diffById, LS, $, el, load, dateKey, shiftDate, prettyDate } from "./core.js?v=61";
-import { mode, round, stats, dailyDiff, dailyStats, points, dailyStreakNow, dailyKey } from "./state.js?v=61";
-import { adStats, adKey } from "./artist.js?v=61";
+import { MAX_TRIES, DIFFS, diffById, LS, $, el, load, dateKey, shiftDate, prettyDate } from "./core.js?v=62";
+import { mode, round, stats, dailyDiff, dailyStats, points, dailyStreakNow, dailyKey } from "./state.js?v=62";
+import { adStats, adKey } from "./artist.js?v=62";
 
 // ---------- Statisztika ----------
 function statCells(container, s, streakNow) {

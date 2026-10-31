@@ -1,13 +1,13 @@
-import { SET_SIZE, diffById, el, load, encId, toast } from "./core.js?v=61";
-import { catLabel } from "./pool.js?v=61";
-import { mode, category, round, stats, game, gameDone, dailyStreakNow, nextUnplayedDiff } from "./state.js?v=61";
-import { changeDifficulty, changeMode } from "./modes.js?v=61";
-import { startRound, registerAttempt, emojiRow } from "./round.js?v=61";
-import { playClip } from "./audio.js?v=61";
-import { submit, copyText } from "./autocomplete.js?v=61";
-import { vsNext, vsShare } from "./versus.js?v=61";
-import { streamLock, streamNext } from "./stream.js?v=61";
-import { countEvent } from "./analytics.js?v=61";
+import { SET_SIZE, diffById, el, load, encId, toast } from "./core.js?v=62";
+import { catLabel } from "./pool.js?v=62";
+import { mode, category, round, stats, game, gameDone, dailyStreakNow, nextUnplayedDiff } from "./state.js?v=62";
+import { changeDifficulty, changeMode } from "./modes.js?v=62";
+import { startRound, registerAttempt, emojiRow } from "./round.js?v=62";
+import { playClip } from "./audio.js?v=62";
+import { submit, copyText } from "./autocomplete.js?v=62";
+import { vsNext, vsShare } from "./versus.js?v=62";
+import { streamLock, streamNext } from "./stream.js?v=62";
+import { countEvent } from "./analytics.js?v=62";
 
 // ---------- Megosztás ----------
 export const homeUrl = () => location.origin + location.pathname;

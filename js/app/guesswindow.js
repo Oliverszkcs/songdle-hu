@@ -1,9 +1,9 @@
-import { el, coverUrl, artistLine, trackLabel, toast } from "./core.js?v=61";
-import { round } from "./state.js?v=61";
-import { currentLength } from "./round.js?v=61";
-import { playClip } from "./audio.js?v=61";
-import { search, comboSync, judge } from "./autocomplete.js?v=61";
-import { stream, st, streamControls, streamLock, chatMatch, renderStream } from "./stream.js?v=61";
+import { el, coverUrl, artistLine, trackLabel, toast } from "./core.js?v=62";
+import { round } from "./state.js?v=62";
+import { currentLength } from "./round.js?v=62";
+import { playClip } from "./audio.js?v=62";
+import { search, comboSync, judge } from "./autocomplete.js?v=62";
+import { stream, st, streamControls, streamLock, chatMatch, renderStream } from "./stream.js?v=62";
 
 // ----- Tipp-ablak (beírós mód) -----
 // Külön böngészőablak a streamer tippjéhez, rendes javaslatlistával. Az OBS csak a játék ablakát veszi fel,
