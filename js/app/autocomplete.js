@@ -1,8 +1,8 @@
-import { el, fold, norm, coverUrl, trackLabel, retrigger } from "./core.js?v=60";
-import { mode, pool, round, selected, setStatus, setSelected } from "./state.js?v=60";
-import { registerAttempt } from "./round.js?v=60";
-import { updateSubmit, updateClear } from "./render.js?v=60";
-import { streamLock, chatMatch } from "./stream.js?v=60";
+import { el, fold, norm, coverUrl, trackLabel, retrigger } from "./core.js?v=61";
+import { mode, pool, round, selected, setStatus, setSelected } from "./state.js?v=61";
+import { registerAttempt } from "./round.js?v=61";
+import { updateSubmit, updateClear } from "./render.js?v=61";
+import { streamLock, chatMatch } from "./stream.js?v=61";
 
 // ---------- Automatikus kiegészítés ----------
 let suggestionItems = [];

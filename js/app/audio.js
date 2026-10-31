@@ -1,8 +1,8 @@
-import { reducedMotion, el, load, save, fmt } from "./core.js?v=60";
-import { round, setStatus } from "./state.js?v=60";
-import { persistRound, currentLength, scaleLength } from "./round.js?v=60";
-import { renderWaveState } from "./render.js?v=60";
-import { stream, streamControls } from "./stream.js?v=60";
+import { reducedMotion, el, load, save, fmt } from "./core.js?v=61";
+import { round, setStatus } from "./state.js?v=61";
+import { persistRound, currentLength, scaleLength } from "./round.js?v=61";
+import { renderWaveState } from "./render.js?v=61";
+import { stream, streamControls } from "./stream.js?v=61";
 
 // ---------- Hang (Web Audio: hangerő + vizualizáció) ----------
 export let actx = null, gainNode = null, analyser = null, freq = null;

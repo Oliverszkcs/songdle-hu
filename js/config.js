@@ -12,6 +12,9 @@
 // Az `only` opcionális: ha megadod, az előadótól csak ezek a dalok kerülnek be
 // (cím alapján, zárójeles kiegészítések nélkül). A `top` opcionális: csak az
 // előadó ennyi legnépszerűbb dala kerül be (csak a slágerek).
+// A `tagOnly` opcionális: címkénként megadhatod, hogy abban a kategóriában az előadónak csak
+// ezek a dalai szerepeljenek (pl. vegyes életműnél a Diszkóban csak a diszkóslágerek); a többi
+// címkéjében és a „Mind” kategóriában minden dala marad. Pl. tagOnly: { disco: ["Santa Maria"] }.
 window.SONGDLE_CONFIG = {
   CATEGORIES: [
     { id: "all", label: "Mind", icon: "🎵" },
@@ -138,22 +141,71 @@ window.SONGDLE_CONFIG = {
     { name: "Demjén Ferenc", id: 957121, tags: ["retro", "pop"] },
     { name: "Koncz Zsuzsa", id: 4731301, tags: ["retro"] },
     { name: "Kovács Kati", id: 4520558, tags: ["retro"] },
-    { name: "Cserháti Zsuzsa", id: 6540, tags: ["retro", "disco"] },
+    // A Diszkóban csak a diszkós dala; a táncdalok és a balladák csak a Retróban.
+    { name: "Cserháti Zsuzsa", id: 6540, tags: ["retro", "disco"], tagOnly: { disco: ["Száguldás, Porsche, szerelem"] } },
     { name: "Máté Péter", id: 1511773, tags: ["retro"] },
     { name: "Szécsi Pál", id: 1511774, tags: ["retro"] },
-    { name: "Szűcs Judith", id: 64824, tags: ["retro", "disco"] },
+    // A Deezeren csak az 1991 utáni felvételei vannak meg; a Diszkóba a tempós dance-dalok kerülnek.
+    { name: "Szűcs Judith", id: 64824, tags: ["retro", "disco"], tagOnly: { disco: [
+      "Holnap, holnapután", "Forró nyári éjjel", "Eljön a nap", "Tengertánc", "Mondd, mit tegyek, hogy érezd",
+      "Legyen ez a tűz", "Good Bye My Love",
+    ] } },
     { name: "Katona Klári", id: 194228, tags: ["retro"] },
 
-    // Diszkó
-    { name: "Neoton Família", id: 458508, tags: ["disco", "retro"] },
-    { name: "Hungária", id: 263008, tags: ["disco", "retro"] },
-    { name: "Dolly Roll", id: 1515641, tags: ["disco", "retro"] },
-    { name: "Szandi", id: 237312, tags: ["disco"] },
+    // A Hungária és a Dolly Roll rock and roll (revival), nem diszkó.
+    { name: "Hungária", id: 263008, tags: ["retro"] },
+    { name: "Dolly Roll", id: 1515641, tags: ["retro"] },
+
+    // Diszkó: a 70-80-as évek magyar diszkója és a 90-es évek dance/eurodance slágerei.
+    // A Neoton balladái (Sorsszimfónia, Vadvirág, Búcsú…) és az 1987 utáni dalai csak a Retróban.
+    { name: "Neoton Família", id: 458508, tags: ["disco", "retro"], tagOnly: { disco: [
+      "Kétszázhúsz felett", "Don Quijote", "Santa Maria", "Nyár van", "Sandokan", "Holnap hajnalig",
+      "I Love You", "Kalandra, srácok", "Jöjjön a nyár!", "Pago Pago", "Yo-Yo", "Hétvégi motorozás", "Caligula",
+      "Lobo, az idegen", "Hazudós", "Marathon", "Sámson és Delila", "Ha szombat este táncol", "Monte Carlo",
+      "Diszkókece", "Mamma mia", "Margaréta", "Kell, hogy várj!", "Egy húszas elég", "Párizsi lány",
+    ] } },
+    // A 90-es évek eleji tini- és dance-slágerei a Diszkóban; a retró feldolgozásai és a gyerekdalai csak a Popban.
+    { name: "Szandi", id: 237312, tags: ["pop", "disco"], tagOnly: { disco: [
+      "Tinédzser L'amour", "Szerelmes szívek", "Kislány, kezeket fel", "Nyugi doki", "Vár a tánc",
+      "Minden percem a szerelemé", "Volt egy tűzszínű nyár", "Álomból valóság", "Tűztündér", "Most és mindörökké",
+    ] } },
     { name: "Happy Gang", id: 1399928, tags: ["disco"] },
     { name: "Groovehouse", id: 115298, tags: ["disco"] },
     { name: "Splash", id: 66816, tags: ["disco"] },
     { name: "Kozmix", id: 454484, tags: ["disco"] },
-    { name: "Unique", id: 13675, tags: ["disco", "pop"] },
+    { name: "Hip Hop Boyz", id: 10410, tags: ["disco"] },
+    { name: "Ámokfutók", id: 454417, tags: ["disco"], only: [
+      "Szomorú szamuráj", "A hold dala", "Ne sírj!", "Érted fáj", "Meghalok 1 csókodért", "Bújj mellém", "Robinson",
+      "Csak a csillagok", "Ezüst eső", "Nem akarok sírni többé már...", "Ha dalunk egyszer véget ér", "Sírj!", "Bad Man",
+      "Dzsungeltánc", "Kitsit vad a lány...", "Angyalok álma", "Nyugi, nyugi Baby!", "Mr.Casanova", "Vigyázz rám, angyal!",
+      "Van valami", "Neked adom!", "Szerelem hajnalán", "Varázsolj el!",
+    ] },
+    { name: "Emergency House", id: 65289, tags: ["disco"], top: 20 },
+    // A Deezer sok remixet is felsorol: dalonként egy változat.
+    { name: "Soho Party", id: 449111, tags: ["disco"], only: [
+      "Az Éjjel Soha Nem Ér Véget", "Szállj! Radio Edit", "Balatoni Nyár", "Gyere Táncolj! Radio Edit",
+      "Nézz Az Égre Radio Edit", "Baby Nem Kell Más Radio Edit", "Dilis a lány", "Miért Nincs Nyáron Hó",
+      "Kéz A Kézben Discovery Mix", "A Világ Csak Veled Szép", "Hol Az A Lány", "Hiányzol", "Repülj velem",
+    ] },
+    // A Deezer-oldalon a norvég TNT dalai is ott vannak, ezért csak a magyar dalok. A Diszkóban az
+    // 1997–99-es eurodance-korszak; a 2000 utáni pop-dance dalok (Kicsi gesztenye…) csak a Popban.
+    { name: "TNT", id: 63769, tags: ["pop", "disco"], only: [
+      "Titkos üzenet", "Rendőrnő", "Összedől a ház", "Robban a bomba!", "Hurrá, suli van!", "Bele vagyok zúgva",
+      "Sírni tudnék", "Holnap hazautazom", "Még várok 1 percet", "Bolond, aki sír...!", "Minden pillanatban",
+      "Mért vagy szomorú?", "Tiltott perc", "Kicsi gesztenye", "Nem jön álom a szememre", "Látod zokog a szívem",
+      "Egyetlen szó", "Fogd a kezem", "Hova visz a hajó", "Hallgasd hogy zsong a tavasz", "Híd a folyót",
+      "Itt vagy a szívemben", "Fehér karácsony",
+    ], tagOnly: { disco: [
+      "Titkos üzenet", "Rendőrnő", "Összedől a ház", "Robban a bomba!", "Hurrá, suli van!", "Bele vagyok zúgva",
+      "Sírni tudnék", "Holnap hazautazom", "Még várok 1 percet",
+    ] } },
+    { name: "Fresh", id: 86677962, tags: ["disco"], only: ["Táncolj még!", "Itt vagyunk! Radio Edit", "Boogie Nights", "Üzenet a Holdról Radio Edit"] },
+    { name: "Baby Sisters", id: 452370, tags: ["disco"], only: [
+      "Ne ébressz fel!", "Tánc", "Szeresd a testem", "Égben írt szerelem", "Állj mellém!", "Ha szombat este táncol",
+      "Gyere!", "Baby, Baby", "Bár mindig itt lennél",
+    ] },
+    // 2001-től elektronikus pop, nem a 90-es évek dance-korszaka.
+    { name: "Unique", id: 13675, tags: ["pop"] },
   ],
 
   // Hány dalt kérjünk le előadónként (a Deezer top listája legfeljebb 100).
@@ -163,7 +215,7 @@ window.SONGDLE_CONFIG = {
   MAX_SONGS_PER_ARTIST: 35,
 
   // Ilyen szavakat tartalmazó címeket kihagyunk a készletből.
-  EXCLUDE_TITLE_WORDS: ["remix", "karaoke", "instrumental", "acapella", "a cappella", "sped up", "slowed", "extended mix"],
+  EXCLUDE_TITLE_WORDS: ["remix", "megamix", "karaoke", "instrumental", "acapella", "a cappella", "sped up", "slowed", "extended mix"],
 
   // Meghallgatható hosszak másodpercben (próbálkozásonként).
   CLIP_LENGTHS: [1, 2, 4, 8, 15, 30],
@@ -295,6 +347,7 @@ window.SONGDLE_CONFIG = {
     { id: 4058590471, note: "Twizy/Ari (BaldRich, FDL) – nem a magyar Vini (Deezer összevont oldal)" },
     { id: 4070070251, note: "Twizy/Ari (BaldRich, FDL) – nem a magyar Vini (Deezer összevont oldal)" },
     { id: 2823601622, note: "Twizy/Ari (BaldRich, FDL) – nem a magyar Vini (Deezer összevont oldal)" },
+    { id: 2215007307, note: "A hold dala – Lotfi Begi 2023-as feldolgozása, nem az Ámokfutók-dal (duplikált)" },
   ],
 
   // Ennyi legutóbbi dalt nem sorsolunk újra.
@@ -412,11 +465,97 @@ window.SONGDLE_CONFIG = {
     "Neoton Família":            { type: "band", gender: "mixed", year: 1965, listeners: 95920, debut: 1969, status: "split" },
     "Hungária":                  { type: "band", gender: "mixed", year: 1967, listeners: 50123, debut: 1967, status: "split" },
     "Dolly Roll":                { type: "band", gender: "mixed", year: 1983, listeners: 32407, debut: 1983, status: "split" },
-    "Szandi":                    { type: "solo", gender: "f", year: 1976, listeners: 15294, debut: 1991, status: "active" },
+    "Szandi":                    { type: "solo", gender: "f", year: 1976, listeners: 15294, debut: 1989, status: "active" },
     "Happy Gang":                { type: "band", gender: "m", year: 1993, listeners: 26443, debut: 1994, status: "active" },
     "Groovehouse":               { type: "duo", gender: "mixed", year: 1997, listeners: 108245, debut: 1999, status: "active" },
     "Splash":                    { type: "duo", gender: "mixed", year: 1998, listeners: 144755, debut: 1999, status: "active" },
     "Kozmix":                    { type: "duo", gender: "mixed", year: 1995, listeners: 43537, debut: 1995, status: "active" },
     "Unique":                    { type: "band", gender: "mixed", year: 1995, listeners: 21749, debut: 2001, status: "active" },
+    // Az új diszkós előadóknál nincs Spotify-hallgatószám (ilyenkor a játék nem veti össze).
+    "Hip Hop Boyz":              { type: "band", gender: "m", year: 1992, debut: 1993, status: "split" },
+    "Ámokfutók":                 { type: "band", gender: "mixed", year: 1994, debut: 1994, status: "active" },
+    "Emergency House":           { type: "band", gender: "m", year: 1995, debut: 1996, status: "active" },
+    "Soho Party":                { type: "band", gender: "mixed", year: 1989, debut: 1994, status: "split" },
+    "TNT":                       { type: "duo", gender: "m", year: 1996, debut: 1996, status: "active" },
+    "Fresh":                     { type: "band", gender: "f", year: 1996, debut: 1997, status: "active" },
+    "Baby Sisters":              { type: "band", gender: "f", year: 1996, debut: 1997, status: "split" },
   },
+
+  // Kézi évjavítások az évtized-kategóriákhoz és a bónuszkérdéshez, ha a Deezer és a MusicBrainz
+  // is rossz évet ad (pl. csak egy későbbi újrakiadás van meg). Előadó (a fenti név) + a Deezer-cím
+  // (a zárójeles kiegészítések nem számítanak, a zárójel nélküli „Radio Edit” viszont igen) → az eredeti
+  // megjelenés éve, vagy null, ha nincs megbízható év (a dal ekkor egyik évtizedben sem szerepel).
+  // A tools/build-years.mjs és a játék is figyeli.
+  YEAR_OVERRIDES: [
+    // Szandi: a Deezeren a 2014-es „Szandi 25” újrafelvételei; a Tinédzser l'amour 1990-es (Wikipédia),
+    // a többinél nincs megbízható eredeti év.
+    { artist: "Szandi", title: "Tinédzser L'Amour (Deejay Sampler Dance Mix)", year: 1990 },
+    { artist: "Szandi", title: "Volt Egy Tűzszínű Nyár (Radio Edit)", year: null },
+    { artist: "Szandi", title: "Egy Nápolyi", year: null },
+    { artist: "Szandi", title: "Búcsúznunk Kell", year: null },
+    // Fenyő Miklós: a Casino Twist a Hungária 1980-as dala (a Deezeren egy 2021-es kiadás).
+    { artist: "Fenyő Miklós", title: "Casino Twist", year: 1980 },
+    // Neoton: a Marathon LP 1980-as (a Deezeren 1998-as újrakiadás).
+    { artist: "Neoton Família", title: "Don Quijote", year: 1980 },
+    { artist: "Neoton Família", title: "Egy húszas elég", year: 1980 },
+    { artist: "Neoton Família", title: "Marathon", year: 1980 },
+    // Soho Party: a Deezeren minden 2013-as digitális kiadás; az eredeti albumok: Pizza...! 1994, Szállj! 1995, Discovery 1997.
+    { artist: "Soho Party", title: "Balatoni nyár", year: 1994 },
+    { artist: "Soho Party", title: "Gyere Táncolj! Radio Edit", year: 1994 },
+    { artist: "Soho Party", title: "Dilis a lány", year: 1994 },
+    { artist: "Soho Party", title: "Repülj velem", year: 1994 },
+    { artist: "Soho Party", title: "Szállj! Radio Edit", year: 1995 },
+    { artist: "Soho Party", title: "Nézz Az Égre Radio Edit", year: 1995 },
+    { artist: "Soho Party", title: "Hiányzol", year: 1995 },
+    { artist: "Soho Party", title: "Hol az a lány", year: 1995 },
+    { artist: "Soho Party", title: "Kéz A Kézben Discovery Mix", year: 1997 },
+    { artist: "Soho Party", title: "Az éjjel soha nem ér véget", year: 1998 },
+    // Emergency House: Emergency House Party 1996, A party folytatódik 1997 (a Deezeren 2012).
+    { artist: "Emergency House", title: "Dübörög a ház", year: 1996 },
+    { artist: "Emergency House", title: "Homály zóna", year: 1996 },
+    { artist: "Emergency House", title: "Bármi megtörténhet", year: 1996 },
+    { artist: "Emergency House", title: "Veled pörög a világ", year: 1996 },
+    { artist: "Emergency House", title: "House - Party", year: 1996 },
+    { artist: "Emergency House", title: "Táncolj a hídon", year: 1996 },
+    { artist: "Emergency House", title: "You're Ready", year: 1996 },
+    { artist: "Emergency House", title: "Csúcs ez a party", year: 1997 },
+    { artist: "Emergency House", title: "Nyakig ér a holiday", year: 1997 },
+    { artist: "Emergency House", title: "A végtelen", year: 1997 },
+    { artist: "Emergency House", title: "Állj közénk", year: 1997 },
+    { artist: "Emergency House", title: "Figyelj az ütemre", year: 1997 },
+    { artist: "Emergency House", title: "Élvezd a veszélyt", year: 1997 },
+    // Fresh: kislemezek (Wikipédia); a Deezeren 2013.
+    { artist: "Fresh", title: "Táncolj még!", year: 1998 },
+    { artist: "Fresh", title: "Itt vagyunk! Radio Edit", year: 1998 },
+    { artist: "Fresh", title: "Boogie Nights", year: 1999 },
+    { artist: "Fresh", title: "Üzenet a Holdról Radio Edit", year: 1999 },
+    // Ámokfutók: Sebességláz 1994, Varázsolj el! 1995, III. 1996, A szerelem hajnalán 2000 (a Deezeren 2011–2012).
+    { artist: "Ámokfutók", title: "Sírj!", year: 1994 },
+    { artist: "Ámokfutók", title: "Mr.Casanova", year: 1994 },
+    { artist: "Ámokfutók", title: "Szomorú szamuráj", year: 1995 },
+    { artist: "Ámokfutók", title: "Dzsungeltánc", year: 1995 },
+    { artist: "Ámokfutók", title: "Varázsolj el!", year: 1995 },
+    { artist: "Ámokfutók", title: "A hold dala", year: 1996 },
+    { artist: "Ámokfutók", title: "Kitsit vad a lány...", year: 1996 },
+    { artist: "Ámokfutók", title: "Vigyázz rám, angyal!", year: 1996 },
+    { artist: "Ámokfutók", title: "Szerelem hajnalán", year: 2000 },
+    // TNT: Bomba 1997, Bumm-bumm 1998, kislemezek (Wikipédia); a Deezeren 1994, 2008 és 2012.
+    { artist: "TNT", title: "Titkos üzenet", year: 1997 },
+    { artist: "TNT", title: "Rendőrnő", year: 1997 },
+    { artist: "TNT", title: "Összedől a ház", year: 1997 },
+    { artist: "TNT", title: "Robban a bomba!", year: 1997 },
+    { artist: "TNT", title: "Hurrá, suli van!", year: 1997 },
+    { artist: "TNT", title: "Bele vagyok zúgva", year: 1998 },
+    { artist: "TNT", title: "Holnap hazautazom", year: 1998 },
+    { artist: "TNT", title: "Sírni tudnék", year: 1998 },
+    { artist: "TNT", title: "Még várok 1 percet", year: 1998 },
+    { artist: "TNT", title: "Mért vagy szomorú?", year: 2000 },
+    { artist: "TNT", title: "Tiltott perc", year: 2001 },
+    { artist: "TNT", title: "Itt vagy a szívemben", year: 2001 },
+    { artist: "TNT", title: "Kicsi gesztenye", year: 2002 },
+    { artist: "TNT", title: "Nem jön álom a szememre", year: 2002 },
+    { artist: "TNT", title: "Hova visz a hajó", year: 2003 },
+    { artist: "TNT", title: "Egyetlen szó", year: 2003 },
+    { artist: "TNT", title: "Hallgasd hogy zsong a tavasz", year: 2005 },
+  ],
 };

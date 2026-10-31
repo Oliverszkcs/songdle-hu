@@ -104,6 +104,16 @@ ARTISTS: [{ name: "Majka", id: 281118, tags: ["rap", "pop"] }, ...],
 
 - Az `id` a Deezer előadó-azonosító (deezer.com/artist/**281118**). Elhagyható – ekkor név alapján keresünk.
 - A `tags` dönti el, melyik kategóriában szerepel az előadó. A „Mind” kategória mindenkit tartalmaz.
+- Az `only` (csak ezek a dalok) és a `top` (csak ennyi legnépszerűbb dal) az előadó összes dalára érvényes.
+- A `tagOnly` egy-egy címkén belül szűkít: `tagOnly: { disco: ["Santa Maria", "Kétszázhúsz felett"] }` esetén
+  az előadó a Diszkóban csak ezekkel a dalokkal szerepel, a többi címkéjében és a „Mind”-ban minden dalával.
+  A címek összevetése zárójeles kiegészítések, kis-nagybetű és ékezet nélkül történik. Vegyes életművű
+  előadóknál hasznos (pl. a Neoton balladái ne kerüljenek a Diszkóba). Párbajban és Stream módban is érvényes.
+- A `YEAR_OVERRIDES` kézi évjavítás (`{ artist, title, year }`), ha a Deezer és a MusicBrainz is rossz évet ad
+  (pl. csak egy későbbi újrakiadás van meg); `year: null` = nincs megbízható év, a dal egyik évtizedben sem
+  szerepel. Az évtized-kategóriák, a bónuszkérdés és a `tools/build-years.mjs`
+  is figyeli. A `data/years.json`-t a `node tools/build-years.mjs` készíti; a gyanús évek a
+  `tools/.cache/years-report.json`-ba kerülnek.
 - Az előadók dallistája 24 órára gyorsítótárazódik a böngészőben.
 - Az `ARTIST_INFO` adja a napi előadó-találós adatait. Akinek nincs itt sora, az a találósban
   nem szerepel (sem megfejtésként, sem tippként).

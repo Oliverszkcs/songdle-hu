@@ -1,29 +1,29 @@
 import {
   CFG, LENGTHS, MAX_TRIES, MAX_LEN, FULL_PREVIEW, POINTS, STREAK_BONUS, STREAK_BONUS_MAX, reducedMotion, $, el,
   num, load, save, norm, coverUrl, artistLine, dateKey, shiftDate, encId, retrigger,
-} from "./core.js?v=60";
-import { storeFirstYear, loadClip, shownName, isReported, weightedPick } from "./pool.js?v=60";
+} from "./core.js?v=61";
+import { storeFirstYear, loadClip, shownName, isReported, weightedPick, yearOverride } from "./pool.js?v=61";
 import {
   mode, category, hard, lengthsOf, multOf, pool, round, loadToken, stats, dailyDiff, dailyStatsAll, dailyStats,
   points, game, bestGame, gameScore, gameDone, versus, vsOver, dailyKey, setStatus, vibrate, setLoading,
   setGame, setRound, setSelected, setPoints, setBestGame,
-} from "./state.js?v=60";
-import { setTint, coverColors } from "./tint.js?v=60";
-import { updateNextButton, renderCategories } from "./modes.js?v=60";
+} from "./state.js?v=61";
+import { setTint, coverColors } from "./tint.js?v=61";
+import { updateNextButton, renderCategories } from "./modes.js?v=61";
 import {
   packBonus, unpackBonus, bonusEligible, prepareBonus, renderBonus, renderRevealPoints, resetStage, showDone,
   startCountdown, stopCountdown,
-} from "./bonus.js?v=60";
+} from "./bonus.js?v=61";
 import {
   renderAll, buildWave, animatePoints, floatPoints, setControls, updateClear, confetti,
-} from "./render.js?v=60";
-import { stopAudio, playClip } from "./audio.js?v=60";
-import { hideSuggestions } from "./autocomplete.js?v=60";
-import { vsWaitingFor, names, renderVsSummary, saveBattle } from "./versus.js?v=60";
-import { vsSendProgress } from "./peer.js?v=60";
-import { stream, streamSongReady } from "./stream.js?v=60";
-import { countEvent } from "./analytics.js?v=60";
-import { renderReportBtn } from "./report.js?v=60";
+} from "./render.js?v=61";
+import { stopAudio, playClip } from "./audio.js?v=61";
+import { hideSuggestions } from "./autocomplete.js?v=61";
+import { vsWaitingFor, names, renderVsSummary, saveBattle } from "./versus.js?v=61";
+import { vsSendProgress } from "./peer.js?v=61";
+import { stream, streamSongReady } from "./stream.js?v=61";
+import { countEvent } from "./analytics.js?v=61";
+import { renderReportBtn } from "./report.js?v=61";
 
 // ---------- Kör ----------
 // Előadó-rotáció: előbb előadót sorsolunk (a sokdalos előadók ne nyomják el a
@@ -313,6 +313,9 @@ const songKey = (s) => norm(s).replace(/^az? /, "").match(PART_SUFFIX)[1];
 // Egy dalhoz egyszerre csak egy kérés fut (a kör eleji előtöltés és a megoldás közös).
 const yearRequests = new Map();
 export function originalYear(t, deezerYear) {
+  // A kézi évjavítás (config: YEAR_OVERRIDES) mindent felülír.
+  const fixed = yearOverride(t);
+  if (fixed) return Promise.resolve(String(fixed));
   if (t.firstYear) return Promise.resolve(t.firstYear);
   if (!yearRequests.has(t.id)) {
     yearRequests.set(t.id, lookupYear(t, deezerYear).finally(() => yearRequests.delete(t.id)));

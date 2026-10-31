@@ -1,7 +1,7 @@
 import {
   CFG, LENGTHS, MAX_TRIES, SET_SIZE, DIFFS, diffById, el, load, dateKey, shiftDate, retrigger,
-} from "./core.js?v=60";
-import { allCats } from "./pool.js?v=60";
+} from "./core.js?v=61";
+import { allCats } from "./pool.js?v=61";
 
 // ---------- Állapot ----------
 // A „versus” (párbaj, kihívás) módot nem mentjük: újratöltés után a mentett fülre térünk vissza.

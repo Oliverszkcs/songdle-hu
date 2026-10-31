@@ -1,15 +1,15 @@
-import { MAX_TRIES, POINTS, $, load, save, decId, toast } from "./core.js?v=60";
+import { MAX_TRIES, POINTS, $, load, save, decId, toast } from "./core.js?v=61";
 import {
-  loadArtists, buildPool, assignWeights, decadeOf, allCats, catLabel, artistsFor, loadYears,
-} from "./pool.js?v=60";
-import { category, round, versus, VS_SONGS, vsOver } from "./state.js?v=60";
-import { updateNextButton, fillCatPill, openCatSheet } from "./modes.js?v=60";
-import { renderStreak } from "./render.js?v=60";
-import { homeUrl, shareText } from "./controls.js?v=60";
+  loadArtists, buildPool, assignWeights, decadeOf, allCats, catLabel, artistsFor, loadYears, trackYear,
+} from "./pool.js?v=61";
+import { category, round, versus, VS_SONGS, vsOver } from "./state.js?v=61";
+import { updateNextButton, fillCatPill, openCatSheet } from "./modes.js?v=61";
+import { renderStreak } from "./render.js?v=61";
+import { homeUrl, shareText } from "./controls.js?v=61";
 import {
   pickSet, startVersus, vsWaitingFor, vsNext, renderVsBar, renderVsSummary, vr, renderVsResult, saveBattle,
   loadBattle,
-} from "./versus.js?v=60";
+} from "./versus.js?v=61";
 
 // ----- Kapcsolat (PeerJS: ingyenes nyilvános közvetítő a kapcsolódáshoz, utána közvetlen) -----
 const PEER_PREFIX = "songdlehu-";
@@ -309,7 +309,7 @@ async function hostStartMatch() {
     const decade = decadeOf(catId);
     if (decade) {
       const years = await loadYears();
-      list = list.filter((t) => years[t.id] >= decade.from && years[t.id] <= decade.to);
+      list = list.filter((t) => { const y = trackYear(t, years); return y >= decade.from && y <= decade.to; });
     }
     // Túl kevés dalnál (pl. hiányzó évadatok) a teljes listából sorsolunk.
     if (list.length < len) list = buildPool(await loadArtists(artistsFor("all"), () => {}));

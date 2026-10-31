@@ -1,5 +1,5 @@
-import { CFG, LS, load, save, norm, baseTitle, artistLine, hashString } from "./core.js?v=60";
-import { pool } from "./state.js?v=60";
+import { CFG, LS, load, save, norm, baseTitle, artistLine, hashString } from "./core.js?v=61";
+import { pool } from "./state.js?v=61";
 
 // ---------- Dalkészlet ----------
 export const excludeRe = new RegExp(CFG.EXCLUDE_TITLE_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i");
@@ -222,7 +222,25 @@ export const DECADES = CFG.DECADES || [];
 export const decadeOf = (id) => DECADES.find((d) => d.id === id);
 export const allCats = [...CFG.CATEGORIES, ...DECADES];
 export const catLabel = (id) => (allCats.find((c) => c.id === id) || { label: id }).label;
-export const artistsFor = (cat) => cat === "all" || decadeOf(cat) ? CFG.ARTISTS : CFG.ARTISTS.filter((a) => (a.tags || []).includes(cat));
+// tagOnly: egy címkében az előadónak csak a felsorolt dalai (az `only` szűrőn át; ha az előadónak
+// eleve van `only`-ja, a kettő metszete).
+function inTag(a, cat) {
+  const only = a.tagOnly && a.tagOnly[cat];
+  if (!only) return a;
+  const want = new Set(only.map(baseTitle));
+  return { ...a, only: a.only ? a.only.filter((t) => want.has(baseTitle(t))) : only };
+}
+export const artistsFor = (cat) => cat === "all" || decadeOf(cat) ? CFG.ARTISTS
+  : CFG.ARTISTS.filter((a) => (a.tags || []).includes(cat)).map((a) => inTag(a, cat));
+
+// Kézi évjavítások (config: YEAR_OVERRIDES), előadó + cím szerint; a null = nincs megbízható év
+// (a dal egyik évtizedben sem szerepel).
+const yearFixes = new Map((CFG.YEAR_OVERRIDES || []).map((o) => [norm(o.artist) + "|" + baseTitle(o.title), o.year]));
+export const yearOverride = (t) => yearFixes.get(norm(t.src || t.artist) + "|" + baseTitle(t.title));
+export function trackYear(t, years) {
+  const fix = yearOverride(t);
+  return fix !== undefined ? fix : years[t.id];
+}
 
 // A dalok megjelenési éve (tools/build-years.mjs készíti); csak az évtized-kategóriákhoz kell.
 let yearsData = null;

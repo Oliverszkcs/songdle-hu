@@ -1,23 +1,23 @@
 import {
   CFG, SET_SIZE, DIFFS, diffById, reducedMotion, $, el, load, save, dateKey, prettyDate, decId, toast,
-} from "./core.js?v=60";
+} from "./core.js?v=61";
 import {
-  loadArtists, buildPool, assignWeights, DECADES, decadeOf, allCats, artistsFor, loadYears, pickDailyTrack,
-} from "./pool.js?v=60";
+  loadArtists, buildPool, assignWeights, DECADES, decadeOf, allCats, artistsFor, loadYears, trackYear, pickDailyTrack,
+} from "./pool.js?v=61";
 import {
   mode, category, hard, HARD_MULT_TEXT, pool, round, loadToken, dailyDiff, game, gameScore, gameDone, versus,
   vsOver, vsOppOver, dailyKey, dailyResult, nextUnplayedDiff, setStatus, confirmDialog, setLoading, setHard,
   setDailyDiff, setGame, setCategory, setMode, setLoadToken, setRound, setPool,
-} from "./state.js?v=60";
-import { startRound, persistRound, finishRound } from "./round.js?v=60";
-import { resetStage, showDone, stopCountdown } from "./bonus.js?v=60";
-import { renderAll, buildWave, setControls } from "./render.js?v=60";
-import { stopAudio } from "./audio.js?v=60";
-import { vsStartSong, leaveVersus, closeVersus } from "./versus.js?v=60";
-import { openBattle } from "./peer.js?v=60";
-import { stream, openStreamSetup, leaveStream, closeStream, streamStartSong } from "./stream.js?v=60";
-import { renderTwConn } from "./twitch.js?v=60";
-import { adDone, openArtistGame, adLeave } from "./artist.js?v=60";
+} from "./state.js?v=61";
+import { startRound, persistRound, finishRound } from "./round.js?v=61";
+import { resetStage, showDone, stopCountdown } from "./bonus.js?v=61";
+import { renderAll, buildWave, setControls } from "./render.js?v=61";
+import { stopAudio } from "./audio.js?v=61";
+import { vsStartSong, leaveVersus, closeVersus } from "./versus.js?v=61";
+import { openBattle } from "./peer.js?v=61";
+import { stream, openStreamSetup, leaveStream, closeStream, streamStartSong } from "./stream.js?v=61";
+import { renderTwConn } from "./twitch.js?v=61";
+import { adDone, openArtistGame, adLeave } from "./artist.js?v=61";
 
 // ---------- Mód és kategória ----------
 export function renderMode() {
@@ -306,7 +306,7 @@ export async function enterMode() {
   if (decade) {
     const years = await loadYears();
     if (token !== loadToken) return;
-    setPool(pool.filter((t) => years[t.id] >= decade.from && years[t.id] <= decade.to));
+    setPool(pool.filter((t) => { const y = trackYear(t, years); return y >= decade.from && y <= decade.to; }));
     assignWeights(pool);
   }
   if (!pool.length) {
