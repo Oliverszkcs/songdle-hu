@@ -1,29 +1,30 @@
 import {
   CFG, LENGTHS, MAX_TRIES, MAX_LEN, FULL_PREVIEW, POINTS, STREAK_BONUS, STREAK_BONUS_MAX, reducedMotion, $, el,
   num, load, save, norm, coverUrl, artistLine, dateKey, shiftDate, encId, retrigger,
-} from "./core.js?v=62";
-import { storeFirstYear, loadClip, shownName, isReported, weightedPick, yearOverride } from "./pool.js?v=62";
+} from "./core.js?v=63";
+import { storeFirstYear, loadClip, shownName, isReported, weightedPick, yearOverride } from "./pool.js?v=63";
 import {
   mode, category, hard, lengthsOf, multOf, pool, round, loadToken, stats, dailyDiff, dailyStatsAll, dailyStats,
   points, game, bestGame, gameScore, gameDone, versus, vsOver, dailyKey, setStatus, vibrate, setLoading,
   setGame, setRound, setSelected, setPoints, setBestGame,
-} from "./state.js?v=62";
-import { setTint, coverColors } from "./tint.js?v=62";
-import { updateNextButton, renderCategories } from "./modes.js?v=62";
+} from "./state.js?v=63";
+import { setTint, coverColors } from "./tint.js?v=63";
+import { updateNextButton, renderCategories } from "./modes.js?v=63";
 import {
   packBonus, unpackBonus, bonusEligible, prepareBonus, renderBonus, renderRevealPoints, resetStage, showDone,
   startCountdown, stopCountdown,
-} from "./bonus.js?v=62";
+} from "./bonus.js?v=63";
 import {
   renderAll, buildWave, animatePoints, floatPoints, setControls, updateClear, confetti,
-} from "./render.js?v=62";
-import { stopAudio, playClip } from "./audio.js?v=62";
-import { hideSuggestions } from "./autocomplete.js?v=62";
-import { vsWaitingFor, names, renderVsSummary, saveBattle } from "./versus.js?v=62";
-import { vsSendProgress } from "./peer.js?v=62";
-import { stream, streamSongReady } from "./stream.js?v=62";
-import { countEvent } from "./analytics.js?v=62";
-import { renderReportBtn } from "./report.js?v=62";
+} from "./render.js?v=63";
+import { stopAudio, playClip } from "./audio.js?v=63";
+import { hideSuggestions } from "./autocomplete.js?v=63";
+import { vsWaitingFor, names, renderVsSummary, saveBattle } from "./versus.js?v=63";
+import { vsSendProgress } from "./peer.js?v=63";
+import { stream, streamSongReady } from "./stream.js?v=63";
+import { countEvent } from "./analytics.js?v=63";
+import { renderReportBtn } from "./report.js?v=63";
+import { maybeOpenSetEnd } from "./setend.js?v=63";
 
 // ---------- Kör ----------
 // Előadó-rotáció: előbb előadót sorsolunk (a sokdalos előadók ne nyomják el a
@@ -283,7 +284,11 @@ function finishStats(won, tries, silent) {
   if (round.mode === "endless" && !silent && !gameDone()) {
     // A dal azonosítója a kihíváshoz kell (a kör 5 dala megosztható).
     // base: a kihívásban is elérhető pont (sorozatbónusz és nehéz-szorzó nélkül), hogy a meccs igazságos legyen.
-    game.results.push({ won, pts: round.points.total, base: scoreFor(won, tries, 0, 1).total, id: round.track.id });
+    // A cím és az előadó a kör végi összesítőhöz kell.
+    game.results.push({
+      won, pts: round.points.total, base: scoreFor(won, tries, 0, 1).total, id: round.track.id,
+      tries, title: round.track.title, artist: artistLine(round.track),
+    });
     if (gameDone()) {
       const score = gameScore();
       game.record = score > bestGame && score > 0;
@@ -398,10 +403,12 @@ function showReveal(autoplay) {
     if (vsOver()) renderVsSummary(autoplay);
   } else if (setOver) {
     const score = gameScore();
-    el.revealSet.innerHTML = game.record
+    el.revealSet.innerHTML = (game.record
       ? `🏁 Kör vége: <b>${num(score)}</b> pont · <span class="rec">🏆 Új rekord!</span>`
-      : `🏁 Kör vége: <b>${num(score)}</b> pont · rekord: ${num(bestGame)}`;
+      : `🏁 Kör vége: <b>${num(score)}</b> pont · rekord: ${num(bestGame)}`)
+      + ` <button type="button" class="set-sum-btn">Összesítő</button>`;
     if (game.record && autoplay) setTimeout(confetti, 700);
+    if (autoplay) maybeOpenSetEnd(round);
   }
   el.reveal.hidden = false;
   retrigger(el.reveal, "in");

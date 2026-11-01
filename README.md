@@ -23,6 +23,7 @@ A sorozat, a pontok és a statisztika a böngésző `localStorage`-ában tárol�
 ## Módok
 
 - **Végtelen**: 5 dalos körök kategóriánként vagy évtizedenként (60-70-es évek … 2020-as évek).
+  A kör végén összesítő jön (az 5 dal, a pontok, a rekord), onnan indul az új kör, vagy mehet a kihívás-link.
   A **🔥 Nehéz mód** kapcsolóval (a kategóriaválasztóban) a dal eleje visszafelé szól, hosszabb
   részletekkel (2 → 4 → 7 → 12 → 20 → 30 mp), ×1,5 pontért.
 - **Napi**: mindenkinek ugyanaz a dal, négy nehézségi szinten (Könnyű ×1, Közepes ×2, Nehéz ×3,

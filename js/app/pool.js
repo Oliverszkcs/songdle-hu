@@ -1,5 +1,5 @@
-import { CFG, LS, load, save, norm, baseTitle, artistLine, hashString } from "./core.js?v=62";
-import { pool } from "./state.js?v=62";
+import { CFG, LS, load, save, norm, baseTitle, artistLine, hashString } from "./core.js?v=63";
+import { pool } from "./state.js?v=63";
 
 // ---------- Dalkészlet ----------
 export const excludeRe = new RegExp(CFG.EXCLUDE_TITLE_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i");
@@ -130,6 +130,10 @@ export async function loadArtists(artists, onProgress) {
         if (a.only) {
           const want = new Set(a.only.map(baseTitle));
           list = list.filter((t) => want.has(baseTitle(t.title)));
+        }
+        if (a.skip) {
+          const drop = new Set(a.skip.map(baseTitle));
+          list = list.filter((t) => !drop.has(baseTitle(t.title)));
         }
         if (a.top) list = [...list].sort((x, y) => y.rank - x.rank).slice(0, a.top);
         // Ha a Deezer csak kis-nagybetűben vagy ékezetben tér el (pl. „General”, „BÓDI GUSZTI”),

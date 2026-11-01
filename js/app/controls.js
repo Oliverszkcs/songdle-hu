@@ -1,13 +1,13 @@
-import { SET_SIZE, diffById, el, load, encId, toast } from "./core.js?v=62";
-import { catLabel } from "./pool.js?v=62";
-import { mode, category, round, stats, game, gameDone, dailyStreakNow, nextUnplayedDiff } from "./state.js?v=62";
-import { changeDifficulty, changeMode } from "./modes.js?v=62";
-import { startRound, registerAttempt, emojiRow } from "./round.js?v=62";
-import { playClip } from "./audio.js?v=62";
-import { submit, copyText } from "./autocomplete.js?v=62";
-import { vsNext, vsShare } from "./versus.js?v=62";
-import { streamLock, streamNext } from "./stream.js?v=62";
-import { countEvent } from "./analytics.js?v=62";
+import { SET_SIZE, diffById, el, load, encId, toast } from "./core.js?v=63";
+import { catLabel } from "./pool.js?v=63";
+import { mode, category, round, stats, game, gameDone, dailyStreakNow, nextUnplayedDiff } from "./state.js?v=63";
+import { changeDifficulty, changeMode } from "./modes.js?v=63";
+import { startRound, registerAttempt, emojiRow } from "./round.js?v=63";
+import { playClip } from "./audio.js?v=63";
+import { submit, copyText } from "./autocomplete.js?v=63";
+import { vsNext, vsShare } from "./versus.js?v=63";
+import { streamLock, streamNext } from "./stream.js?v=63";
+import { countEvent } from "./analytics.js?v=63";
 
 // ---------- Megosztás ----------
 export const homeUrl = () => location.origin + location.pathname;
@@ -31,7 +31,7 @@ export async function shareText(text) {
   toast(await copyText(text) ? "Vágólapra másolva! ✨" : "Nem sikerült megosztani.");
 }
 
-async function share() {
+export async function shareRound() {
   if (!round || !round.done) return;
   if (round.mode === "versus") return vsShare();
   const head = round.mode === "daily"
@@ -76,7 +76,7 @@ export function init() {
     if (next) changeDifficulty(next.id);
     else changeMode("endless");
   });
-  el.shareBtn.addEventListener("click", share);
+  el.shareBtn.addEventListener("click", shareRound);
   el.modeEndless.addEventListener("click", () => changeMode("endless"));
   el.modeDaily.addEventListener("click", () => changeMode("daily"));
   el.modeArtist.addEventListener("click", () => changeMode("artist"));

@@ -15,6 +15,8 @@
 // A `tagOnly` opcionális: címkénként megadhatod, hogy abban a kategóriában az előadónak csak
 // ezek a dalai szerepeljenek (pl. vegyes életműnél a Diszkóban csak a diszkóslágerek); a többi
 // címkéjében és a „Mind” kategóriában minden dala marad. Pl. tagOnly: { disco: ["Santa Maria"] }.
+// A `skip` opcionális: ezek a dalok (cím alapján, mint az `only`-nál) kimaradnak, minden változatukkal
+// együtt; főleg a nem magyar nyelvű dalokhoz (angol feldolgozások, idegen nyelvű lemezek).
 window.SONGDLE_CONFIG = {
   CATEGORIES: [
     { id: "all", label: "Mind", icon: "🎵" },
@@ -41,38 +43,65 @@ window.SONGDLE_CONFIG = {
 
   ARTISTS: [
     // Pop
-    { name: "Azahriah", id: 57553912, tags: ["pop", "rap"] },
+    // Az angol nyelvű közös dalai külföldi előadókkal kimaradnak.
+    { name: "Azahriah", id: 57553912, tags: ["pop", "rap"], skip: ["Heaven", "Don't Turn The Bass Down", "Don't Be Afraid"] },
     { name: "Follow The Flow", id: 11800683, tags: ["pop"] },
     { name: "ByeAlex", id: 4102741, tags: ["pop", "alter"] },
     { name: "ByeAlex és a Slepp", id: 8787040, tags: ["pop", "alter"] },
-    { name: "Rúzsa Magdi", id: 292212, tags: ["pop"] },
+    // Csak a magyar nyelvű dalai: az angol (és francia) feldolgozások kimaradnak (`skip`).
+    { name: "Rúzsa Magdi", id: 292212, tags: ["pop"], skip: [
+      "Highway To Hell", "Time After Time", "Cry Baby", "La Vie En Rose",
+    ] },
     { name: "Manuel", id: 79455642, tags: ["pop", "rap"] },
     { name: "Bereczki Zoltán", id: 1189933, tags: ["pop"] },
     { name: "Filo", id: 84045292, tags: ["pop", "rap"] },
     { name: "Zséda", id: 1481181, tags: ["pop"] },
-    { name: "Tóth Vera", id: 281048, tags: ["pop"] },
-    { name: "Molnár Ferenc Caramel", id: 676029, tags: ["pop"] },
+    { name: "Tóth Vera", id: 281048, tags: ["pop"], skip: ["New York, New York"] },
+    { name: "Molnár Ferenc Caramel", id: 676029, tags: ["pop"], skip: ["How Come, How Long", "You Really Got Me", "As"] },
     { name: "Tóth Gabi", id: 7780, tags: ["pop"] },
     { name: "Rácz Gergő", id: 266125, tags: ["pop"] },
     { name: "Pápai Joci", id: 281597, tags: ["pop"] },
-    { name: "Radics Gigi", id: 1678972, tags: ["pop"] },
-    { name: "Wolf Kati", id: 5415292, tags: ["pop"] },
+    { name: "Radics Gigi", id: 1678972, tags: ["pop"], skip: ["Forget You", "Bleeding Love", "Over You", "Just Like a Movie"] },
+    { name: "Zámbó Jimmy", id: 64884, tags: ["pop"], skip: [
+      "Only You", "Good Bye My Love", "I Just Called To Say I Love You", "Falling Love", "Time to Say Goodbye", "Sailing",
+      "Nika Se Perimeno",
+    ] },
+    { name: "Valmar", id: 7637470, tags: ["pop"], skip: ["The Sound of Silence", "Back To Black"] },
+    { name: "Nox", id: 3470, tags: ["pop"] },
+    { name: "Wolf Kati", id: 5415292, tags: ["pop"], skip: ["Tomorrow"] },
 
     // Alter
-    { name: "Quimby", id: 2177, tags: ["alter", "rock"] },
+    { name: "Quimby", id: 2177, tags: ["alter", "rock"], skip: ["Turning to the Blue", "Nice Day"] },
     { name: "Halott Pénz", id: 5380757, tags: ["alter", "pop"] },
     { name: "Wellhello", id: 1066094, tags: ["alter", "pop"] },
     { name: "Bagossy Brothers Company", id: 5552522, tags: ["alter"] },
-    { name: "Carson Coma", id: 51645022, tags: ["alter"] },
+    // Az első, angol nyelvű dalai kimaradnak.
+    { name: "Carson Coma", id: 51645022, tags: ["alter"], skip: [
+      "Daddy Said No", "Let's Call It a Day", "Song About My Grandma", "What a Time to Be Alive", "I Don't Mind",
+    ] },
     { name: "Elefánt", id: 7163076, tags: ["alter"] },
-    { name: "Margaret Island", id: 7248342, tags: ["alter", "pop"] },
+    { name: "Margaret Island", id: 7248342, tags: ["alter", "pop"], skip: ["Soaked in Life"] },
     { name: "Csaknekedkislány", id: 10923014, tags: ["alter"] },
-    { name: "Kiscsillag", id: 8110, tags: ["alter"] },
+    { name: "Kiscsillag", id: 8110, tags: ["alter"], skip: ["Russian In The School"] },
     { name: "30Y", id: 4305, tags: ["alter", "rock"] },
-    { name: "Platon Karataev", id: 11295390, tags: ["alter"] },
-    { name: "Hiperkarma", id: 2178, tags: ["alter", "rock"] },
-    { name: "Irie Maffia", id: 469406, tags: ["alter"] },
+    // Az angol nyelvű dalai kimaradnak.
+    { name: "Platon Karataev", id: 11295390, tags: ["alter"], skip: [
+      "Litmus Heart", "Wide Eyes", "Heart of Glass", "The Season of Singing", "Old Enough for Love", "Mayfly Song",
+      "Light Trap", "Lady Macbeth", "Ocean", "Elevator",
+    ] },
+    { name: "Hiperkarma", id: 2178, tags: ["alter", "rock"], skip: ["Killer in the Basement", "The Wild"] },
+    // Sok angol nyelvű dala van: csak a magyarok maradnak.
+    { name: "Irie Maffia", id: 469406, tags: ["alter"], skip: [
+      "Hands in the Air", "Wake Up", "Easy as One Two Three", "That Game", "Be the One", "Slow Down Chale", "Bloodshot Eyes",
+      "Feel the Vibe", "What's My Name?!", "Jump Up", "Understand and Overstand", "One Bullet a Day",
+      "Coludn't Get No Sleep", "Lady's Embassy", "Livin It Easy", "The Journey", "The Beast", "Take It All",
+      "Cross the Roads", "This Mouth", "Here Come the Girls", "Whistle and Walk", "Johnny No Walker", "Black Empress",
+      "Rock It On", "WE ARE", "Up & Away", "See No Barrier", "Big Piece", "Ram the Session", "Everlasting Love",
+      "Fever in Her Eyes", "Blood And Fire", "Go Home Soundboy", "Talk of the Town", "Slave Song", "Pretty Little Thing",
+      "Jah Watching", "Feeling Great",
+    ] },
     { name: "Dzsúdló", id: 62356152, tags: ["alter", "pop"] },
+    { name: "aurevoir.", id: 12227468, tags: ["alter"] },
     // Jelenleg nincs letölthető dala a Deezeren – ha megjelenik, magától bekerül.
     { name: "Children of Distortion", tags: ["alter"] },
 
@@ -85,6 +114,9 @@ window.SONGDLE_CONFIG = {
     { name: "Dopeman", id: 10769, tags: ["rap"] },
     { name: "Bëlga", id: 101, tags: ["rap"] },
     { name: "Beton.Hofi", id: 80234972, tags: ["rap"] },
+    { name: "Animal Cannibals", id: 3731, tags: ["rap", "pop"] },
+    // A Deezeren „Rapülök” néven.
+    { name: "Rapülők", id: 70685, tags: ["rap", "pop"] },
 
     // Trash
     { name: "Kkevin", id: 91432962, tags: ["trash", "rap"] },
@@ -101,6 +133,7 @@ window.SONGDLE_CONFIG = {
     { name: "Belaño", id: 50033762, tags: ["trash", "rap"] },
     { name: "Mirror Glimpse", id: 127032772, tags: ["trash", "rap"], top: 8 },
     { name: "Vini", id: 80514092, tags: ["trash", "rap"] },
+    { name: "Ham Ko Ham", id: 11694281, tags: ["trash", "pop"], only: ["Ellopták A Biciklim"] },
 
     // Mulatós
     { name: "Kis Grófo", id: 5511228, tags: ["mulatos"] },
@@ -118,23 +151,50 @@ window.SONGDLE_CONFIG = {
     { name: "Tankcsapda", id: 86, tags: ["rock"] },
     { name: "Ossian", id: 7031, tags: ["rock"] },
     { name: "Kowalsky meg a Vega", id: 296839, tags: ["rock"] },
+    // A Deezeren „Bill Gyula Deák” néven; a sok István, a király-részlet helyett a saját dalai.
+    { name: "Deák Bill Gyula", id: 320182, tags: ["rock", "retro"], only: [
+      "Rossz vér", "Mindenem a tévé", "A zöld, a bíbor, a fekete", "Zöld Csillag", "Középeurópai hobo blues III.",
+      "Ne szeress engem", "A felszarvazottak balladája", "Nem vagyok eladó", "Baró Roma Csaj", "Nagy esö után", "Ez a helyzet",
+      "Kéne egy üveg bor", "Jó volna", "Őrülj meg, Kicsi", "Angyalok asztalodon", "Kastély a hóban", "Ha Megérint A Blues",
+      "Üvöltsön A Szél", "Édes otthon Live Version", "Szökni jó Live Version", "Tetovált lány Live Version",
+      "Bill Kapitány Blues Live Version", "Ne fordulj el", "Az országút elöttem", "Miért ne?",
+    ] },
 
     // Retró
-    { name: "Omega", id: 82058802, tags: ["retro", "rock"] },
+    // Az Omega angol és német nyelvű felvételei (pl. Pearls in Her Hair, Fang das Licht) kimaradnak.
+    { name: "Omega", id: 82058802, tags: ["retro", "rock"], skip: [
+      "Pearls in Her Hair", "White Dove", "Petroleum Lantern", "Spanish Guitar Legend", "Stormy Fire",
+      "The Jester's Daily Bread", "Ten Thousand Paces", "Remembering", "After a Hard Year", "Everytime She Steps In",
+      "Nur Ein Wort", "You Don't Know", "20th Century Town Dweller", "Go on the Spree", "200 Years After the Last War",
+      "Live as Long As", "Just a Bloom", "Schreib Es Mir in Den Sand", "Fang das Licht", "House of Cards, Pt. 1",
+      "House of Cards, Pt. 2", "House of Cards, Pt. I", "House of Cards, Pt. II", "Timerobber", "Time Robber", "Invitation",
+      "Don't Keep on Me Waiting", "Don't Keep On Me Waitin'", "Late Night Show", "Skyrover", "The Lost Prophet",
+      "High on the Starway", "High on the Starways", "Purple Lady", "Lady of the Summer Night", "Silver Rain",
+      "Gammapolis, Pt. 1", "Gammapolis, Pt. 2", "Overture", "Silent Garden", "Castles of Reality", "Break the Chain",
+      "Tower of Babel", "The Ocean", "Tomorrow", "Sight by Sight", "Tide Will Turn", "Returning to the Garden",
+      "Soldier of Time", "Nasca", "Love Games", "Inside Outside", "Laughing on the Inside", "Working", "Rocket",
+      "Hostage I.", "Hostage II.", "Something's Going On", "I Can't Stop Thinking of You", "Machines", "Russian Winter",
+      "So Long", "Morning Lights", "Lady Moon", "Child in Your Arms", "Home Again", "Your All Night Man",
+      "Also Sprach Zarathustra", "Der Grosse Magnet", "Immigrant", "Good Morning America", "Never Feel Shame",
+      "Dziwny Jest Ten Swiat", "Don't Think About the Fire", "Radio Luxembourg", "Jasná Zpráva", "Still Loving You",
+      "Once Upon a Time in Western", "Once Upon a Time in the East", "An Accountant's Dream", "Dawn in the City",
+      "Rush Hour", "Man Without a Face", "Metamorphosis", "The Hope, the Bread and the Wine",
+    ] },
     { name: "Republic", id: 2412, tags: ["retro", "rock"] },
     { name: "LGT", aka: ["Locomotiv GT"], id: 2988711, tags: ["retro", "rock"] },
     { name: "Illés", id: 263014, tags: ["retro"] },
     { name: "Bikini", id: 3033, tags: ["retro", "rock"] },
     { name: "Zorán", id: 293519, tags: ["retro"] },
     { name: "KFT", id: 67490, tags: ["retro"] },
-    { name: "Fenyő Miklós", id: 1508963, tags: ["retro"] },
+    { name: "Fenyő Miklós", id: 1508963, tags: ["retro"], skip: ["Flyin' In My Baby's Arms", "Flyin’ In My Baby’s Arms"] },
     { name: "Generál", id: 8805, tags: ["retro"] },
-    { name: "Delhusa Gjon", id: 293520, tags: ["retro"] },
+    { name: "Delhusa Gjon", id: 293520, tags: ["retro"], skip: ["Nika Se Perimeno"] },
     { name: "Edda Művek", id: 65472, tags: ["retro", "rock"] },
     { name: "P. Mobil", id: 6446998, tags: ["retro", "rock"] },
     { name: "Piramis", id: 4082, tags: ["retro", "rock"] },
     { name: "Korál", id: 17279, tags: ["retro", "rock"] },
-    { name: "Beatrice", id: 198295, tags: ["retro", "rock"] },
+    // A Deezer egy külföldi Beatrice dalait (angol feldolgozások, német schlager) is ide teszi (lent a BLOCKED_TRACKS-ben is).
+    { name: "Beatrice", id: 198295, tags: ["retro", "rock"], skip: ["Too Good At Goodbyes", "Fang das Licht"] },
     { name: "Karthago", id: 132770, tags: ["retro", "rock"] },
     { name: "Bergendy", id: 263019, tags: ["retro"] },
     { name: "Apostol", id: 1514245, tags: ["retro"] },
@@ -142,8 +202,10 @@ window.SONGDLE_CONFIG = {
     { name: "Koncz Zsuzsa", id: 4731301, tags: ["retro"] },
     { name: "Kovács Kati", id: 4520558, tags: ["retro"] },
     // A Diszkóban csak a diszkós dala; a táncdalok és a balladák csak a Retróban.
-    { name: "Cserháti Zsuzsa", id: 6540, tags: ["retro", "disco"], tagOnly: { disco: ["Száguldás, Porsche, szerelem"] } },
-    { name: "Máté Péter", id: 1511773, tags: ["retro"] },
+    { name: "Cserháti Zsuzsa", id: 6540, tags: ["retro", "disco"], tagOnly: { disco: ["Száguldás, Porsche, szerelem"] }, skip: [
+      "To Deserve You", "New York, New York", "Georgia on My Mind",
+    ] },
+    { name: "Máté Péter", id: 1511773, tags: ["retro"], skip: ["You Were Wrong", "They Do Not Know"] },
     { name: "Szécsi Pál", id: 1511774, tags: ["retro"] },
     // A Deezeren csak az 1991 utáni felvételei vannak meg; a Diszkóba a tempós dance-dalok kerülnek.
     { name: "Szűcs Judith", id: 64824, tags: ["retro", "disco"], tagOnly: { disco: [
@@ -151,9 +213,11 @@ window.SONGDLE_CONFIG = {
       "Legyen ez a tűz", "Good Bye My Love",
     ] } },
     { name: "Katona Klári", id: 194228, tags: ["retro"] },
+    { name: "Korda György", id: 1511775, tags: ["retro", "pop"], skip: ["'Brindisi' from La Traviata"] },
+    { name: "R-GO", id: 281006, tags: ["retro", "pop"] },
 
     // A Hungária és a Dolly Roll rock and roll (revival), nem diszkó.
-    { name: "Hungária", id: 263008, tags: ["retro"] },
+    { name: "Hungária", id: 263008, tags: ["retro"], skip: ["Weep No More", "A Day in the Life"] },
     { name: "Dolly Roll", id: 1515641, tags: ["retro"] },
 
     // Diszkó: a 70-80-as évek magyar diszkója és a 90-es évek dance/eurodance slágerei.
@@ -180,7 +244,9 @@ window.SONGDLE_CONFIG = {
       "Dzsungeltánc", "Kitsit vad a lány...", "Angyalok álma", "Nyugi, nyugi Baby!", "Mr.Casanova", "Vigyázz rám, angyal!",
       "Van valami", "Neked adom!", "Szerelem hajnalán", "Varázsolj el!",
     ] },
-    { name: "Emergency House", id: 65289, tags: ["disco"], top: 20 },
+    { name: "Emergency House", id: 65289, tags: ["disco"], top: 20, skip: [
+      "Peace, Love, Unity, and Havin' Fun", "You're Ready",
+    ] },
     // A Deezer sok remixet is felsorol: dalonként egy változat.
     { name: "Soho Party", id: 449111, tags: ["disco"], only: [
       "Az Éjjel Soha Nem Ér Véget", "Szállj! Radio Edit", "Balatoni Nyár", "Gyere Táncolj! Radio Edit",
@@ -205,7 +271,7 @@ window.SONGDLE_CONFIG = {
       "Gyere!", "Baby, Baby", "Bár mindig itt lennél",
     ] },
     // 2001-től elektronikus pop, nem a 90-es évek dance-korszaka.
-    { name: "Unique", id: 13675, tags: ["pop"] },
+    { name: "Unique", id: 13675, tags: ["pop"], skip: ["Behind the Wheel", "Ready For It"] },
   ],
 
   // Hány dalt kérjünk le előadónként (a Deezer top listája legfeljebb 100).
@@ -215,7 +281,7 @@ window.SONGDLE_CONFIG = {
   MAX_SONGS_PER_ARTIST: 35,
 
   // Ilyen szavakat tartalmazó címeket kihagyunk a készletből.
-  EXCLUDE_TITLE_WORDS: ["remix", "megamix", "karaoke", "instrumental", "acapella", "a cappella", "sped up", "slowed", "extended mix"],
+  EXCLUDE_TITLE_WORDS: ["remix", "megamix", "karaoke", "instrumental", "acapella", "a cappella", "sped up", "slowed", "extended mix", "angol verzió", "english version"],
 
   // Meghallgatható hosszak másodpercben (próbálkozásonként).
   CLIP_LENGTHS: [1, 2, 4, 8, 15, 30],
@@ -348,6 +414,20 @@ window.SONGDLE_CONFIG = {
     { id: 4070070251, note: "Twizy/Ari (BaldRich, FDL) – nem a magyar Vini (Deezer összevont oldal)" },
     { id: 2823601622, note: "Twizy/Ari (BaldRich, FDL) – nem a magyar Vini (Deezer összevont oldal)" },
     { id: 2215007307, note: "A hold dala – Lotfi Begi 2023-as feldolgozása, nem az Ámokfutók-dal (duplikált)" },
+    { id: 2113092337, note: "Too Good At Goodbyes – nem a magyar Beatrice (Sam Smith-feldolgozás, angol)" },
+    { id: 3113222291, note: "Fang das Licht – Graziano feat. egy svájci Beatrice (német schlager), nem a magyar Beatrice" },
+    { id: 1519656752, note: "Windmills in Manhattan – nem a magyar Desh (Deezer összevont oldal, kiadó: Sundae Sauuce)" },
+    { id: 1559088072, note: "Nothing Yet – nem a magyar Desh (Deezer összevont oldal, kiadó: Cole Slaw)" },
+    { id: 1275965652, note: "I'm On 1 Percent – nem a magyar Desh (Deezer összevont oldal, kiadó: PLYGRND)" },
+    { id: 95782634, note: "Mal d'Amor – nem a magyar Splash (Deezer összevont oldal, kiadó: Sons D'Africa)" },
+    { id: 3645505592, note: "Kada dia – nem a magyar Splash (Deezer összevont oldal, Grace Evora, zöld-foki)" },
+    { id: 2209467917, note: "Omega: Pearls in Her Hair – angol nyelvű (The Beaty Sixties)" },
+    { id: 2324870605, note: "Beatrice: Pancsoló kislány – karaoke-alap (Best of Karaoke 1.)" },
+    { id: 2324870745, note: "Cserháti Zsuzsa: Akad amit nem gyógyít meg az idő sem – karaoke-alap (Best of Karaoke 1.)" },
+    { id: 2324870755, note: "Cserháti Zsuzsa: Hamu és gyémánt – karaoke-alap (Best of Karaoke 1.)" },
+    { id: 2212287407, note: "Majka: Belehalok – karaoke-alap (Best of Karaoke 2.)" },
+    { id: 2212287417, note: "Neoton Família: 220 felett – karaoke-alap (Best of Karaoke 2.)" },
+    { id: 2324898265, note: "Bereczki Zoltán: Toyboy – karaoke-változat (A Játékkészítő)" },
   ],
 
   // Ennyi legutóbbi dalt nem sorsolunk újra.
