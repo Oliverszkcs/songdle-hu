@@ -13,14 +13,17 @@ const LAN_ORIGIN = /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/;
 const REASONS = ["Rossz kategória", "Duplikált / élő / remix", "Rossz az eleje", "Nem ez a dal szól", "Nem magyar dal", "Egyéb"];
 
 const clip = (s, n) => String(s ?? "").replace(/[\r\n]+/g, " ").slice(0, n);
-// A játékmód leírása az egyetlen szabad szöveg a játékból: csak betűk, számok és néhány jel
+// A játékból érkező szöveg (a játékmód, és ha kell, a dal adatai): csak betűk, számok és néhány jel
 // maradhat, így nem kerülhet a hibajegybe link, @említés vagy Markdown.
 const plain = (s, n) => clip(s, n).replace(/[^\p{L}\p{N} ·,.()–-]/gu, "").trim();
+// Dalcímhez egy kicsit több jel kell (pl. „Robban a bomba!”, „Mi lesz?”, „Rock & Roll”).
+const titleText = (s, n) => clip(s, n).replace(/[^\p{L}\p{N} ·,.()–\-!?'’&+]/gu, "").trim();
 
-// A dal adatait a Deezertől kérjük le, nem a kérésből vesszük: így a jegybe csak valódi
-// dalcím kerülhet, akármit küld is valaki a végpontra.
+// A dal adatait elsősorban a Deezertől kérjük le, nem a kérésből vesszük: így a jegybe valódi dalcím
+// kerül. A Deezer viszont a Cloudflare címeiről jövő kéréseket elutasítja („Access Denied”, 2026. november):
+// ilyenkor a játéktól kapott címet használjuk, szigorúan szűrve, és a jegyben jelezzük.
 async function deezerTrack(id) {
-  const r = await fetch(`https://api.deezer.com/track/${id}`);
+  const r = await fetch(`https://api.deezer.com/track/${id}`, { headers: { Accept: "application/json" } });
   if (!r.ok) return null;
   const t = await r.json();
   if (!t || t.error || !t.title) return null;
@@ -30,67 +33,19 @@ async function deezerTrack(id) {
 // Markdownban ne legyen aktív link vagy említés (pl. egy „@” a dalcímben).
 const md = (s) => s.replace(/[\\`*_[\]<>|#]/g, "\\$&").replace(/@/g, "@\u200b").replace(/:\/\//g, ":\u200b//");
 
-// Deezer-közvetítő (GET /deezer/...): a Deezer nem küld CORS-fejlécet, ezért a játék eddig JSONP-vel,
-// <script>-ként töltötte be a válaszait, vagyis a Deezer bármilyen kódot futtathatott volna az oldalon.
-// Innen sima JSON jön. Csak a játék által használt, csak olvasó végpontok mennek át.
-// A ttl (mp) a gyorsítótár ideje: a dal előnézet-linkje kb. 15 perc után lejár, ezért a dal rövid ideig él.
-const DEEZER_ROUTES = [
-  { re: /^\/search\/artist$/, params: ["q", "limit"], ttl: 86400 },
-  { re: /^\/artist\/\d{1,12}\/top$/, params: ["limit"], ttl: 21600 },
-  { re: /^\/artist\/\d{1,12}$/, params: [], ttl: 86400 },
-  { re: /^\/track\/\d{1,13}$/, params: [], ttl: 300 },
-];
-
-async function deezerProxy(req, url, cors, ctx) {
-  const path = url.pathname.slice("/deezer".length);
-  const route = DEEZER_ROUTES.find((r) => r.re.test(path));
-  const json = (status, body, extra = {}) => new Response(body, { status, headers: { ...cors, "Content-Type": "application/json; charset=utf-8", ...extra } });
-  if (!route) return json(404, JSON.stringify({ error: { message: "Ismeretlen végpont" } }));
-  // A kérés paramétereiből csak az engedélyezetteket visszük tovább, rendezve (így egy kulcs = egy válasz).
-  const qs = new URLSearchParams();
-  for (const p of route.params) {
-    const v = url.searchParams.get(p);
-    if (v != null) qs.set(p, p === "limit" ? String(Math.min(100, Math.max(1, parseInt(v, 10) || 25))) : v.slice(0, 100));
-  }
-  const upstream = `https://api.deezer.com${path}${qs.size ? "?" + qs : ""}`;
-  const cache = caches.default;
-  const key = new Request(upstream);
-  const hit = await cache.match(key);
-  if (hit) return json(200, await hit.text(), { "X-Cache": "HIT" });
-
-  const r = await fetch(upstream, { headers: { Accept: "application/json" } });
-  const body = await r.text();
-  // A Deezer a hibát (pl. kvóta) is 200-zal küldi: azt nem tesszük el, és a játék az okot is látja.
-  const isError = !r.ok || /^\s*\{\s*"error"/.test(body);
-  if (!isError) {
-    ctx.waitUntil(cache.put(key, new Response(body, { headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${route.ttl}` } })));
-  }
-  return json(r.ok ? 200 : 502, body, { "X-Cache": "MISS", "Cache-Control": `public, max-age=${isError ? 0 : Math.min(route.ttl, 300)}` });
-}
-
 export default {
   async fetch(req, env, ctx) {
     const origin = req.headers.get("Origin") || "";
     const allowed = ALLOWED_ORIGINS.includes(origin) || DEV_ORIGIN.test(origin) || (env.DEV_LAN === "1" && LAN_ORIGIN.test(origin));
     const cors = {
       "Access-Control-Allow-Origin": allowed ? origin : ALLOWED_ORIGINS[0],
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       Vary: "Origin",
     };
     const reply = (status, data) => new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
-    const url = new URL(req.url);
-    if (req.method === "GET" && url.pathname.startsWith("/deezer/")) {
-      if (!allowed) return reply(403, { error: "Ismeretlen oldal" });
-      // Egy új játékos az első betöltéskor ~100 kérést küld (előadónként egyet), ez bőven belefér.
-      if (env.DEEZER_LIMITER) {
-        const { success } = await env.DEEZER_LIMITER.limit({ key: req.headers.get("CF-Connecting-IP") || "?" });
-        if (!success) return reply(429, { error: { message: "Túl sok kérés" } });
-      }
-      return deezerProxy(req, url, cors, ctx).catch(() => reply(502, { error: { message: "Deezer hiba" } }));
-    }
     if (req.method !== "POST") return reply(405, { error: "POST kell" });
     if (!allowed) return reply(403, { error: "Ismeretlen oldal" });
 
@@ -107,8 +62,12 @@ export default {
     if (!Number.isInteger(id) || id <= 0 || id > 1e13) return reply(400, { error: "Hibás dal" });
     if (!REASONS.includes(d.reason)) return reply(400, { error: "Hibás ok" });
 
-    const track = await deezerTrack(id).catch(() => null);
-    if (!track) return reply(400, { error: "Ismeretlen dal" });
+    let track = await deezerTrack(id).catch(() => null);
+    const checked = !!track;
+    if (!track) {
+      track = { title: titleText(d.title, 150), artist: titleText(d.artist, 150), album: titleText(d.album, 150) };
+      if (!track.title || !track.artist) return reply(400, { error: "Ismeretlen dal" });
+    }
     const title = md(clip(track.title, 150)), artist = md(clip(track.artist, 150)), album = md(clip(track.album, 150));
     const mode = plain(d.mode, 80);
     const label = `${title} – ${artist}`;
@@ -144,6 +103,7 @@ export default {
       `**Deezer:** https://www.deezer.com/track/${id}`,
       `**Ok:** ${d.reason}`,
       `**Mód:** ${mode || "–"}`,
+      ...(checked ? [] : ["", "_A Deezer nem volt elérhető: a cím és az előadó a játékból jött, a Deezer-linken ellenőrizd._"]),
       "",
       "Sor a `BLOCKED_TRACKS` listába (js/config.js):",
       "```js",

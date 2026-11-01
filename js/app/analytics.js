@@ -1,4 +1,4 @@
-import { CFG } from "./core.js?v=63";
+import { CFG } from "./core.js?v=64";
 
 // ---------- Látogatottság (GoatCounter, ha be van állítva) ----------
 export function countEvent(name) {

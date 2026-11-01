@@ -1,10 +1,10 @@
-import { $, el, norm, coverUrl, artistLine, toast } from "./core.js?v=63";
-import { reported, isReported, catLabel, setReported } from "./pool.js?v=63";
-import { mode, category, pool, round } from "./state.js?v=63";
-import { actx, gainNode, ensureAudioGraph, libAudio, stopAudio, applyVolume } from "./audio.js?v=63";
-import { highlighted, copyText } from "./autocomplete.js?v=63";
-import { renderStats } from "./stats.js?v=63";
-import { renderReportBtn } from "./report.js?v=63";
+import { $, el, norm, coverUrl, artistLine, toast } from "./core.js?v=64";
+import { reported, isReported, catLabel, setReported } from "./pool.js?v=64";
+import { mode, category, pool, round } from "./state.js?v=64";
+import { actx, gainNode, ensureAudioGraph, libAudio, stopAudio, applyVolume } from "./audio.js?v=64";
+import { highlighted, copyText } from "./autocomplete.js?v=64";
+import { renderStats } from "./stats.js?v=64";
+import { renderReportBtn } from "./report.js?v=64";
 
 // ---------- Dallista ----------
 const libDialog = $("libraryDialog"), libList = $("libList"), libSearch = $("libSearch"), libMeta = $("libMeta");

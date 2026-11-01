@@ -307,8 +307,10 @@ window.SONGDLE_CONFIG = {
   // A jelentéseket ide küldjük (Cloudflare Worker, worker/README.md); az GitHub-hibajegyet nyit.
   // Üresen hagyva a jelentés csak a játékos eszközén marad.
   REPORT_ENDPOINT: "https://songdle-report.oliverszkcs.workers.dev",
-  // Ugyanez a Worker közvetíti a Deezer API-t (js/deezer.js). Üresen a játék közvetlenül, JSONP-vel kér.
-  DEEZER_PROXY: "https://songdle-report.oliverszkcs.workers.dev/deezer",
+  // Deezer-közvetítő (js/deezer.js). Üresen a játék közvetlenül, a játékos böngészőjéből kér (JSONP).
+  // A Cloudflare Workerről nem megy: a Deezer a Cloudflare címeit elutasítja („Access Denied”, 2026. november),
+  // ezért üres. Így a játékos a saját (magyar) Deezer-katalógusát kapja, teljes dallistákkal.
+  DEEZER_PROXY: "",
 
   // Kitiltott dalok: ezek senkinél nem jönnek ki. A játékban jelentett dalokat
   // a Dallista → „Jelentett” → „Lista másolása” gombbal lehet ide bemásolni.

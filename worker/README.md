@@ -28,15 +28,12 @@ Cloudflare-nél van, a játék oldalában nincs benne.
 - IP-nként percenként legfeljebb 5 jelentés (`wrangler.toml`).
 - Ha a tokent le kell cserélni: `npx wrangler secret put GITHUB_TOKEN` újra.
 
-## Deezer-közvetítő (GET /deezer/…)
+## Deezer
 
-A játék a Deezer API-t is ezen a Workeren keresztül éri el, sima JSON-ként (a Deezer nem küld
-CORS-fejlécet, ezért a böngésző közvetlenül csak JSONP-vel, `<script>`-ként tudná betölteni,
-és az bármilyen kódot futtathatna az oldalon).
+A Worker korábban a Deezer API-t is közvetítette (`GET /deezer/…`). 2026 novembere óta a Deezer
+(Akamai) minden Cloudflare-címről jövő kérést „Access Denied”-del utasít el, ezért ez megszűnt: a játék
+közvetlenül, a játékos böngészőjéből kér (JSONP, `js/deezer.js`).
 
-- Csak a játék végpontjai mennek át: `/search/artist`, `/artist/{id}`, `/artist/{id}/top`, `/track/{id}`.
-- A válaszokat a Cloudflare gyorsítótárazza (a dalokat 5 percig, az előadókat órákig); a Deezer hibáit nem.
-- IP-nként legfeljebb 300 kérés percenként (`wrangler.toml` → `DEEZER_LIMITER`).
-- Egy új játékos első napja kb. 100–150 kérés. Az ingyenes Cloudflare-keret napi 100 000 kérés
-  (a jelentésekkel együtt). Ha elfogy, vagy a Worker nem elérhető, a játék magától visszavált
-  a közvetlen JSONP-re (`js/deezer.js`), így nem áll le.
+A jelentésnél a Worker még megpróbálja a Deezertől lekérni a dal címét. Ha nem megy, a játéktól kapott
+címet és előadót használja, szigorúan szűrve (betűk, számok és néhány írásjel; link, @említés és
+Markdown nem kerülhet a jegybe), és a jegyben jelzi, hogy ezt a Deezer-linken érdemes ellenőrizni.

@@ -1,8 +1,8 @@
-import { $ } from "./core.js?v=63";
-import { confetti } from "./render.js?v=63";
-import { stream, sdStatus, openStreamSetup, startStream, leaveStream, streamChat } from "./stream.js?v=63";
-import { mvpList } from "./guesswindow.js?v=63";
-import { countEvent } from "./analytics.js?v=63";
+import { $ } from "./core.js?v=64";
+import { confetti } from "./render.js?v=64";
+import { stream, sdStatus, openStreamSetup, startStream, leaveStream, streamChat } from "./stream.js?v=64";
+import { mvpList } from "./guesswindow.js?v=64";
+import { countEvent } from "./analytics.js?v=64";
 
 // ----- Eredmény -----
 export const sr = {

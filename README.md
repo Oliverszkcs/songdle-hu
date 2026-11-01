@@ -5,8 +5,8 @@ napi dal, napi előadó-találós, kihívás-link és élő párbaj akár 6 ját
 
 - Tiszta HTML/CSS/JS, nincs build lépés – GitHub Pages-en fut. Szerver csak a dal-jelentésekhez
   kell (egy Cloudflare Worker, lásd lent).
-- A dalok 30 mp-es előnézetei a [Deezer](https://www.deezer.com) nyilvános API-jából jönnek
-  (a Cloudflare Workeren keresztül, ha az nem elérhető, JSONP-vel). Hangfájlt nem tárolunk.
+- A dalok 30 mp-es előnézetei a [Deezer](https://www.deezer.com) nyilvános API-jából jönnek,
+  közvetlenül a játékos böngészőjéből (JSONP). Hangfájlt nem tárolunk.
 - Telepíthető (PWA): „Hozzáadás a kezdőképernyőhöz”.
 
 ## Játék

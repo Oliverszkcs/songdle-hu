@@ -1,6 +1,7 @@
-// Deezer API. Elsősorban a saját Workerünkön keresztül, sima JSON-ként (a Deezer nem küld CORS-fejlécet,
-// így a böngésző közvetlenül nem kérheti le). Ha a Worker nem elérhető (vagy elfogyott a napi kerete),
-// tartalékként JSONP-vel, közvetlenül a Deezertől: így a játék akkor is megy.
+// Deezer API. JSONP-vel, közvetlenül a Deezertől (a Deezer nem küld CORS-fejlécet, így a böngésző
+// sima fetch-csel nem kérheti le). Ha a configban van DEEZER_PROXY, előbb azon keresztül, sima JSON-ként,
+// és csak akkor JSONP-vel, ha az nem elérhető. (A Cloudflare Workeres közvetítő 2026 novembere óta ki van
+// kapcsolva, mert a Deezer a Cloudflare címeit elutasítja.)
 (function () {
   const API = "https://api.deezer.com";
   const PROXY = (window.SONGDLE_CONFIG || {}).DEEZER_PROXY || "";

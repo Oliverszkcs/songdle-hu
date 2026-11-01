@@ -1,8 +1,8 @@
-import { SET_SIZE, $, num, save, artistLine } from "./core.js?v=63";
-import { mode, pool, round, game, bestGame, gameScore, gameDone } from "./state.js?v=63";
-import { bonusEligible } from "./bonus.js?v=63";
-import { startRound } from "./round.js?v=63";
-import { shareRound } from "./controls.js?v=63";
+import { SET_SIZE, $, num, save, artistLine } from "./core.js?v=64";
+import { mode, pool, round, game, bestGame, gameScore, gameDone } from "./state.js?v=64";
+import { bonusEligible } from "./bonus.js?v=64";
+import { startRound } from "./round.js?v=64";
+import { shareRound } from "./controls.js?v=64";
 
 // ---------- Kör vége (végtelen mód): az 5 dal összesítője ----------
 const se = {
