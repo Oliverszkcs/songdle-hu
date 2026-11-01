@@ -1,15 +1,15 @@
 import {
   MAX_TRIES, MAX_LEN, SET_SIZE, diffById, WAVE_BARS, reducedMotion, el, num, fmt, shiftDate, mulberry32,
-  retrigger,
-} from "./core.js?v=64";
+  retrigger, toTop, fromTop,
+} from "./core.js?v=65";
 import {
   mode, lengthsOf, multOf, round, stats, dailyDiff, dailyStats, points, game, bestGame, gameScore, gameDone,
   shownPoints, versus, vsScore, dailyStreakNow, setShownPoints,
-} from "./state.js?v=64";
-import { usedTries, currentLength, scaleLength, scoreFor } from "./round.js?v=64";
-import { renderVsBar, vsOppLine } from "./versus.js?v=64";
-import { stream } from "./stream.js?v=64";
-import { adPointsFor, adState } from "./artist.js?v=64";
+} from "./state.js?v=65";
+import { usedTries, currentLength, scaleLength, scoreFor } from "./round.js?v=65";
+import { renderVsBar, vsOppLine } from "./versus.js?v=65";
+import { stream } from "./stream.js?v=65";
+import { adPointsFor, adState } from "./artist.js?v=65";
 
 // ---------- Megjelenítés ----------
 export function renderAll(animate) {
@@ -263,8 +263,10 @@ export function updateClear() {
   el.clearBtn.hidden = !el.input.value;
 }
 
+let confettiTimer = 0;
 export function confetti() {
   if (reducedMotion.matches) return;
+  toTop(el.confetti);
   const colors = ["#1ed760", "#19e3c0", "#ffc547", "#ff5470", "#2bb3ff", "#f4f4f8"];
   for (let i = 0; i < 90; i++) {
     const c = document.createElement("i");
@@ -277,7 +279,8 @@ export function confetti() {
     if (i % 3 === 0) { c.style.width = "10px"; c.style.height = "10px"; c.style.borderRadius = "50%"; }
     el.confetti.appendChild(c);
   }
-  setTimeout(() => { el.confetti.innerHTML = ""; }, 3200);
+  clearTimeout(confettiTimer);
+  confettiTimer = setTimeout(() => { el.confetti.innerHTML = ""; fromTop(el.confetti); }, 3200);
 }
 
 // Betöltéskor (a main.js hívja, az eredeti sorrendben).

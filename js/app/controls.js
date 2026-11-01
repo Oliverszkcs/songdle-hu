@@ -1,13 +1,13 @@
-import { SET_SIZE, diffById, el, load, encId, toast } from "./core.js?v=64";
-import { catLabel } from "./pool.js?v=64";
-import { mode, category, round, stats, game, gameDone, dailyStreakNow, nextUnplayedDiff } from "./state.js?v=64";
-import { changeDifficulty, changeMode } from "./modes.js?v=64";
-import { startRound, registerAttempt, emojiRow } from "./round.js?v=64";
-import { playClip } from "./audio.js?v=64";
-import { submit, copyText } from "./autocomplete.js?v=64";
-import { vsNext, vsShare } from "./versus.js?v=64";
-import { streamLock, streamNext } from "./stream.js?v=64";
-import { countEvent } from "./analytics.js?v=64";
+import { SET_SIZE, diffById, el, load, encId, toast } from "./core.js?v=65";
+import { catLabel } from "./pool.js?v=65";
+import { mode, category, round, stats, game, gameDone, dailyStreakNow, nextUnplayedDiff } from "./state.js?v=65";
+import { changeDifficulty, changeMode } from "./modes.js?v=65";
+import { startRound, registerAttempt, emojiRow } from "./round.js?v=65";
+import { playClip } from "./audio.js?v=65";
+import { submit, copyText } from "./autocomplete.js?v=65";
+import { vsNext, vsShare } from "./versus.js?v=65";
+import { streamLock, streamNext } from "./stream.js?v=65";
+import { countEvent } from "./analytics.js?v=65";
 
 // ---------- Megosztás ----------
 export const homeUrl = () => location.origin + location.pathname;
@@ -19,17 +19,23 @@ export function challengeUrl(ids, score) {
   return homeUrl() + "?" + p;
 }
 
+// Eredmény: "shared" (megosztó menü), "copied", "failed", vagy "cancelled" (a játékos bezárta a menüt).
 export async function shareText(text) {
   try {
     if (navigator.share && matchMedia("(hover: none)").matches) {
       await navigator.share({ text });
-      return;
+      return "shared";
     }
   } catch (e) {
-    if (e && e.name === "AbortError") return;
+    if (e && e.name === "AbortError") return "cancelled";
   }
-  toast(await copyText(text) ? "Vágólapra másolva! ✨" : "Nem sikerült megosztani.");
+  const ok = await copyText(text);
+  toast(ok ? "Vágólapra másolva! ✨" : "Nem sikerült megosztani.");
+  return ok ? "copied" : "failed";
 }
+
+// Egy dal jele a kör összesítőjében: a tippek száma szerinti szín, ⬛ = nem jött össze.
+export const setMark = (r) => (r.won ? ["", "🟩", "🟩", "🟨", "🟨", "🟧", "🟥"][r.tries] || "🟩" : "⬛");
 
 export async function shareRound() {
   if (!round || !round.done) return;
@@ -38,14 +44,16 @@ export async function shareRound() {
     ? `Songdle HU 📅 ${round.date} · ${diffById(round.diff).icon} ${diffById(round.diff).label}`
     : `Songdle HU 🎵 ${catLabel(category)}` + (round.reverse ? " · 🔥 visszafelé" : "");
   const streak = round.mode === "daily" ? dailyStreakNow(round.diff) : stats.streak;
-  const lines = [head, emojiRow(round)];
+  const ids = game.results.map((r) => r.id).filter(Boolean);
+  const setOver = round.mode === "endless" && gameDone() && ids.length === SET_SIZE;
+  // Kör végén az 5 dal (a tippek száma szerint színezve), különben az utolsó dal tippjei.
+  const lines = [head, setOver ? game.results.map(setMark).join("") : emojiRow(round)];
   const extra = [];
-  if (round.points && round.points.total) extra.push(`+${round.points.total} pont`);
+  if (!setOver && round.points && round.points.total) extra.push(`+${round.points.total} pont`);
   if (streak > 0) extra.push(`🔥 ${streak}`);
   if (extra.length) lines.push(extra.join(" · "));
   // Kör vége: a link kihívás – a barát ugyanazt az 5 dalt kapja.
-  const ids = game.results.map((r) => r.id).filter(Boolean);
-  if (round.mode === "endless" && gameDone() && ids.length === SET_SIZE) {
+  if (setOver) {
     // A kihívás a bónusz nélküli pontokkal megy, mert a barát is csak ennyit szerezhet.
     const base = game.results.reduce((a, r) => a + (r.base ?? r.pts), 0);
     lines.push(`🎯 Kör: ${base} pont – meg tudod verni?`, challengeUrl(ids, base));

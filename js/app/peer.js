@@ -1,15 +1,15 @@
-import { MAX_TRIES, POINTS, $, load, save, decId, toast } from "./core.js?v=64";
+import { MAX_TRIES, POINTS, $, load, save, decId, toast } from "./core.js?v=65";
 import {
   loadArtists, buildPool, assignWeights, decadeOf, allCats, catLabel, artistsFor, loadYears, trackYear,
-} from "./pool.js?v=64";
-import { category, round, versus, VS_SONGS, vsOver } from "./state.js?v=64";
-import { updateNextButton, fillCatPill, openCatSheet } from "./modes.js?v=64";
-import { renderStreak } from "./render.js?v=64";
-import { homeUrl, shareText } from "./controls.js?v=64";
+} from "./pool.js?v=65";
+import { category, round, versus, VS_SONGS, vsOver } from "./state.js?v=65";
+import { updateNextButton, fillCatPill, openCatSheet } from "./modes.js?v=65";
+import { renderStreak } from "./render.js?v=65";
+import { homeUrl, shareText } from "./controls.js?v=65";
 import {
   pickSet, startVersus, vsWaitingFor, vsNext, renderVsBar, renderVsSummary, vr, renderVsResult, saveBattle,
   loadBattle,
-} from "./versus.js?v=64";
+} from "./versus.js?v=65";
 
 // ----- Kapcsolat (PeerJS: ingyenes nyilvános közvetítő a kapcsolódáshoz, utána közvetlen) -----
 const PEER_PREFIX = "songdlehu-";

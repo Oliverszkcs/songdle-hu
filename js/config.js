@@ -561,6 +561,19 @@ window.SONGDLE_CONFIG = {
     "TNT":                       { type: "duo", gender: "m", year: 1996, debut: 1996, status: "active" },
     "Fresh":                     { type: "band", gender: "f", year: 1996, debut: 1997, status: "active" },
     "Baby Sisters":              { type: "band", gender: "f", year: 1996, debut: 1997, status: "split" },
+    // 2026 novemberi előadók (MusicBrainz + magyar Wikipédia), Spotify-hallgatószám nélkül. Szólóelőadónál
+    // a debüt a saját első kiadványa (Deák Bill: Rossz vér, 1984; Zámbó Jimmy: Csak egy vallomás, 1991).
+    // A Rapülők 1992–94 és 2006–2017 között működött; a Valmar 2018-ban jelentkezett az A Dalba, de nem
+    // került be a mezőnybe. A Ham Ko Hamnél nincs megbízható adat, ezért nem lehet napi előadó.
+    "Zámbó Jimmy":               { type: "solo", gender: "m", year: 1958, debut: 1991, status: "dead" },
+    "Valmar":                    { type: "duo", gender: "m", year: 2018, debut: 2018, status: "active" },
+    "Nox":                       { type: "band", gender: "mixed", year: 2002, debut: 2002, status: "active", esc: "esc" },
+    "aurevoir.":                 { type: "band", gender: "m", year: 2015, debut: 2017, status: "active" },
+    "Animal Cannibals":          { type: "duo", gender: "m", year: 1989, debut: 1995, status: "active" },
+    "Rapülők":                   { type: "band", gender: "m", year: 1992, debut: 1992, status: "split" },
+    "Deák Bill Gyula":           { type: "solo", gender: "m", year: 1948, debut: 1984, status: "dead" },
+    "Korda György":              { type: "solo", gender: "m", year: 1939, debut: 1963, status: "active" },
+    "R-GO":                      { type: "band", gender: "mixed", year: 1982, debut: 1983, status: "active" },
   },
 
   // Kézi évjavítások az évtized-kategóriákhoz és a bónuszkérdéshez, ha a Deezer és a MusicBrainz

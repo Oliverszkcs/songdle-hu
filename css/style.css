@@ -919,6 +919,8 @@ body.playing .disc-vinyl, .stage.loading .disc-vinyl { animation-play-state: run
 
 /* Konfetti */
 .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 40; }
+.confetti[popover] { width: auto; height: auto; margin: 0; padding: 0; border: 0; background: transparent; }
+.toast[popover] { right: auto; bottom: auto; margin: 0; overflow: visible; color: var(--text); width: max-content; max-width: calc(100vw - 32px); }
 .confetti i {
   position: absolute; top: -14px;
   width: 8px; height: 14px;
@@ -1577,12 +1579,76 @@ input[role="switch"]:focus-visible { outline: 2px solid var(--accent); outline-o
 .vs-rank .place { flex: none; width: 1.8em; font-weight: 900; }
 .vs-rank .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
 .vs-rank b { font-size: 1.25rem; font-weight: 900; font-variant-numeric: tabular-nums; }
-/* Kör vége (végtelen mód): az 5 dal a címmel, az előadóval és a ponttal. */
-.sr-score b { color: var(--text); font-size: 1.35em; }
-.set-end-list .nm small { display: block; overflow: hidden; text-overflow: ellipsis; font-size: .8rem; font-weight: 600; color: var(--muted); }
-.set-end-list li.lost { opacity: .6; }
-.set-end-list li.lost b { color: var(--wrong); }
-.set-end-list b { font-size: 1.05rem !important; }
+/* Kör vége (végtelen mód): jutalomképernyő – érem, csillagok, felpörgő pontszám, rekord-sáv, a kör dalai. */
+.set-end { --tier: var(--accent); --tier-glow: rgba(30, 215, 96, .35); text-align: center; overflow-x: hidden; }
+.set-end[data-tier="record"], .set-end[data-tier="gold"] { --tier: #ffc547; --tier-glow: rgba(255, 197, 71, .45); }
+.set-end[data-tier="silver"] { --tier: #d6dbe6; --tier-glow: rgba(214, 219, 230, .3); }
+.set-end[data-tier="bronze"] { --tier: #e0955a; --tier-glow: rgba(224, 149, 90, .3); }
+.set-end[data-tier="plain"] { --tier: var(--muted); --tier-glow: rgba(255, 255, 255, .08); }
+.set-end > form { position: relative; }
+.se-close { position: absolute; top: -6px; right: -6px; z-index: 1; }
+.se-hero { position: relative; padding-top: 6px; }
+/* Forgó fénysugarak az érem mögött. */
+.se-hero::before {
+  content: ""; position: absolute; left: 50%; top: 50px; width: 260px; height: 260px; margin: -130px 0 0 -130px;
+  background: repeating-conic-gradient(from 0deg, var(--tier-glow) 0 10deg, transparent 10deg 30deg);
+  -webkit-mask: radial-gradient(circle, #000 0 25%, transparent 68%); mask: radial-gradient(circle, #000 0 25%, transparent 68%);
+  animation: se-rays 14s linear infinite; pointer-events: none; opacity: .9;
+}
+.set-end[data-tier="plain"] .se-hero::before { display: none; }
+@keyframes se-rays { to { transform: rotate(360deg); } }
+.se-badge {
+  position: relative; width: 92px; height: 92px; margin: 0 auto; display: grid; place-items: center;
+  font-size: 3.2rem; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .18), rgba(255, 255, 255, .03) 70%);
+  border: 2px solid var(--tier); box-shadow: 0 0 0 6px rgba(255, 255, 255, .03), 0 0 40px var(--tier-glow);
+}
+.se-stars { position: relative; margin: 10px 0 2px; font-size: 1.9rem; letter-spacing: 6px; line-height: 1; }
+.se-stars span { color: rgba(255, 255, 255, .14); display: inline-block; }
+.se-stars span.on { color: #ffc547; text-shadow: 0 0 16px rgba(255, 197, 71, .7); }
+.se-title { position: relative; margin: 8px 0 2px !important; font-size: 1.75rem !important; color: var(--tier); }
+.set-end[data-tier="plain"] .se-title { color: var(--text); }
+.se-sub { position: relative; margin: 0; font-weight: 600; }
+.se-score { margin: 14px 0 4px; font-weight: 800; color: var(--muted); }
+.se-score b {
+  display: block; font-size: 3.4rem; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #fff 20%, var(--tier)); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.se-record { margin: 6px auto 16px; max-width: 300px; }
+.se-bar { height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.se-bar i { display: block; height: 100%; width: calc(var(--w, 0) * 100%); border-radius: inherit; background: linear-gradient(90deg, var(--accent), #19e3c0); }
+.se-record.rec .se-bar i { background: linear-gradient(90deg, #ffc547, #ff9f43); box-shadow: 0 0 14px rgba(255, 197, 71, .7); }
+.se-record p { margin: 6px 0 0 !important; font-size: .85rem; font-weight: 700; }
+.se-record.rec p { color: #ffc547 !important; }
+.se-list { list-style: none; margin: 0 0 4px; padding: 0; display: grid; gap: 6px; text-align: left; }
+.se-list li { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 12px; background: rgba(255, 255, 255, .05); }
+.se-list .mark { flex: none; font-size: 1.05rem; }
+.se-list .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.se-list .nm small { display: block; overflow: hidden; text-overflow: ellipsis; font-size: .8rem; font-weight: 600; color: var(--muted); }
+.se-list b { flex: none; font-size: 1.05rem; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--accent); }
+.se-list li.lost { opacity: .55; }
+.se-list li.lost b { color: var(--wrong); }
+.se-actions { display: grid; grid-template-columns: 1fr 1.3fr; gap: 10px; margin-top: 16px; }
+.se-actions .btn { padding-left: 8px; padding-right: 8px; white-space: nowrap; }
+#seShareBtn.done { background: rgba(30, 215, 96, .16); color: var(--accent); }
+/* Belépő animációk (a .play osztály nyitáskor újraindítja őket). */
+.set-end.play .se-badge { animation: se-badge .8s var(--ease-spring) both; }
+.set-end.play .se-stars span { animation: se-star .5s var(--ease-spring) both; animation-delay: calc(.45s + var(--i) * .16s); }
+.set-end.play .se-title, .set-end.play .se-sub { animation: rise .5s .3s both; }
+.set-end.play .se-bar i { animation: grow 1.1s .5s cubic-bezier(.2, .8, .2, 1) both; transform-origin: left; }
+.set-end.play .se-list li { animation: se-row .45s var(--ease-spring) both; animation-delay: calc(.7s + var(--i) * .09s); }
+@keyframes se-badge { 0% { transform: scale(0) rotate(-30deg); opacity: 0; } 60% { transform: scale(1.18) rotate(8deg); opacity: 1; } }
+@keyframes se-star { 0% { transform: scale(0) rotate(-90deg); opacity: 0; } 70% { transform: scale(1.35); opacity: 1; } }
+@keyframes se-row { from { opacity: 0; transform: translateX(-18px); } }
+@media (prefers-reduced-motion: reduce) {
+  .se-hero::before, .set-end.play * { animation: none !important; }
+}
+@media (max-height: 760px) {
+  .se-hero::before { display: none; }
+  .se-badge { width: 70px; height: 70px; font-size: 2.4rem; }
+  .se-score b { font-size: 2.6rem; }
+  .se-list li { padding: 6px 10px; }
+}
 /* Párbaj: hosszabb meccsnél kisebb mezők, sok játékosnál tömörebb sorok. */
 .vs-bar.long .set-slots { gap: 3px; }
 .vs-bar.long .set-slots span { font-size: .62rem; border-radius: 6px; }

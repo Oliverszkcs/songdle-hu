@@ -135,13 +135,24 @@ export function retrigger(node, cls) {
   node.classList.add(cls);
 }
 
+// Popover-elem a legfelső rétegbe: újranyitva a legutóbb megnyitott párbeszédablak fölé is kerül.
+// (Popover nélküli böngészőben a popover attribútum hatástalan, az elem sima rétegként látszik.)
+export function toTop(node) {
+  try { node.hidePopover(); } catch { /* nem volt nyitva */ }
+  try { node.showPopover(); } catch { /* nincs popover */ }
+}
+export function fromTop(node) {
+  try { node.hidePopover(); } catch { /* nincs popover */ }
+}
+
 let toastTimer = 0;
 export function toast(msg) {
   el.toast.textContent = msg;
   // Hosszabb magyarázat: szélesebb doboz, tovább látszik.
   el.toast.classList.toggle("long", msg.length > 50);
   el.toast.hidden = false;
+  toTop(el.toast);
   retrigger(el.toast, "show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.toast.hidden = true; }, Math.max(2200, msg.length * 55));
+  toastTimer = setTimeout(() => { el.toast.hidden = true; fromTop(el.toast); }, Math.max(2200, msg.length * 55));
 }

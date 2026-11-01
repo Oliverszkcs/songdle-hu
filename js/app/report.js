@@ -1,6 +1,6 @@
-import { CFG, $, artistLine, trackLabel, toast } from "./core.js?v=64";
-import { isReported, catLabel, setReported } from "./pool.js?v=64";
-import { category, round, versus } from "./state.js?v=64";
+import { CFG, $, artistLine, trackLabel, toast } from "./core.js?v=65";
+import { isReported, catLabel, setReported } from "./pool.js?v=65";
+import { category, round, versus } from "./state.js?v=65";
 
 // ---------- Dal jelentése ----------
 const reportBtn = $("reportBtn"), reportDialog = $("reportDialog");

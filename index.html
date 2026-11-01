@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hu" data-v="64">
+<html lang="hu" data-v="65">
 <head>
   <meta charset="utf-8">
   <!-- Csak a felsorolt helyekről tölthet be bármit az oldal. Új külső szolgáltatásnál ide is fel kell venni.
@@ -57,7 +57,7 @@
   <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=64">
+  <link rel="stylesheet" href="css/style.css?v=65">
 </head>
 <body>
   <div class="bg" aria-hidden="true">
@@ -293,8 +293,9 @@
     </section>
   </div>
 
-  <div class="toast glass" id="toast" role="status" aria-live="polite" hidden></div>
-  <div class="confetti" id="confetti" aria-hidden="true"></div>
+  <!-- popover: így a megnyitott párbeszédablakok fölött is látszik (a böngésző legfelső rétegében). -->
+  <div class="toast glass" id="toast" role="status" aria-live="polite" popover="manual" hidden></div>
+  <div class="confetti" id="confetti" aria-hidden="true" popover="manual"></div>
 
   <dialog id="statsDialog" class="dialog">
     <form method="dialog">
@@ -515,15 +516,24 @@
     </form>
   </dialog>
 
-  <dialog id="setEndDialog" class="dialog vs-result set-end" aria-labelledby="seVerdict">
+  <dialog id="setEndDialog" class="dialog set-end" aria-labelledby="seTitle">
     <form method="dialog">
-      <p class="vs-res-verdict" id="seVerdict"></p>
-      <p class="sr-score" id="seScore"></p>
-      <ol class="vs-rank set-end-list" id="seList" aria-label="A kör dalai"></ol>
-      <button type="button" class="btn btn-primary" id="seNextBtn">Új kör →</button>
-      <div class="buttons">
-        <button type="button" class="btn btn-ghost" id="seShareBtn">🎯 Kihívás</button>
-        <button class="btn btn-ghost" value="close">Bezár</button>
+      <button class="icon-btn small se-close" value="close" aria-label="Bezár">×</button>
+      <div class="se-hero">
+        <div class="se-badge" id="seBadge" aria-hidden="true"></div>
+        <div class="se-stars" id="seStars"></div>
+        <h2 class="se-title" id="seTitle"></h2>
+        <p class="se-sub" id="seSub"></p>
+      </div>
+      <p class="se-score"><b id="seScore">0</b> pont</p>
+      <div class="se-record" id="seRecord">
+        <div class="se-bar"><i id="seBar"></i></div>
+        <p id="seRecordText"></p>
+      </div>
+      <ol class="se-list" id="seList" aria-label="A kör dalai"></ol>
+      <div class="se-actions">
+        <button type="button" class="btn btn-ghost" id="seShareBtn" title="Link a barátodnak: ugyanezt az 5 dalt kapja, és látja, mennyit kell megvernie">🎯 Kihívás</button>
+        <button type="button" class="btn btn-primary" id="seNextBtn" autofocus>Új kör →</button>
       </div>
     </form>
   </dialog>
@@ -563,8 +573,8 @@
 
   <audio id="audio" preload="auto" crossorigin="anonymous"></audio>
 
-  <script src="js/config.js?v=64"></script>
-  <script src="js/deezer.js?v=64"></script>
-  <script type="module" src="js/app/main.js?v=64"></script>
+  <script src="js/config.js?v=65"></script>
+  <script src="js/deezer.js?v=65"></script>
+  <script type="module" src="js/app/main.js?v=65"></script>
 </body>
 </html>
