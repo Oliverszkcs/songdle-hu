@@ -257,9 +257,9 @@ window.SONGDLE_CONFIG = {
     // 1997–99-es eurodance-korszak; a 2000 utáni pop-dance dalok (Kicsi gesztenye…) csak a Popban.
     { name: "TNT", id: 63769, tags: ["pop", "disco"], only: [
       "Titkos üzenet", "Rendőrnő", "Összedől a ház", "Robban a bomba!", "Hurrá, suli van!", "Bele vagyok zúgva",
-      "Sírni tudnék", "Holnap hazautazom", "Még várok 1 percet", "Bolond, aki sír...!", "Minden pillanatban",
+      "Sírni tudnék", "Holnap hazautazom", "Még várok 1 percet", "Bolond, aki sír...!",
       "Mért vagy szomorú?", "Tiltott perc", "Kicsi gesztenye", "Nem jön álom a szememre", "Látod zokog a szívem",
-      "Egyetlen szó", "Fogd a kezem", "Hova visz a hajó", "Hallgasd hogy zsong a tavasz", "Híd a folyót",
+      "Egyetlen szó", "Fogd a kezem", "Hallgasd hogy zsong a tavasz", "Híd a folyót",
       "Itt vagy a szívemben", "Fehér karácsony",
     ], tagOnly: { disco: [
       "Titkos üzenet", "Rendőrnő", "Összedől a ház", "Robban a bomba!", "Hurrá, suli van!", "Bele vagyok zúgva",
@@ -651,7 +651,6 @@ window.SONGDLE_CONFIG = {
     { artist: "TNT", title: "Itt vagy a szívemben", year: 2001 },
     { artist: "TNT", title: "Kicsi gesztenye", year: 2002 },
     { artist: "TNT", title: "Nem jön álom a szememre", year: 2002 },
-    { artist: "TNT", title: "Hova visz a hajó", year: 2003 },
     { artist: "TNT", title: "Egyetlen szó", year: 2003 },
     { artist: "TNT", title: "Hallgasd hogy zsong a tavasz", year: 2005 },
   ],
